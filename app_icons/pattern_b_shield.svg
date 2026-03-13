@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F57C00"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </linearGradient>
+  </defs>
+
+  <!-- �o -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bgB)"/>
+
+  <!-- ���� -->
+  <path d="M256,80 L400,140 C400,140 410,320 256,430 C102,320 112,140 112,140 Z"
+        fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="round" opacity="0.25"/>
+  <path d="M256,100 L380,152 C380,152 390,310 256,410 C122,310 132,152 132,152 Z"
+        fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <!-- ������-.	 -->
+  <g transform="translate(256,255) scale(0.9)">
+    <!-- ��� -->
+    <rect x="-120" y="-35" width="105" height="70" rx="24" ry="24" fill="none" stroke="#FFFFFF" stroke-width="11"/>
+    <!-- ��� -->
+    <rect x="15" y="-35" width="105" height="70" rx="24" ry="24" fill="none" stroke="#FFFFFF" stroke-width="11"/>
+    <!-- ��ø -->
+    <path d="M-15,0 C-5,-18 5,-18 15,0" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <!-- ���� -->
+    <path d="M-120,-2 L-155,22" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <path d="M120,-2 L155,22" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- ��������
+�	 -->
+  <circle cx="256" cy="165" r="10" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="256" cy="165" r="20" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <circle cx="256" cy="165" r="32" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.3"/>
+
+  <!-- ��ï����	 -->
+  <g transform="translate(340,330)">
+    <circle cx="0" cy="0" r="28" fill="#FFFFFF" opacity="0.2"/>
+    <path d="M-12,0 L-4,10 L14,-10" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

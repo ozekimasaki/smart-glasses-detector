@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E65100"/>
+      <stop offset="100%" stop-color="#BF360C"/>
+    </linearGradient>
+    <clipPath id="roundA">
+      <rect width="512" height="512" rx="112" ry="112"/>
+    </clipPath>
+  </defs>
+
+  <!-- �o -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bgA)"/>
+
+  <g clip-path="url(#roundA)">
+    <!-- �����
+�	 -->
+    <path d="M295,200 A30,30 0 0,1 345,200" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+    <path d="M280,185 A50,50 0 0,1 360,185" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity="0.65"/>
+    <path d="M265,170 A70,70 0 0,1 375,170" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+    <path d="M250,155 A90,90 0 0,1 390,155" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.4"/>
+
+    <!-- ��,S -->
+    <!-- ��� -->
+    <rect x="108" y="250" width="120" height="80" rx="28" ry="28" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
+    <!-- ��� -->
+    <rect x="278" y="250" width="120" height="80" rx="28" ry="28" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
+    <!-- ��ø -->
+    <path d="M228,290 C240,270 266,270 278,290" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+    <!-- ����� -->
+    <path d="M108,285 L60,310" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+    <!-- ����� -->
+    <path d="M398,285 L450,310" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+
+    <!-- ��nI� -->
+    <circle cx="338" cy="285" r="8" fill="#FFFFFF" opacity="0.3"/>
+  </g>
+</svg>

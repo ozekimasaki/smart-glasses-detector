@@ -1,0 +1,12 @@
+package jp.smartglasses.detector.domain.usecase
+
+import jp.smartglasses.detector.domain.repository.BluetoothRepository
+import javax.inject.Inject
+
+class StopScanningUseCase @Inject constructor(
+    private val bluetoothRepository: BluetoothRepository
+) {
+    suspend operator fun invoke() {
+        bluetoothRepository.stopScanning()
+    }
+}

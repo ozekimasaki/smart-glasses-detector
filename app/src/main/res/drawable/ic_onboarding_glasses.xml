@@ -1,0 +1,78 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="130dp"
+    android:viewportWidth="200"
+    android:viewportHeight="130">
+
+    <!-- Left lens (rounded rectangle) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 22,42 Q 8,42 8,56 L 8,88 Q 8,102 22,102 L 72,102 Q 86,102 86,88 L 86,56 Q 86,42 72,42 Z" />
+
+    <!-- Right lens (rounded rectangle) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 128,42 Q 114,42 114,56 L 114,88 Q 114,102 128,102 L 178,102 Q 192,102 192,88 L 192,56 Q 192,42 178,42 Z" />
+
+    <!-- Nose bridge -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 86,72 Q 100,62 114,72" />
+
+    <!-- Left temple arm -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M 8,65 L 1,55" />
+
+    <!-- Right temple arm -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M 192,65 L 199,55" />
+
+    <!-- Wireless signal arc 1 (small) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 144,34 A 10,10 0 0 1 164,34" />
+
+    <!-- Wireless signal arc 2 (medium) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 136,24 A 20,20 0 0 1 172,24" />
+
+    <!-- Wireless signal arc 3 (large) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 128,14 A 30,30 0 0 1 180,14" />
+
+    <!-- Signal dot (origin) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 151,42 A 4,4 0 1 0 159,42 A 4,4 0 1 0 151,42 Z" />
+
+</vector>

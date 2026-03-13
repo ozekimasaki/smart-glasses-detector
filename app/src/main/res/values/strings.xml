@@ -1,0 +1,121 @@
+<resources>
+    <string name="app_name">スマートグラス検出</string>
+
+    <string name="notification_channel_scanning">探索中</string>
+    <string name="notification_channel_detection">検出通知</string>
+    <string name="notification_scanning_title">スマートグラスを探しています</string>
+    <string name="notification_scanning_text_background">タップしてアプリを開く</string>
+    <string name="notification_scanning_text_foreground">アプリを開いている間だけ探索します</string>
+    <string name="notification_detection_title">スマートグラスを見つけました！</string>
+
+    <string name="scan_start">さがす</string>
+    <string name="scan_stop">とめる</string>
+    <string name="scanning_status">探索中です</string>
+    <string name="scanning_description">端末と設定に応じて探索を続けます</string>
+    <string name="detection_count_today">今日 %d 個のスマートグラスを見つけました</string>
+    <string name="battery_consumption">バッテリー消費</string>
+    <string name="battery_low">低</string>
+    <string name="battery_estimated">推定: 1時間あたり 3〜5%%</string>
+    <string name="power_save_mode">バッテリー節約モードに切り替え</string>
+
+    <string name="history_title">見つけた記録</string>
+    <string name="history_today">今日</string>
+    <string name="history_yesterday">昨日</string>
+    <string name="history_distance">距離: %s</string>
+    <string name="history_empty_title">まだ見つかっていません</string>
+    <string name="history_empty_message">「さがす」ボタンを押してみましょう！</string>
+    <string name="history_share_diagnostic">調査ログを共有</string>
+
+    <string name="distance_very_close">とても近い</string>
+    <string name="distance_close">近い</string>
+    <string name="distance_medium">少し離れている</string>
+    <string name="distance_far">離れている</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_behavior">動作設定</string>
+    <string name="settings_background">バックグラウンドで探す</string>
+    <string name="settings_background_desc_supported">Android 12 以上では、アプリを閉じても探索を続けられます</string>
+    <string name="settings_background_desc_unsupported">この端末では、アプリを開いている間だけ探索できます</string>
+    <string name="settings_notification">通知</string>
+    <string name="settings_notification_desc">スマートグラスを見つけたときにお知らせします</string>
+    <string name="settings_vibration">バイブレーション</string>
+    <string name="settings_vibration_desc">見つけたときに振動でお知らせします</string>
+    <string name="settings_sound">通知音</string>
+    <string name="settings_sound_desc">見つけたときに音でお知らせします</string>
+    <string name="settings_sensitivity">検出の感度</string>
+    <string name="settings_sensitivity_low">バッテリー節約</string>
+    <string name="settings_sensitivity_low_desc">近くにある機器だけを検出します。バッテリーにやさしい設定です</string>
+    <string name="settings_sensitivity_balanced">おすすめ</string>
+    <string name="settings_sensitivity_balanced_desc">バッテリーと精度のバランスが良い、おすすめの設定です</string>
+    <string name="settings_sensitivity_high">精度重視</string>
+    <string name="settings_sensitivity_high_desc">より広い範囲を検出します。バッテリーを多く使います</string>
+    <string name="settings_sensitivity_note">感度が高いほどバッテリーを多く使います</string>
+    <string name="settings_battery">バッテリー</string>
+    <string name="settings_battery_level">残量: %d%%</string>
+    <string name="settings_battery_time">推定動作時間: %d時間</string>
+    <string name="settings_battery_optimization">バッテリー最適化設定を開く</string>
+    <string name="settings_other">その他</string>
+    <string name="settings_about">このアプリについて</string>
+    <string name="settings_privacy">プライバシーポリシー</string>
+
+    <string name="onboarding_welcome">ようこそ！</string>
+    <string name="onboarding_welcome_desc">このアプリは、近くにある\nスマートグラスを見つけて\nお知らせします</string>
+    <string name="onboarding_howto">使い方はかんたん！</string>
+    <string name="onboarding_howto_step1">1. 「さがす」ボタンを\nタップするだけ</string>
+    <string name="onboarding_howto_step2">2. 近くにスマートグラスがあると\n通知でお知らせします</string>
+    <string name="onboarding_permissions">アプリの使用許可について</string>
+    <string name="onboarding_bluetooth">Bluetooth の使用</string>
+    <string name="onboarding_bluetooth_desc">Bluetooth の使用を許可してください。\n周辺のスマートグラスを見つけるために使います。\n位置情報は収集・保存しません。</string>
+    <string name="onboarding_location">位置情報</string>
+    <string name="onboarding_location_desc">Bluetooth で周辺機器を探すために\nシステム上、位置情報の許可が必要です。\nGPS や位置の記録には使用しません。</string>
+    <string name="onboarding_notifications">通知</string>
+    <string name="onboarding_notifications_desc">スマートグラスを見つけたときに\nすぐお知らせを表示するために使います。</string>
+    <string name="onboarding_background">バックグラウンド動作</string>
+    <string name="onboarding_background_desc_supported">Android 12 以上では、アプリを閉じたあとも\nユーザーが開始した探索を続けられます。</string>
+    <string name="onboarding_background_desc_unsupported">この端末では、アプリを開いている間だけ\nスマートグラスを探せます。</string>
+    <string name="onboarding_grant">許可して始める</string>
+    <string name="onboarding_permission_denied">Bluetooth の許可が必要です。\nスマートグラスを探すには、許可をお願いします。</string>
+    <string name="onboarding_skip">あとで設定する</string>
+    <string name="next">次へ</string>
+
+    <string name="nav_home">ホーム</string>
+    <string name="nav_history">記録</string>
+    <string name="nav_settings">設定</string>
+    <string name="nav_home_desc">ホーム画面へ移動</string>
+    <string name="nav_history_desc">検出記録画面へ移動</string>
+    <string name="nav_settings_desc">設定画面へ移動</string>
+
+    <string name="main_app_title">スマートグラス検出</string>
+    <string name="main_app_subtitle">近くのスマートグラスを見つけるアプリ</string>
+    <string name="main_headline">近くのスマートグラスを\n見つけましょう</string>
+    <string name="main_description">Bluetooth を使って周辺の機器を検出します。\n「さがす」ボタンを押すと探索を開始します。</string>
+    <string name="main_count_unit">個</string>
+    <string name="main_count_label">今日見つけたスマートグラス</string>
+    <string name="main_scanning_badge_background">探索中 - 設定に応じて閉じたあとも続けられます</string>
+    <string name="main_scanning_badge_foreground">探索中 - アプリを開いている間だけ動作します</string>
+    <string name="main_stop_button">とめる</string>
+    <string name="main_stop_description">タップして探索を停止する</string>
+    <string name="main_start_button">周辺をさがす</string>
+    <string name="main_start_description">タップして周辺のスマートグラスを探す</string>
+    <string name="main_about_section">このアプリについて</string>
+    <string name="main_hint_scan">Bluetooth で周辺の機器を検出します</string>
+    <string name="main_hint_notify">スマートグラスを見つけたら通知でお知らせします</string>
+    <string name="main_hint_history">検出した記録は「記録」タブで確認できます</string>
+    <string name="settings_group_behavior">動作</string>
+    <string name="settings_group_sensitivity">検出の感度</string>
+    <string name="settings_group_other">その他</string>
+
+    <string name="about_title">このアプリについて</string>
+    <string name="about_description">このアプリは、Bluetooth を使って近くのスマートグラスを検出し、記録するアプリです。\n\n検出記録と設定は端末内に保存されます。調査ログは、ユーザーが共有を選んだ場合のみ外部アプリへ渡ります。</string>
+    <string name="about_version">バージョン</string>
+    <string name="about_developer">開発者</string>
+    <string name="developer_contact_url">https://x.com/mei_999_</string>
+    <string name="privacy_policy_url">https://smart-glasses-detector-policy.maigo999.workers.dev</string>
+    <string name="about_close">閉じる</string>
+
+    <string name="privacy_title">プライバシーポリシー</string>
+    <string name="privacy_close">閉じる</string>
+    <string name="privacy_body">【端末内に保存する情報】\n\n・検出記録（機器名、信号強度、検出日時）\n・設定情報\n・調査ログ（広告名、ハッシュ化した機器アドレス、メーカー識別子、Service UUID、広告データ、信号強度、検出日時）\n\n【情報の取り扱い】\n\nこれらの情報は通常、お使いの端末内だけに保存されます。アプリが自動で外部サーバーへ送信することはありません。\n\n【共有について】\n\n「調査ログを共有」を選んだ場合のみ、選択した外部アプリに JSON 形式で渡ります。\n\n【位置情報について】\n\nAndroid 11 以前では Bluetooth 探索のため位置情報権限が必要です。GPS による位置情報の取得・記録は行いません。\n\n【データの削除】\n\nバックアップは無効です。アプリをアンインストールすると、端末内の記録は削除されます。</string>
+    <string name="privacy_open_full_policy">公開ポリシーを開く</string>
+    <string name="privacy_contact">お問い合わせ</string>
+</resources>

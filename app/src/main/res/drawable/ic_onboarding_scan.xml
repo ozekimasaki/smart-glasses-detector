@@ -1,0 +1,76 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="200dp"
+    android:viewportWidth="160"
+    android:viewportHeight="200">
+
+    <!-- Phone body (rounded rectangle) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 52,18 Q 38,18 38,32 L 38,168 Q 38,182 52,182 L 108,182 Q 122,182 122,168 L 122,32 Q 122,18 108,18 Z" />
+
+    <!-- Phone screen area -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 46,38 L 46,158 L 114,158 L 114,38 Z" />
+
+    <!-- Home button -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 73,167 A 7,7 0 1 0 87,167 A 7,7 0 1 0 73,167 Z" />
+
+    <!-- Scan wave 1 (small, right side) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 130,78 A 16,16 0 0 1 130,122" />
+
+    <!-- Scan wave 2 (medium, right side) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 140,64 A 32,32 0 0 1 140,136" />
+
+    <!-- Scan wave 3 (large, right side) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 150,50 A 48,48 0 0 1 150,150" />
+
+    <!-- Small glasses icon on screen (simplified) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 56,100 Q 52,100 52,96 L 52,88 Q 52,84 56,84 L 72,84 Q 76,84 76,88 L 76,96 Q 76,100 72,100 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 84,100 Q 80,100 80,96 L 80,88 Q 80,84 84,84 L 100,84 Q 104,84 104,88 L 104,96 Q 104,100 100,100 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 76,92 Q 80,88 80,92" />
+
+</vector>

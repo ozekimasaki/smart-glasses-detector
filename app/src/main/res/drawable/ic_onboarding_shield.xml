@@ -1,0 +1,46 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="190dp"
+    android:viewportWidth="160"
+    android:viewportHeight="190">
+
+    <!-- Shield outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 80,12 L 148,40 L 148,100 C 148,144 80,178 80,178 C 80,178 12,144 12,100 L 12,40 Z" />
+
+    <!-- Lock body (rectangle) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 56,96 Q 52,96 52,100 L 52,126 Q 52,130 56,130 L 104,130 Q 108,130 108,126 L 108,100 Q 108,96 104,96 Z" />
+
+    <!-- Lock shackle (arch) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M 62,96 L 62,82 A 18,18 0 0 1 98,82 L 98,96" />
+
+    <!-- Lock keyhole circle -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 74,112 A 6,6 0 1 0 86,112 A 6,6 0 1 0 74,112 Z" />
+
+    <!-- Lock keyhole stem -->
+    <path
+        android:fillColor="#000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 80,118 L 80,126" />
+
+</vector>

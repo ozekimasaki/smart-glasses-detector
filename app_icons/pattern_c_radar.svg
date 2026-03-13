@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgC" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FF6D00"/>
+      <stop offset="100%" stop-color="#D84315"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bgC)"/>
+
+  <circle cx="256" cy="240" r="180" fill="url(#glow)"/>
+
+  <circle cx="256" cy="240" r="60" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="256" cy="240" r="110" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.15"/>
+  <circle cx="256" cy="240" r="160" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.1"/>
+
+  <line x1="256" y1="80" x2="256" y2="400" stroke="#FFFFFF" stroke-width="1" opacity="0.12"/>
+  <line x1="96" y1="240" x2="416" y2="240" stroke="#FFFFFF" stroke-width="1" opacity="0.12"/>
+
+  <path d="M256,240 L256,80 A160,160 0 0,1 394,160 Z" fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <g transform="translate(256,250)">
+    <rect x="-108" y="-32" width="95" height="64" rx="22" ry="22" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-width="10"/>
+    <rect x="13" y="-32" width="95" height="64" rx="22" ry="22" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-width="10"/>
+    <path d="M-13,0 C-4,-16 4,-16 13,0" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+    <path d="M-108,0 L-138,20" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+    <path d="M108,0 L138,20" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <circle cx="330" cy="175" r="7" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="330" cy="175" r="14" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.4"/>
+  <circle cx="190" cy="160" r="5" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="370" cy="280" r="4" fill="#FFFFFF" opacity="0.4"/>
+
+  <text x="256" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="36" fill="#FFFFFF" opacity="0.7" letter-spacing="10">SCAN</text>
+</svg>

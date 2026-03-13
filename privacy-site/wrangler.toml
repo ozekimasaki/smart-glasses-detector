@@ -1,0 +1,7 @@
+name = "smart-glasses-detector-policy"
+compatibility_date = "2026-03-14"
+workers_dev = true
+
+[assets]
+directory = "./public"
+not_found_handling = "404-page"

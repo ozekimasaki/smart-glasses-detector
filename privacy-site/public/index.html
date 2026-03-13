@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スマートグラス検出 プライバシーポリシー</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #fffaf0;
+        --panel: #ffffff;
+        --line: #eed9b8;
+        --text: #2d2216;
+        --muted: #715c46;
+        --accent: #d96c2f;
+        --accent-soft: #fff1e6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans JP", "Yu Gothic UI", sans-serif;
+        background:
+          radial-gradient(circle at top right, #ffe0c6 0, transparent 34%),
+          linear-gradient(180deg, #fffdf8 0, var(--bg) 100%);
+        color: var(--text);
+        line-height: 1.7;
+      }
+
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+      }
+
+      .hero,
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 24px;
+        box-shadow: 0 18px 45px rgba(75, 43, 17, 0.08);
+      }
+
+      .hero {
+        margin-bottom: 20px;
+      }
+
+      section + section {
+        margin-top: 16px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 12px;
+        line-height: 1.3;
+      }
+
+      h1 {
+        margin-top: 16px;
+        font-size: clamp(28px, 4vw, 42px);
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      p,
+      li {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+
+      .meta {
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="hero">
+        <div class="eyebrow">Privacy Policy</div>
+        <h1>スマートグラス検出 プライバシーポリシー</h1>
+        <p>
+          本ポリシーは Android アプリ「スマートグラス検出」における情報の取り扱いを説明するものです。
+        </p>
+        <p class="meta">最終更新日: 2026年3月14日</p>
+      </div>
+
+      <section>
+        <h2>1. アプリの概要</h2>
+        <p>
+          本アプリは、Bluetooth を用いて近くのスマートグラスを検出し、検出記録を端末内で確認できるようにするためのアプリです。
+        </p>
+      </section>
+
+      <section>
+        <h2>2. 端末内に保存する情報</h2>
+        <ul>
+          <li>検出記録: 機器名、信号強度、検出日時、メーカー名、推定距離</li>
+          <li>設定情報: 通知、バイブレーション、音、感度、探索設定</li>
+          <li>調査ログ: 広告名、ハッシュ化した機器アドレス、Company ID、Service UUID、広告データ、信号強度、検出日時</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 外部送信について</h2>
+        <p>
+          本アプリは、通常利用時に取得した情報を自動で外部サーバーへ送信しません。インターネット経由の解析、広告配信、トラッキングも行いません。
+        </p>
+      </section>
+
+      <section>
+        <h2>4. 調査ログ共有について</h2>
+        <p>
+          ユーザーがアプリ内の「調査ログを共有」を実行した場合のみ、JSON 形式の調査ログが作成され、ユーザーが選択した外部アプリへ共有されます。
+        </p>
+        <p>
+          共有される JSON には、広告名、ハッシュ化した機器アドレス、Company ID、Service UUID、広告データ、信号強度、検出日時が含まれます。
+        </p>
+      </section>
+
+      <section>
+        <h2>5. 権限について</h2>
+        <p>
+          Android 12 以上では Bluetooth 権限を使用します。Android 11 以前では、Bluetooth 探索のために位置情報権限が必要です。
+          ただし、本アプリは GPS による位置情報の取得・保存を行いません。
+        </p>
+      </section>
+
+      <section>
+        <h2>6. データの保持と削除</h2>
+        <p>
+          記録データと設定情報は端末内に保存されます。クラウドバックアップは無効です。アプリをアンインストールすると、端末内の保存データは削除されます。
+        </p>
+      </section>
+
+      <section>
+        <h2>7. お問い合わせ</h2>
+        <p>
+          お問い合わせ先:
+          <a href="https://x.com/mei_999_" rel="noreferrer">https://x.com/mei_999_</a>
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
