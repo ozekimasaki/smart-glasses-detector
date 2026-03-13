@@ -48,7 +48,11 @@ scripts\gradlew-safe.cmd assembleRelease
 
 ## GitHub Release について
 
-このリポジトリの Release はソースコードのスナップショットとして管理しています。現時点では署名済み配布 APK は含めていません。
+このリポジトリの Release は公開配布にも使えますが、署名鍵は GitHub や repo に保存しません。署名済み APK / AAB を公開する場合は、ローカルの `keystore.properties` と keystore を使って生成してから Release に添付します。
+
+手順:
+
+- [`docs/github-release-signing.md`](docs/github-release-signing.md)
 
 ## 開発メモ
 

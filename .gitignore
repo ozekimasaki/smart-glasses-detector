@@ -7,6 +7,9 @@
 .kotlin/
 .npm-cache/
 .wrangler/
+keystore.properties
+*.jks
+*.keystore
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
