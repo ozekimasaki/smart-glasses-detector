@@ -70,6 +70,16 @@ class MainViewModel @Inject constructor(
 
     private fun startScanning() {
         viewModelScope.launch {
+            if (!bluetoothRepository.hasBleHardwareSupport()) {
+                _event.send(MainEvent.ShowMessage("この端末は Bluetooth Low Energy に対応していません。"))
+                return@launch
+            }
+
+            if (!bluetoothRepository.isBluetoothEnabled()) {
+                _event.send(MainEvent.ShowMessage("Bluetooth をオンにしてから、もう一度お試しください。"))
+                return@launch
+            }
+
             if (!bluetoothRepository.hasPermissions()) {
                 _event.send(MainEvent.OpenAppSettings)
                 return@launch

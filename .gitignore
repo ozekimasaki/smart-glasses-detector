@@ -2,6 +2,7 @@
 .gradle
 /local.properties
 .gradle-user/
+.android-user/
 .android-sdk-home/
 .android-prefs-root/
 .kotlin/

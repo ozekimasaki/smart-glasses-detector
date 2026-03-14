@@ -237,6 +237,10 @@ class SmartGlassesDetector @Inject constructor(
         return context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)
     }
 
+    fun isBluetoothEnabled(): Boolean {
+        return bluetoothAdapter?.isEnabled == true
+    }
+
     companion object {
         private const val TAG = "SmartGlassesDetector"
     }

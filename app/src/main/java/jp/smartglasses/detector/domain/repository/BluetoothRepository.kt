@@ -12,4 +12,6 @@ interface BluetoothRepository {
     suspend fun startScanning()
     suspend fun stopScanning()
     fun hasPermissions(): Boolean
+    fun hasBleHardwareSupport(): Boolean
+    fun isBluetoothEnabled(): Boolean
 }

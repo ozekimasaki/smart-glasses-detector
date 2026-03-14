@@ -49,6 +49,14 @@ class BluetoothRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun hasBleHardwareSupport(): Boolean {
+        return smartGlassesDetector.hasBleHardwareSupport()
+    }
+
+    override fun isBluetoothEnabled(): Boolean {
+        return smartGlassesDetector.isBluetoothEnabled()
+    }
+
     private fun hasPermission(permission: String): Boolean {
         return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }

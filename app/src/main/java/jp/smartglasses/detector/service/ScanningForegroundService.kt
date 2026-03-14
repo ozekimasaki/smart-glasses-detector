@@ -30,6 +30,7 @@ import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -119,40 +120,42 @@ class ScanningForegroundService : Service() {
 
     private fun startScanning() {
         scanJob = scope.launch {
-            if (!bluetoothRepository.hasPermissions()) {
-                Log.w(TAG, "Missing Bluetooth permission. Stop foreground service.")
-                settingsRepository.setIsScanning(false)
-                stopForegroundAndSelf()
-                return@launch
-            }
-
             try {
+                if (!bluetoothRepository.hasPermissions()) {
+                    Log.w(TAG, "Missing Bluetooth permission. Stop foreground service.")
+                    stopForegroundAndSelf()
+                    return@launch
+                }
+
                 bluetoothRepository.startScanning()
                 settingsRepository.setIsScanning(true)
+
+                val deviceCollectionJob = launch {
+                    bluetoothRepository.scannedDevices.collect { device ->
+                        onDeviceDetected(device)
+                    }
+                }
+
+                val diagnosticCollectionJob = launch {
+                    bluetoothRepository.diagnosticLogs.collect { log ->
+                        onDiagnosticLogDetected(log)
+                    }
+                }
+
+                try {
+                    awaitCancellation()
+                } finally {
+                    deviceCollectionJob.cancel()
+                    diagnosticCollectionJob.cancel()
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start Bluetooth scanning", e)
-                settingsRepository.setIsScanning(false)
                 stopForegroundAndSelf()
-                return@launch
-            }
-
-            val deviceCollectionJob = launch {
-                bluetoothRepository.scannedDevices.collect { device ->
-                    onDeviceDetected(device)
-                }
-            }
-
-            val diagnosticCollectionJob = launch {
-                bluetoothRepository.diagnosticLogs.collect { log ->
-                    onDiagnosticLogDetected(log)
-                }
-            }
-
-            try {
-                awaitCancellation()
             } finally {
-                deviceCollectionJob.cancel()
-                diagnosticCollectionJob.cancel()
+                stopBluetoothScanSafely()
+                persistScanningState(false)
             }
         }
     }
@@ -164,20 +167,11 @@ class ScanningForegroundService : Service() {
         scope.launch {
             val activeJob = scanJob
             scanJob = null
-            activeJob?.cancelAndJoin()
-
-            try {
-                if (bluetoothRepository.hasPermissions()) {
-                    bluetoothRepository.stopScanning()
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to stop Bluetooth scanning safely", e)
-            }
-
-            try {
-                settingsRepository.setIsScanning(false)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to persist scanning state", e)
+            if (activeJob != null) {
+                activeJob.cancelAndJoin()
+            } else {
+                stopBluetoothScanSafely()
+                persistScanningState(false)
             }
 
             stopForegroundAndSelf()
@@ -298,15 +292,12 @@ class ScanningForegroundService : Service() {
 
     override fun onDestroy() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
-        scanJob?.cancel()
 
         if (!isStopping) {
             runBlocking {
-                try {
-                    settingsRepository.setIsScanning(false)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to persist scanning state during destroy", e)
-                }
+                scanJob?.cancelAndJoin()
+                stopBluetoothScanSafely()
+                persistScanningState(false)
             }
         }
 
@@ -341,6 +332,22 @@ class ScanningForegroundService : Service() {
     private fun shouldKeepScanningInBackground(): Boolean {
         return runBlocking(Dispatchers.IO) {
             BackgroundScanSupport.isEnabled(settingsRepository.backgroundEnabled.first())
+        }
+    }
+
+    private suspend fun stopBluetoothScanSafely() {
+        try {
+            bluetoothRepository.stopScanning()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop Bluetooth scanning safely", e)
+        }
+    }
+
+    private suspend fun persistScanningState(scanning: Boolean) {
+        try {
+            settingsRepository.setIsScanning(scanning)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to persist scanning state", e)
         }
     }
 }
