@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import android.net.Uri
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -52,11 +53,17 @@ class HistoryViewModel @Inject constructor(
 
     fun shareDiagnosticLogs() {
         viewModelScope.launch {
-            val uri = diagnosticLogExporter.exportLatestLogs()
-            if (uri == null) {
-                _event.send(HistoryEvent.ShowMessage("共有できる調査ログがまだありません。"))
-            } else {
-                _event.send(HistoryEvent.ShareDiagnosticLogs(uri))
+            try {
+                val uri = diagnosticLogExporter.exportLatestLogs()
+                if (uri == null) {
+                    _event.send(HistoryEvent.ShowMessage("共有できる調査ログがまだありません。"))
+                } else {
+                    _event.send(HistoryEvent.ShareDiagnosticLogs(uri))
+                }
+            } catch (_: IOException) {
+                _event.send(HistoryEvent.ShowMessage("調査ログの共有ファイルを作成できませんでした。"))
+            } catch (_: IllegalArgumentException) {
+                _event.send(HistoryEvent.ShowMessage("調査ログの共有準備に失敗しました。"))
             }
         }
     }

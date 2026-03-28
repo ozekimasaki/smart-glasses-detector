@@ -88,6 +88,11 @@ fun MainScreen(
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 }
+                MainEvent.OpenLocationSettings -> {
+                    val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                }
             }
         }
     }

@@ -39,12 +39,16 @@ Windows:
 ```powershell
 scripts\gradlew-safe.cmd assembleDebug
 scripts\gradlew-safe.cmd assembleRelease
+scripts\gradlew-safe.cmd bundleRelease
 ```
 
 主な成果物:
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
-- Release APK: `app/build/outputs/apk/release/app-release-unsigned.apk`
+- Release APK: `app/build/outputs/apk/release/app-release.apk`
+- Release AAB: `app/build/outputs/bundle/release/app-release.aab`
+
+`keystore.properties` がない状態では、Play Console にアップロードできる署名済み release 成果物は作れません。
 
 ## GitHub Release について
 

@@ -13,6 +13,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.util.ScanSensitivity
@@ -34,36 +35,38 @@ class SmartGlassesDetector @Inject constructor(
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
     private val _diagnosticLogs = Channel<DiagnosticLog>(capacity = Channel.BUFFERED)
     val diagnosticLogs: Flow<DiagnosticLog> = _diagnosticLogs.receiveAsFlow()
+    private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.BUFFERED)
+    val scanFailures: Flow<BluetoothScanFailure> = _scanFailures.receiveAsFlow()
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
     private val detectionCooldownGate = DetectionCooldownGate()
-    private val classifier = SmartGlassesClassifier()
+    private val scanSignalProcessor = ScanSignalProcessor()
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val signal = extractSignal(result) ?: return
-            val device = classifier.classify(signal)
-            if (device != null) {
-                if (shouldEmitDetection(device)) {
-                    _scannedDevices.trySend(device)
-                }
-                return
+            val processedSignal = scanSignalProcessor.process(signal)
+
+            val diagnosticLog = processedSignal.diagnosticLog
+            if (diagnosticLog != null && shouldEmitDiagnosticLog(diagnosticLog)) {
+                _diagnosticLogs.trySend(diagnosticLog)
             }
 
-            val diagnosticLog = buildDiagnosticLog(signal) ?: return
-            if (shouldEmitDiagnosticLog(diagnosticLog)) {
-                _diagnosticLogs.trySend(diagnosticLog)
+            val device = processedSignal.detectedDevice
+            if (device != null && shouldEmitDetection(device)) {
+                _scannedDevices.trySend(device)
             }
         }
         
         override fun onScanFailed(errorCode: Int) {
             _isScanning.value = false
+            _scanFailures.trySend(BluetoothScanFailure(errorCode))
         }
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
-        return extractSignal(result)?.let(classifier::classify)
+        return extractSignal(result)?.let(scanSignalProcessor::detectDevice)
     }
 
     private fun extractSignal(result: ScanResult): DetectionSignal? {
@@ -87,28 +90,6 @@ class SmartGlassesDetector @Inject constructor(
         }
         return companyIds
     }
-
-    private fun buildDiagnosticLog(signal: DetectionSignal): DiagnosticLog? {
-        val hasDiagnosticSignal = signal.deviceName?.isNotBlank() == true ||
-            signal.companyIds.isNotEmpty() ||
-            signal.serviceUuids.isNotEmpty()
-        if (!hasDiagnosticSignal) {
-            return null
-        }
-
-        return DiagnosticLog(
-            advertisedName = signal.deviceName.orEmpty(),
-            deviceAddress = signal.address,
-            companyIds = signal.companyIds
-                .sorted()
-                .joinToString(",") { companyId -> "0x${companyId.toString(16).uppercase().padStart(4, '0')}" },
-            serviceUuids = signal.serviceUuids.sorted().joinToString(","),
-            advertisementDataHex = signal.advertisementDataHex,
-            rssi = signal.rssi,
-            detectedAt = System.currentTimeMillis()
-        )
-    }
-
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {
         return detectionCooldownGate.shouldEmitDetection(
             deviceKey = buildDeviceKey(device),
@@ -136,14 +117,7 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun buildDiagnosticKey(log: DiagnosticLog): String {
-        val normalizedAddress = log.deviceAddress.trim().uppercase()
-        if (normalizedAddress.isNotEmpty()) {
-            return "address:$normalizedAddress"
-        }
-
-        val normalizedName = log.advertisedName.trim().lowercase()
-        val normalizedCompanyIds = log.companyIds.trim().lowercase()
-        return "fallback:$normalizedName:$normalizedCompanyIds"
+        return log.deduplicationKey()
     }
 
     private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord): String? {
@@ -180,6 +154,19 @@ class SmartGlassesDetector @Inject constructor(
             Manifest.permission.BLUETOOTH_CONNECT
         ) == PackageManager.PERMISSION_GRANTED
     }
+
+    private fun hasRequiredScanPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Manifest.permission.BLUETOOTH_SCAN
+        } else {
+            Manifest.permission.ACCESS_FINE_LOCATION
+        }
+
+        return ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
+    }
     
     @SuppressLint("MissingPermission")
     fun startScanning(sensitivity: ScanSensitivity) {
@@ -196,6 +183,11 @@ class SmartGlassesDetector @Inject constructor(
         val scanner = bluetoothAdapter.bluetoothLeScanner ?: run {
             _isScanning.value = false
             throw IllegalStateException("Bluetooth LE scanner is unavailable.")
+        }
+
+        if (!hasRequiredScanPermission()) {
+            _isScanning.value = false
+            throw SecurityException("Bluetooth scan permission is missing.")
         }
 
         detectionCooldownGate.clear()
@@ -252,4 +244,64 @@ private fun ByteArray.toHexString(): String {
         builder.append(byte.toInt().and(0xFF).toString(16).uppercase().padStart(2, '0'))
     }
     return builder.toString()
+}
+
+internal data class ProcessedScanSignal(
+    val detectedDevice: SmartGlassesDevice?,
+    val diagnosticLog: DiagnosticLog?
+)
+
+internal class ScanSignalProcessor(
+    private val classifier: SmartGlassesClassifier = SmartGlassesClassifier()
+) {
+    fun process(signal: DetectionSignal): ProcessedScanSignal {
+        return ProcessedScanSignal(
+            detectedDevice = classifier.classify(signal),
+            diagnosticLog = signal.toDiagnosticLog()
+        )
+    }
+
+    fun detectDevice(signal: DetectionSignal): SmartGlassesDevice? {
+        return classifier.classify(signal)
+    }
+}
+
+internal fun DetectionSignal.hasDiagnosticPayload(): Boolean {
+    return deviceName?.isNotBlank() == true ||
+        companyIds.isNotEmpty() ||
+        serviceUuids.isNotEmpty() ||
+        advertisementDataHex.isNotBlank()
+}
+
+internal fun DetectionSignal.toDiagnosticLog(
+    detectedAt: Long = System.currentTimeMillis()
+): DiagnosticLog? {
+    if (!hasDiagnosticPayload()) {
+        return null
+    }
+
+    return DiagnosticLog(
+        advertisedName = deviceName.orEmpty(),
+        deviceAddress = address,
+        companyIds = companyIds
+            .sorted()
+            .joinToString(",") { companyId -> "0x${companyId.toString(16).uppercase().padStart(4, '0')}" },
+        serviceUuids = serviceUuids.sorted().joinToString(","),
+        advertisementDataHex = advertisementDataHex,
+        rssi = rssi,
+        detectedAt = detectedAt
+    )
+}
+
+internal fun DiagnosticLog.deduplicationKey(): String {
+    val normalizedAddress = deviceAddress.trim().uppercase()
+    if (normalizedAddress.isNotEmpty()) {
+        return "address:$normalizedAddress"
+    }
+
+    val normalizedName = advertisedName.trim().lowercase()
+    val normalizedCompanyIds = companyIds.trim().lowercase()
+    val normalizedServiceUuids = serviceUuids.trim().lowercase()
+    val normalizedAdvertisementData = advertisementDataHex.trim().lowercase()
+    return "fallback:$normalizedName:$normalizedCompanyIds:$normalizedServiceUuids:$normalizedAdvertisementData"
 }

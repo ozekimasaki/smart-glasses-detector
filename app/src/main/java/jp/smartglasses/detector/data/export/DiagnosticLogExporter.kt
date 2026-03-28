@@ -4,12 +4,14 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -28,16 +30,27 @@ class DiagnosticLogExporter @Inject constructor(
             return null
         }
 
-        val exportDir = File(context.cacheDir, EXPORT_DIRECTORY).apply { mkdirs() }
+        val exportDir = File(context.cacheDir, EXPORT_DIRECTORY)
+        if (!exportDir.exists() && !exportDir.mkdirs()) {
+            throw IOException("Failed to create export directory: ${exportDir.absolutePath}")
+        }
+
         val fileName = "diagnostic-logs-${timestampFormatter.format(Date())}.json"
         val exportFile = File(exportDir, fileName)
-        exportFile.writeText(buildPayload(logs).toString(2))
+        val payload = buildPayload(logs).toString(2)
 
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            exportFile
-        )
+        return try {
+            exportFile.writeText(payload)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                exportFile
+            )
+        } catch (e: IOException) {
+            exportFile.delete()
+            Log.e(TAG, "Failed to export diagnostic logs", e)
+            throw e
+        }
     }
 
     private fun buildPayload(logs: List<jp.smartglasses.detector.domain.model.DiagnosticLog>): JSONObject {
@@ -101,6 +114,7 @@ class DiagnosticLogExporter @Inject constructor(
     }
 
     private companion object {
+        private const val TAG = "DiagnosticLogExporter"
         const val DEFAULT_EXPORT_LIMIT = 200
         const val EXPORT_DIRECTORY = "shared"
         val timestampFormatter = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)

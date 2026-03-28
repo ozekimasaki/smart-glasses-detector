@@ -1,5 +1,6 @@
 package jp.smartglasses.detector.presentation.main
 
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +26,7 @@ sealed class MainUiState {
 sealed interface MainEvent {
     data class ShowMessage(val message: String) : MainEvent
     data object OpenAppSettings : MainEvent
+    data object OpenLocationSettings : MainEvent
 }
 
 @HiltViewModel
@@ -82,6 +84,18 @@ class MainViewModel @Inject constructor(
 
             if (!bluetoothRepository.hasPermissions()) {
                 _event.send(MainEvent.OpenAppSettings)
+                return@launch
+            }
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+                !bluetoothRepository.isLocationServicesEnabled()
+            ) {
+                _event.send(
+                    MainEvent.ShowMessage(
+                        "Android 11 以前では、端末の位置情報をオンにしてから探索を開始してください。"
+                    )
+                )
+                _event.send(MainEvent.OpenLocationSettings)
                 return@launch
             }
 

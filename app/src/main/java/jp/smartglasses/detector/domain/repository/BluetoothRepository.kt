@@ -1,5 +1,6 @@
 package jp.smartglasses.detector.domain.repository
 
+import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import kotlinx.coroutines.flow.Flow
@@ -7,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface BluetoothRepository {
     val scannedDevices: Flow<SmartGlassesDevice>
     val diagnosticLogs: Flow<DiagnosticLog>
+    val scanFailures: Flow<BluetoothScanFailure>
     val isScanning: Flow<Boolean>
     
     suspend fun startScanning()
@@ -14,4 +16,5 @@ interface BluetoothRepository {
     fun hasPermissions(): Boolean
     fun hasBleHardwareSupport(): Boolean
     fun isBluetoothEnabled(): Boolean
+    fun isLocationServicesEnabled(): Boolean
 }

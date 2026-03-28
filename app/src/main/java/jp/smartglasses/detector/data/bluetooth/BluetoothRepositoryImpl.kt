@@ -3,10 +3,13 @@ package jp.smartglasses.detector.data.bluetooth
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.DiagnosticLog
+import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.data.preferences.AppPreferences
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
@@ -27,6 +30,9 @@ class BluetoothRepositoryImpl @Inject constructor(
 
     override val diagnosticLogs: Flow<DiagnosticLog>
         get() = smartGlassesDetector.diagnosticLogs
+
+    override val scanFailures: Flow<BluetoothScanFailure>
+        get() = smartGlassesDetector.scanFailures
     
     override val isScanning: Flow<Boolean>
         get() = smartGlassesDetector.isScanning
@@ -55,6 +61,15 @@ class BluetoothRepositoryImpl @Inject constructor(
 
     override fun isBluetoothEnabled(): Boolean {
         return smartGlassesDetector.isBluetoothEnabled()
+    }
+
+    override fun isLocationServicesEnabled(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return true
+        }
+
+        val locationManager = context.getSystemService(LocationManager::class.java) ?: return false
+        return LocationManagerCompat.isLocationEnabled(locationManager)
     }
 
     private fun hasPermission(permission: String): Boolean {

@@ -106,7 +106,7 @@
     <string name="settings_group_other">その他</string>
 
     <string name="about_title">このアプリについて</string>
-    <string name="about_description">このアプリは、Bluetooth を使って近くのスマートグラスを検出し、記録するアプリです。\n\n検出記録と設定は端末内に保存されます。調査ログは、ユーザーが共有を選んだ場合のみ外部アプリへ渡ります。</string>
+    <string name="about_description">このアプリは、Bluetooth を使って近くのスマートグラスを検出し、記録するアプリです。\n\n検出記録と設定は端末内に保存されます。検出記録には機器名、機器アドレス、メーカー名、信号強度、推定距離、検出日時が含まれます。調査ログは、ユーザーが共有を選んだ場合のみ外部アプリへ渡ります。</string>
     <string name="about_version">バージョン</string>
     <string name="about_developer">開発者</string>
     <string name="developer_contact_url">https://x.com/mei_999_</string>
@@ -115,7 +115,7 @@
 
     <string name="privacy_title">プライバシーポリシー</string>
     <string name="privacy_close">閉じる</string>
-    <string name="privacy_body">【端末内に保存する情報】\n\n・検出記録（機器名、信号強度、検出日時）\n・設定情報\n・調査ログ（広告名、ハッシュ化した機器アドレス、メーカー識別子、Service UUID、広告データ、信号強度、検出日時）\n\n【情報の取り扱い】\n\nこれらの情報は通常、お使いの端末内だけに保存されます。アプリが自動で外部サーバーへ送信することはありません。\n\n【共有について】\n\n「調査ログを共有」を選んだ場合のみ、選択した外部アプリに JSON 形式で渡ります。\n\n【位置情報について】\n\nAndroid 11 以前では Bluetooth 探索のため位置情報権限が必要です。GPS による位置情報の取得・記録は行いません。\n\n【データの削除】\n\nバックアップは無効です。アプリをアンインストールすると、端末内の記録は削除されます。</string>
+    <string name="privacy_body">【端末内に保存する情報】\n\n・検出記録（機器名、機器アドレス、メーカー名、信号強度、推定距離、検出日時）\n・設定情報\n・調査ログ（広告名、ハッシュ化した機器アドレス、メーカー識別子、Service UUID、広告データ、信号強度、検出日時）\n\n【情報の取り扱い】\n\nこれらの情報は通常、お使いの端末内だけに保存されます。アプリが自動で外部サーバーへ送信することはありません。\n\n【共有について】\n\n「調査ログを共有」を選んだ場合のみ、選択した外部アプリに JSON 形式で渡ります。\n\n【位置情報について】\n\nAndroid 11 以前では Bluetooth 探索のため位置情報権限と端末の位置情報設定が必要です。GPS による位置情報の取得・記録は行いません。\n\n【データの削除】\n\nバックアップは無効です。アプリをアンインストールすると、端末内の記録は削除されます。</string>
     <string name="privacy_open_full_policy">公開ポリシーを開く</string>
     <string name="privacy_contact">お問い合わせ</string>
 </resources>
