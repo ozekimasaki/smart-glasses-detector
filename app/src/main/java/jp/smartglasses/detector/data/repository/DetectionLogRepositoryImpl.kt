@@ -26,6 +26,10 @@ class DetectionLogRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
     }
+
+    override suspend fun getLatestLogs(limit: Int): List<DetectionLog> {
+        return dao.getLatestLogs(limit).map { it.toDomain() }
+    }
     
     override suspend fun insertLog(log: DetectionLog) {
         dao.insertLog(log.toEntity())

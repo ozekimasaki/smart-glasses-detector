@@ -7,7 +7,11 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jp.smartglasses.detector.domain.model.DetectionLog
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.domain.model.DiagnosticLog
+import jp.smartglasses.detector.domain.model.deduplicationKey
+import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -22,10 +26,15 @@ import javax.inject.Singleton
 @Singleton
 class DiagnosticLogExporter @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val diagnosticLogRepository: DiagnosticLogRepository
+    private val diagnosticLogRepository: DiagnosticLogRepository,
+    private val detectionLogRepository: DetectionLogRepository
 ) {
     suspend fun exportLatestLogs(limit: Int = DEFAULT_EXPORT_LIMIT): Uri? {
-        val logs = diagnosticLogRepository.getLatestLogs(limit)
+        val logs = mergeShareableLogs(
+            diagnosticLogs = diagnosticLogRepository.getLatestLogs(limit),
+            detectionLogs = detectionLogRepository.getLatestLogs(limit),
+            limit = limit
+        )
         if (logs.isEmpty()) {
             return null
         }
@@ -53,7 +62,7 @@ class DiagnosticLogExporter @Inject constructor(
         }
     }
 
-    private fun buildPayload(logs: List<jp.smartglasses.detector.domain.model.DiagnosticLog>): JSONObject {
+    private fun buildPayload(logs: List<DiagnosticLog>): JSONObject {
         val logArray = JSONArray()
         logs.forEach { log ->
             logArray.put(
@@ -119,4 +128,42 @@ class DiagnosticLogExporter @Inject constructor(
         const val EXPORT_DIRECTORY = "shared"
         val timestampFormatter = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
     }
+}
+
+internal fun mergeShareableLogs(
+    diagnosticLogs: List<DiagnosticLog>,
+    detectionLogs: List<DetectionLog>,
+    limit: Int
+): List<DiagnosticLog> {
+    val mergedLogs = LinkedHashMap<String, DiagnosticLog>()
+
+    diagnosticLogs
+        .sortedByDescending { it.detectedAt }
+        .forEach { log ->
+            mergedLogs.putIfAbsent(log.deduplicationKey(), log)
+        }
+
+    detectionLogs
+        .asSequence()
+        .map(DetectionLog::toShareableDiagnosticLog)
+        .sortedByDescending { it.detectedAt }
+        .forEach { log ->
+            mergedLogs.putIfAbsent(log.deduplicationKey(), log)
+        }
+
+    return mergedLogs.values
+        .sortedByDescending { it.detectedAt }
+        .take(limit)
+}
+
+internal fun DetectionLog.toShareableDiagnosticLog(): DiagnosticLog {
+    return DiagnosticLog(
+        advertisedName = deviceName,
+        deviceAddress = deviceAddress,
+        companyIds = "",
+        serviceUuids = "",
+        advertisementDataHex = "",
+        rssi = rssi,
+        detectedAt = detectedAt
+    )
 }

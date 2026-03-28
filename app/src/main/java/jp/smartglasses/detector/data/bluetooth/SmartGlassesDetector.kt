@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -291,17 +292,4 @@ internal fun DetectionSignal.toDiagnosticLog(
         rssi = rssi,
         detectedAt = detectedAt
     )
-}
-
-internal fun DiagnosticLog.deduplicationKey(): String {
-    val normalizedAddress = deviceAddress.trim().uppercase()
-    if (normalizedAddress.isNotEmpty()) {
-        return "address:$normalizedAddress"
-    }
-
-    val normalizedName = advertisedName.trim().lowercase()
-    val normalizedCompanyIds = companyIds.trim().lowercase()
-    val normalizedServiceUuids = serviceUuids.trim().lowercase()
-    val normalizedAdvertisementData = advertisementDataHex.trim().lowercase()
-    return "fallback:$normalizedName:$normalizedCompanyIds:$normalizedServiceUuids:$normalizedAdvertisementData"
 }

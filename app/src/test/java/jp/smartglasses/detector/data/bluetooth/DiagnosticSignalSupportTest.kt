@@ -1,6 +1,7 @@
 package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.domain.model.DiagnosticLog
+import jp.smartglasses.detector.domain.model.deduplicationKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals

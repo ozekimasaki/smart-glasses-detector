@@ -13,6 +13,9 @@ interface DetectionLogDao {
     
     @Query("SELECT * FROM detection_logs WHERE detectedAt >= :startTime AND detectedAt < :endTime ORDER BY detectedAt DESC")
     fun getLogsForDate(startTime: Long, endTime: Long): Flow<List<DetectionLogEntity>>
+
+    @Query("SELECT * FROM detection_logs ORDER BY detectedAt DESC LIMIT :limit")
+    suspend fun getLatestLogs(limit: Int): List<DetectionLogEntity>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: DetectionLogEntity)

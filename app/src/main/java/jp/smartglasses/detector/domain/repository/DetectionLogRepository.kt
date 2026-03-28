@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface DetectionLogRepository {
     fun getAllLogs(): Flow<List<DetectionLog>>
     fun getLogsForDate(startTime: Long, endTime: Long): Flow<List<DetectionLog>>
+    suspend fun getLatestLogs(limit: Int): List<DetectionLog>
     suspend fun insertLog(log: DetectionLog)
     suspend fun deleteOldLogs(before: Long)
     suspend fun deleteAllLogs()
