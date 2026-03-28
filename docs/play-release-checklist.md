@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- `app/build.gradle.kts` の `versionCode` / `versionName` を今回の公開版に更新する
+- 今回の公開版は `versionCode = 3` / `versionName = 1.0.2` / Git tag `v1.0.2`
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 
 ## 2. プライバシーポリシー公開
@@ -48,6 +48,19 @@ scripts\gradlew-safe.cmd assembleRelease
 - Foreground service declaration は `connectedDevice`
 - 説明文は「ユーザーが開始した Bluetooth 周辺機器探索を継続するため」に統一する
 - Data safety は、通常時にデータを自動送信しないこと、ユーザー操作による診断ログ共有があること、検出記録に機器アドレス・メーカー名・推定距離を含めて端末内保存していることと矛盾しない形で入力する
+
+### 今回の版で入力する値
+
+- リリース名: `1.0.2`
+- リリースノート見出し: `安定性改善と公開準備の更新`
+- アプリ カテゴリ候補: `ツール`
+- 連絡先メールアドレス: 開発者が常時受信できる公開用アドレスを設定する
+- プライバシーポリシー URL: `https://smart-glasses-detector-policy.maigo999.workers.dev`
+- App access: `なし`（ログイン不要、特別なテスト手順不要）
+- 広告: `なし`
+- Foreground service declaration: `connectedDevice` を選択し、「ユーザーが開始した Bluetooth 周辺機器探索を継続するため」と記載する
+- Data safety の説明文: 「検出記録と設定は端末内保存のみ。通常利用で外部自動送信なし。調査ログはユーザーが共有操作を行った場合のみ外部アプリへ渡る」に統一する
+- 新規個人 developer account の場合は、production 申請前に closed testing（12 人・14 日）要件の有無を Play Console 上で確認する
 
 ## 5. ストア掲載文のたたき台
 
@@ -96,3 +109,11 @@ scripts\gradlew-safe.cmd assembleRelease
 3. Play Console の Data safety、コンテンツ レーティング、Foreground service declaration を提出する
 4. ストア素材と説明文を反映する
 5. 問題がなければ production へ昇格する
+
+### 最終チェック項目
+
+- アップロード対象が `app/build/outputs/bundle/release/app-release.aab` である
+- Git の release tag が `v1.0.2` で push 済みである
+- Store listing の説明文がアプリ内プライバシー説明と矛盾しない
+- Data safety で「自動送信なし」と「ユーザー操作による共有のみ」が両立している
+- 新規個人 developer account の場合、closed testing 要件を満たしてから production に進む
