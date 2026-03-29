@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- 今回の公開版は `versionCode = 4` / `versionName = 1.0.3` / Git tag `v1.0.3`
+- 今回の公開版は `versionCode = 5` / `versionName = 1.0.4` / Git tag `v1.0.4`
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 
 ## 2. プライバシーポリシー公開
@@ -51,7 +51,7 @@ scripts\gradlew-safe.cmd assembleRelease
 
 ### 今回の版で入力する値
 
-- リリース名: `1.0.3`
+- リリース名: `1.0.4`
 - リリースノート見出し: `安定性改善と公開準備の更新`
 - アプリ カテゴリ候補: `ツール`
 - 連絡先メールアドレス: 開発者が常時受信できる公開用アドレスを設定する
@@ -113,7 +113,7 @@ scripts\gradlew-safe.cmd assembleRelease
 ### 最終チェック項目
 
 - アップロード対象が `app/build/outputs/bundle/release/app-release.aab` である
-- Git の release tag が `v1.0.3` で push 済みである
+- Git の release tag が `v1.0.4` で push 済みである
 - Store listing の説明文がアプリ内プライバシー説明と矛盾しない
 - Data safety で「自動送信なし」と「ユーザー操作による共有のみ」が両立している
 - 新規個人 developer account の場合、closed testing 要件を満たしてから production に進む

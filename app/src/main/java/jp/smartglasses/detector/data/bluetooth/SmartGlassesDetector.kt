@@ -71,16 +71,17 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun extractSignal(result: ScanResult): DetectionSignal? {
-        val scanRecord = result.scanRecord ?: return null
-        val device = result.device
-        return DetectionSignal(
+        val scanRecord = result.scanRecord
+        val signal = DetectionSignal(
             deviceName = resolveDeviceName(result, scanRecord),
             address = resolveDeviceAddress(result),
-            companyIds = extractCompanyIds(scanRecord),
+            companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
             rssi = result.rssi,
-            serviceUuids = scanRecord.serviceUuids?.map { it.toString() }.orEmpty(),
-            advertisementDataHex = scanRecord.bytes?.toHexString().orEmpty()
+            serviceUuids = scanRecord?.serviceUuids?.map { it.toString() }.orEmpty(),
+            advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty()
         )
+
+        return signal.takeIf(DetectionSignal::hasDiagnosticPayload)
     }
 
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
@@ -121,15 +122,15 @@ class SmartGlassesDetector @Inject constructor(
         return log.deduplicationKey()
     }
 
-    private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord): String? {
+    private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord?): String? {
         if (!hasBluetoothConnectPermission()) {
-            return scanRecord.deviceName
+            return scanRecord?.deviceName
         }
 
         return try {
-            result.device.name ?: scanRecord.deviceName
+            result.device.name ?: scanRecord?.deviceName
         } catch (_: SecurityException) {
-            scanRecord.deviceName
+            scanRecord?.deviceName
         }
     }
 
@@ -268,7 +269,8 @@ internal class ScanSignalProcessor(
 }
 
 internal fun DetectionSignal.hasDiagnosticPayload(): Boolean {
-    return deviceName?.isNotBlank() == true ||
+    return address.isNotBlank() ||
+        deviceName?.isNotBlank() == true ||
         companyIds.isNotEmpty() ||
         serviceUuids.isNotEmpty() ||
         advertisementDataHex.isNotBlank()

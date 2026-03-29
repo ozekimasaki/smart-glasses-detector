@@ -14,7 +14,7 @@ class DiagnosticSignalSupportTest {
     fun `advertisement bytes alone count as diagnostic payload`() {
         val signal = DetectionSignal(
             deviceName = null,
-            address = "AA:BB:CC:DD:EE:FF",
+            address = "",
             companyIds = emptySet(),
             rssi = -60,
             serviceUuids = emptyList(),
@@ -22,6 +22,21 @@ class DiagnosticSignalSupportTest {
         )
 
         assertTrue(signal.hasDiagnosticPayload())
+    }
+
+    @Test
+    fun `device address alone counts as diagnostic payload`() {
+        val signal = DetectionSignal(
+            deviceName = null,
+            address = "AA:BB:CC:DD:EE:FF",
+            companyIds = emptySet(),
+            rssi = -60,
+            serviceUuids = emptyList(),
+            advertisementDataHex = ""
+        )
+
+        assertTrue(signal.hasDiagnosticPayload())
+        assertEquals("AA:BB:CC:DD:EE:FF", signal.toDiagnosticLog()?.deviceAddress)
     }
 
     @Test
