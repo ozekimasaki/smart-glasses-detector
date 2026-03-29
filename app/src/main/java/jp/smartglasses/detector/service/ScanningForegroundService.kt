@@ -21,10 +21,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
 import jp.smartglasses.detector.MainActivity
 import jp.smartglasses.detector.R
-import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
-import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.util.BackgroundScanSupport
@@ -54,9 +52,6 @@ class ScanningForegroundService : Service() {
     @Inject
     lateinit var detectionLogRepository: DetectionLogRepository
 
-    @Inject
-    lateinit var diagnosticLogRepository: DiagnosticLogRepository
-    
     @Inject
     lateinit var settingsRepository: SettingsRepository
     
@@ -138,12 +133,6 @@ class ScanningForegroundService : Service() {
                 }
             }
 
-            val diagnosticCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
-                bluetoothRepository.diagnosticLogs.collect { log ->
-                    onDiagnosticLogDetected(log)
-                }
-            }
-
             val scanFailureCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.scanFailures.collect { failure ->
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
@@ -171,7 +160,6 @@ class ScanningForegroundService : Service() {
                     awaitCancellation()
                 } finally {
                     deviceCollectionJob.cancel()
-                    diagnosticCollectionJob.cancel()
                     scanFailureCollectionJob.cancel()
                 }
             } catch (e: CancellationException) {
@@ -235,10 +223,6 @@ class ScanningForegroundService : Service() {
         if (vibrationEnabled) {
             vibrate()
         }
-    }
-
-    private suspend fun onDiagnosticLogDetected(log: DiagnosticLog) {
-        diagnosticLogRepository.insertLog(log)
     }
     
     private fun createScanningNotification(): Notification {

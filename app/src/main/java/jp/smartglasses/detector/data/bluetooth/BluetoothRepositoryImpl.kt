@@ -8,7 +8,6 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.data.preferences.AppPreferences
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
@@ -27,9 +26,6 @@ class BluetoothRepositoryImpl @Inject constructor(
 
     override val scannedDevices: Flow<SmartGlassesDevice>
         get() = smartGlassesDetector.scannedDevices
-
-    override val diagnosticLogs: Flow<DiagnosticLog>
-        get() = smartGlassesDetector.diagnosticLogs
 
     override val scanFailures: Flow<BluetoothScanFailure>
         get() = smartGlassesDetector.scanFailures

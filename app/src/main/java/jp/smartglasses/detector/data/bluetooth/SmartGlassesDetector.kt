@@ -20,13 +20,19 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.util.ScanSensitivity
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,12 +40,11 @@ import javax.inject.Singleton
 @Singleton
 class SmartGlassesDetector @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val bluetoothAdapter: BluetoothAdapter?
+    private val bluetoothAdapter: BluetoothAdapter?,
+    private val diagnosticLogRepository: DiagnosticLogRepository
 ) {
     private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.BUFFERED)
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
-    private val _diagnosticLogs = Channel<DiagnosticLog>(capacity = DIAGNOSTIC_LOG_BUFFER_CAPACITY)
-    val diagnosticLogs: Flow<DiagnosticLog> = _diagnosticLogs.receiveAsFlow()
     private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.BUFFERED)
     val scanFailures: Flow<BluetoothScanFailure> = _scanFailures.receiveAsFlow()
 
@@ -48,6 +53,11 @@ class SmartGlassesDetector @Inject constructor(
     private val detectionCooldownGate = DetectionCooldownGate()
     private val scanSignalProcessor = ScanSignalProcessor()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
+    private val diagnosticPersistenceScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
+            Log.e(TAG, "Failed to persist diagnostic log", throwable)
+        }
+    )
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -68,9 +78,7 @@ class SmartGlassesDetector @Inject constructor(
             val processedSignal = scanSignalProcessor.process(signal)
 
             val diagnosticLog = processedSignal.diagnosticLog
-            if (_diagnosticLogs.trySend(diagnosticLog).isFailure) {
-                Log.w(TAG, "Dropping diagnostic BLE log because the buffer is full.")
-            }
+            persistDiagnosticLog(diagnosticLog)
 
             val device = processedSignal.detectedDevice
             if (device != null && shouldEmitDetection(device)) {
@@ -139,9 +147,7 @@ class SmartGlassesDetector @Inject constructor(
             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, UNKNOWN_CLASSIC_RSSI.toShort()).toInt()
         ).toDiagnosticLog()
 
-        if (_diagnosticLogs.trySend(diagnosticLog).isFailure) {
-            Log.w(TAG, "Dropping diagnostic Classic log because the buffer is full.")
-        }
+        persistDiagnosticLog(diagnosticLog)
     }
 
     private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord?): String? {
@@ -343,9 +349,14 @@ class SmartGlassesDetector @Inject constructor(
         return bluetoothAdapter?.isEnabled == true
     }
 
+    private fun persistDiagnosticLog(log: DiagnosticLog) {
+        diagnosticPersistenceScope.launch {
+            diagnosticLogRepository.insertLog(log)
+        }
+    }
+
     companion object {
         private const val TAG = "SmartGlassesDetector"
-        private const val DIAGNOSTIC_LOG_BUFFER_CAPACITY = 512
         private const val UNKNOWN_CLASSIC_RSSI = -127
     }
 }
