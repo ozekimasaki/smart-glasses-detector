@@ -20,7 +20,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
-import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +38,7 @@ class SmartGlassesDetector @Inject constructor(
 ) {
     private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.BUFFERED)
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
-    private val _diagnosticLogs = Channel<DiagnosticLog>(capacity = Channel.BUFFERED)
+    private val _diagnosticLogs = Channel<DiagnosticLog>(capacity = DIAGNOSTIC_LOG_BUFFER_CAPACITY)
     val diagnosticLogs: Flow<DiagnosticLog> = _diagnosticLogs.receiveAsFlow()
     private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.BUFFERED)
     val scanFailures: Flow<BluetoothScanFailure> = _scanFailures.receiveAsFlow()
@@ -69,8 +68,8 @@ class SmartGlassesDetector @Inject constructor(
             val processedSignal = scanSignalProcessor.process(signal)
 
             val diagnosticLog = processedSignal.diagnosticLog
-            if (shouldEmitDiagnosticLog(diagnosticLog)) {
-                _diagnosticLogs.trySend(diagnosticLog)
+            if (_diagnosticLogs.trySend(diagnosticLog).isFailure) {
+                Log.w(TAG, "Dropping diagnostic BLE log because the buffer is full.")
             }
 
             val device = processedSignal.detectedDevice
@@ -116,10 +115,6 @@ class SmartGlassesDetector @Inject constructor(
         )
     }
 
-    private fun shouldEmitDiagnosticLog(log: DiagnosticLog): Boolean {
-        return detectionCooldownGate.shouldEmitDiagnostic(buildDiagnosticKey(log))
-    }
-
     private fun buildDeviceKey(device: SmartGlassesDevice): String {
         val normalizedAddress = device.address.trim().uppercase()
         if (normalizedAddress.isNotEmpty()) {
@@ -135,10 +130,6 @@ class SmartGlassesDetector @Inject constructor(
         return device.manufacturer.name.trim().lowercase()
     }
 
-    private fun buildDiagnosticKey(log: DiagnosticLog): String {
-        return log.deduplicationKey()
-    }
-
     @SuppressLint("MissingPermission")
     private fun handleClassicDiscoveryResult(intent: Intent) {
         val device = intent.extractBluetoothDevice() ?: return
@@ -148,8 +139,8 @@ class SmartGlassesDetector @Inject constructor(
             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, UNKNOWN_CLASSIC_RSSI.toShort()).toInt()
         ).toDiagnosticLog()
 
-        if (shouldEmitDiagnosticLog(diagnosticLog)) {
-            _diagnosticLogs.trySend(diagnosticLog)
+        if (_diagnosticLogs.trySend(diagnosticLog).isFailure) {
+            Log.w(TAG, "Dropping diagnostic Classic log because the buffer is full.")
         }
     }
 
@@ -354,6 +345,7 @@ class SmartGlassesDetector @Inject constructor(
 
     companion object {
         private const val TAG = "SmartGlassesDetector"
+        private const val DIAGNOSTIC_LOG_BUFFER_CAPACITY = 512
         private const val UNKNOWN_CLASSIC_RSSI = -127
     }
 }

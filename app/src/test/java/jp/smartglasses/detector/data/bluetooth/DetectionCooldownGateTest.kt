@@ -1,7 +1,7 @@
 package jp.smartglasses.detector.data.bluetooth
 
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class DetectionCooldownGateTest {
@@ -32,16 +32,5 @@ class DetectionCooldownGateTest {
 
         now += 5_000L
         assertTrue(gate.shouldEmitDetection("device:b", "manufacturer:meta"))
-    }
-
-    @Test
-    fun `diagnostic logs are suppressed for the same key during cooldown`() {
-        assertTrue(gate.shouldEmitDiagnostic("diagnostic:unknown-device"))
-
-        now += 5_000L
-        assertFalse(gate.shouldEmitDiagnostic("diagnostic:unknown-device"))
-
-        now += 25_000L
-        assertTrue(gate.shouldEmitDiagnostic("diagnostic:unknown-device"))
     }
 }

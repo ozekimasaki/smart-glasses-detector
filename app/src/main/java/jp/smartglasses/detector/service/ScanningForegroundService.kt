@@ -30,6 +30,7 @@ import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -131,19 +132,19 @@ class ScanningForegroundService : Service() {
 
     private fun startScanning() {
         scanJob = scope.launch {
-            val deviceCollectionJob = launch {
+            val deviceCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.scannedDevices.collect { device ->
                     onDeviceDetected(device)
                 }
             }
 
-            val diagnosticCollectionJob = launch {
+            val diagnosticCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.diagnosticLogs.collect { log ->
                     onDiagnosticLogDetected(log)
                 }
             }
 
-            val scanFailureCollectionJob = launch {
+            val scanFailureCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.scanFailures.collect { failure ->
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
                     stopScanningAndStopSelf()

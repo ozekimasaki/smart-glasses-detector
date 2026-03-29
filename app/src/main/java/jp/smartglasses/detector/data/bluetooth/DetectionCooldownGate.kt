@@ -10,7 +10,6 @@ internal class DetectionCooldownGate(
     private val lock = Any()
     private val lastDeviceDetections = mutableMapOf<String, Long>()
     private val lastManufacturerDetections = mutableMapOf<String, Long>()
-    private val lastDiagnosticDetections = mutableMapOf<String, Long>()
 
     fun shouldEmitDetection(deviceKey: String, manufacturerKey: String): Boolean = synchronized(lock) {
         val now = clock()
@@ -31,23 +30,9 @@ internal class DetectionCooldownGate(
         true
     }
 
-    fun shouldEmitDiagnostic(diagnosticKey: String): Boolean = synchronized(lock) {
-        val now = clock()
-        pruneExpiredEntries(now)
-
-        val lastDiagnosticDetection = lastDiagnosticDetections[diagnosticKey]
-        if (lastDiagnosticDetection != null && now - lastDiagnosticDetection < sameDeviceCooldownMs) {
-            return false
-        }
-
-        lastDiagnosticDetections[diagnosticKey] = now
-        true
-    }
-
     fun clear() = synchronized(lock) {
         lastDeviceDetections.clear()
         lastManufacturerDetections.clear()
-        lastDiagnosticDetections.clear()
     }
 
     private fun pruneExpiredEntries(now: Long) {
@@ -56,9 +41,6 @@ internal class DetectionCooldownGate(
         }
         lastManufacturerDetections.entries.removeAll { (_, detectedAt) ->
             now - detectedAt >= sameManufacturerCooldownMs
-        }
-        lastDiagnosticDetections.entries.removeAll { (_, detectedAt) ->
-            now - detectedAt >= sameDeviceCooldownMs
         }
     }
 }
