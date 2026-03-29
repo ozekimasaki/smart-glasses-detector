@@ -95,7 +95,7 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
-    fun `toDiagnosticLog returns null for empty signal`() {
+    fun `toDiagnosticLog preserves even an empty signal for diagnostics`() {
         val signal = DetectionSignal(
             deviceName = null,
             address = "",
@@ -105,6 +105,13 @@ class DiagnosticSignalSupportTest {
             advertisementDataHex = ""
         )
 
-        assertEquals(null, signal.toDiagnosticLog())
+        val diagnosticLog = signal.toDiagnosticLog()
+
+        assertEquals("", diagnosticLog.advertisedName)
+        assertEquals("", diagnosticLog.deviceAddress)
+        assertEquals("", diagnosticLog.companyIds)
+        assertEquals("", diagnosticLog.serviceUuids)
+        assertEquals("", diagnosticLog.advertisementDataHex)
+        assertEquals(-60, diagnosticLog.rssi)
     }
 }

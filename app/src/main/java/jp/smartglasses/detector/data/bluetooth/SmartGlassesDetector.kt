@@ -46,11 +46,11 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val signal = extractSignal(result) ?: return
+            val signal = extractSignal(result)
             val processedSignal = scanSignalProcessor.process(signal)
 
             val diagnosticLog = processedSignal.diagnosticLog
-            if (diagnosticLog != null && shouldEmitDiagnosticLog(diagnosticLog)) {
+            if (shouldEmitDiagnosticLog(diagnosticLog)) {
                 _diagnosticLogs.trySend(diagnosticLog)
             }
 
@@ -67,12 +67,12 @@ class SmartGlassesDetector @Inject constructor(
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
-        return extractSignal(result)?.let(scanSignalProcessor::detectDevice)
+        return scanSignalProcessor.detectDevice(extractSignal(result))
     }
 
-    private fun extractSignal(result: ScanResult): DetectionSignal? {
+    private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
-        val signal = DetectionSignal(
+        return DetectionSignal(
             deviceName = resolveDeviceName(result, scanRecord),
             address = resolveDeviceAddress(result),
             companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
@@ -80,8 +80,6 @@ class SmartGlassesDetector @Inject constructor(
             serviceUuids = scanRecord?.serviceUuids?.map { it.toString() }.orEmpty(),
             advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty()
         )
-
-        return signal.takeIf(DetectionSignal::hasDiagnosticPayload)
     }
 
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
@@ -250,7 +248,7 @@ private fun ByteArray.toHexString(): String {
 
 internal data class ProcessedScanSignal(
     val detectedDevice: SmartGlassesDevice?,
-    val diagnosticLog: DiagnosticLog?
+    val diagnosticLog: DiagnosticLog
 )
 
 internal class ScanSignalProcessor(
@@ -278,11 +276,7 @@ internal fun DetectionSignal.hasDiagnosticPayload(): Boolean {
 
 internal fun DetectionSignal.toDiagnosticLog(
     detectedAt: Long = System.currentTimeMillis()
-): DiagnosticLog? {
-    if (!hasDiagnosticPayload()) {
-        return null
-    }
-
+): DiagnosticLog {
     return DiagnosticLog(
         advertisedName = deviceName.orEmpty(),
         deviceAddress = address,
