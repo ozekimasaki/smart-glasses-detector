@@ -78,6 +78,23 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
+    fun `classic discovery signal converts to diagnostic log`() {
+        val diagnosticLog = ClassicDiscoverySignal(
+            deviceName = "WH-1000XM5",
+            address = "11:22:33:44:55:66",
+            rssi = -48
+        ).toDiagnosticLog(detectedAt = 123L)
+
+        assertEquals("WH-1000XM5", diagnosticLog.advertisedName)
+        assertEquals("11:22:33:44:55:66", diagnosticLog.deviceAddress)
+        assertEquals("", diagnosticLog.companyIds)
+        assertEquals("", diagnosticLog.serviceUuids)
+        assertEquals("", diagnosticLog.advertisementDataHex)
+        assertEquals(-48, diagnosticLog.rssi)
+        assertEquals(123L, diagnosticLog.detectedAt)
+    }
+
+    @Test
     fun `classified smart glasses still produce a diagnostic log`() {
         val processed = ScanSignalProcessor().process(
             DetectionSignal(

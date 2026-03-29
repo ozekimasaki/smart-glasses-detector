@@ -3,11 +3,15 @@ package jp.smartglasses.detector.data.bluetooth
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -24,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +48,20 @@ class SmartGlassesDetector @Inject constructor(
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
     private val detectionCooldownGate = DetectionCooldownGate()
     private val scanSignalProcessor = ScanSignalProcessor()
+    private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
+
+    private val classicDiscoveryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                BluetoothDevice.ACTION_FOUND -> handleClassicDiscoveryResult(intent)
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    if (_isScanning.value && isClassicDiscoveryReceiverRegistered.get()) {
+                        startClassicDiscovery()
+                    }
+                }
+            }
+        }
+    }
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -120,6 +139,20 @@ class SmartGlassesDetector @Inject constructor(
         return log.deduplicationKey()
     }
 
+    @SuppressLint("MissingPermission")
+    private fun handleClassicDiscoveryResult(intent: Intent) {
+        val device = intent.extractBluetoothDevice() ?: return
+        val diagnosticLog = ClassicDiscoverySignal(
+            deviceName = resolveDeviceName(device),
+            address = resolveDeviceAddress(device),
+            rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, UNKNOWN_CLASSIC_RSSI.toShort()).toInt()
+        ).toDiagnosticLog()
+
+        if (shouldEmitDiagnosticLog(diagnosticLog)) {
+            _diagnosticLogs.trySend(diagnosticLog)
+        }
+    }
+
     private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord?): String? {
         if (!hasBluetoothConnectPermission()) {
             return scanRecord?.deviceName
@@ -132,6 +165,18 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
+    private fun resolveDeviceName(device: BluetoothDevice): String? {
+        if (!hasBluetoothConnectPermission()) {
+            return null
+        }
+
+        return try {
+            device.name
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
     private fun resolveDeviceAddress(result: ScanResult): String {
         if (!hasBluetoothConnectPermission()) {
             return ""
@@ -139,6 +184,18 @@ class SmartGlassesDetector @Inject constructor(
 
         return try {
             result.device.address
+        } catch (_: SecurityException) {
+            ""
+        }
+    }
+
+    private fun resolveDeviceAddress(device: BluetoothDevice): String {
+        if (!hasBluetoothConnectPermission()) {
+            return ""
+        }
+
+        return try {
+            device.address
         } catch (_: SecurityException) {
             ""
         }
@@ -167,6 +224,62 @@ class SmartGlassesDetector @Inject constructor(
             permission
         ) == PackageManager.PERMISSION_GRANTED
     }
+
+    private fun ensureClassicDiscoveryReceiverRegistered() {
+        if (!isClassicDiscoveryReceiverRegistered.compareAndSet(false, true)) {
+            return
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        ContextCompat.registerReceiver(
+            context,
+            classicDiscoveryReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    private fun unregisterClassicDiscoveryReceiver() {
+        if (!isClassicDiscoveryReceiverRegistered.compareAndSet(true, false)) {
+            return
+        }
+
+        context.unregisterReceiver(classicDiscoveryReceiver)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startClassicDiscovery() {
+        val adapter = bluetoothAdapter ?: return
+        if (!hasRequiredScanPermission()) {
+            return
+        }
+
+        try {
+            if (adapter.isDiscovering) {
+                adapter.cancelDiscovery()
+            }
+            if (!adapter.startDiscovery()) {
+                Log.w(TAG, "Bluetooth Classic discovery did not start.")
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Failed to start Bluetooth Classic discovery", e)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopClassicDiscovery() {
+        val adapter = bluetoothAdapter ?: return
+        try {
+            if (adapter.isDiscovering) {
+                adapter.cancelDiscovery()
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Failed to stop Bluetooth Classic discovery", e)
+        }
+    }
     
     @SuppressLint("MissingPermission")
     fun startScanning(sensitivity: ScanSensitivity) {
@@ -191,6 +304,7 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         detectionCooldownGate.clear()
+        ensureClassicDiscoveryReceiverRegistered()
         
         val settings = when (sensitivity) {
             ScanSensitivity.LOW_POWER -> ScanSettings.Builder()
@@ -207,21 +321,26 @@ class SmartGlassesDetector @Inject constructor(
         try {
             scanner.startScan(null, settings, scanCallback)
             _isScanning.value = true
+            startClassicDiscovery()
         } catch (e: Exception) {
             _isScanning.value = false
+            stopClassicDiscovery()
+            unregisterClassicDiscoveryReceiver()
             throw e
         }
     }
     
     @SuppressLint("MissingPermission")
     fun stopScanning() {
+        _isScanning.value = false
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop BLE scan", e)
         } finally {
+            stopClassicDiscovery()
+            unregisterClassicDiscoveryReceiver()
             detectionCooldownGate.clear()
-            _isScanning.value = false
         }
     }
     
@@ -235,6 +354,7 @@ class SmartGlassesDetector @Inject constructor(
 
     companion object {
         private const val TAG = "SmartGlassesDetector"
+        private const val UNKNOWN_CLASSIC_RSSI = -127
     }
 }
 
@@ -288,4 +408,33 @@ internal fun DetectionSignal.toDiagnosticLog(
         rssi = rssi,
         detectedAt = detectedAt
     )
+}
+
+internal data class ClassicDiscoverySignal(
+    val deviceName: String?,
+    val address: String,
+    val rssi: Int
+)
+
+internal fun ClassicDiscoverySignal.toDiagnosticLog(
+    detectedAt: Long = System.currentTimeMillis()
+): DiagnosticLog {
+    return DiagnosticLog(
+        advertisedName = deviceName.orEmpty(),
+        deviceAddress = address,
+        companyIds = "",
+        serviceUuids = "",
+        advertisementDataHex = "",
+        rssi = rssi,
+        detectedAt = detectedAt
+    )
+}
+
+private fun Intent.extractBluetoothDevice(): BluetoothDevice? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+    }
 }
