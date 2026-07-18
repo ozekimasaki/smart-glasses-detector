@@ -1,165 +1,125 @@
-# CLAUDE.md - スマートグラス検出アプリ
+# AGENTS.md - スマートグラス検出アプリ
+
+このリポジトリで作業するコーディングエージェント向けのガイドです。実際のコードと設定に基づいて記述しています。人間向けの概要は [`README.md`](README.md) を参照してください。
 
 ## プロジェクト概要
 
-- **アプリ名**: スマートグラス検出
-- **パッケージ名**: `jp.smartglasses.detector`
-- **minSdk**: 26 (Android 8.0) / **targetSdk**: 35 (Android 15)
-- **目的**: BLE スキャンで近くのスマートグラスを検出し通知するアプリ
+- **アプリ名 / 表示名**: スマートグラス検出
+- **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
+- **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
+- **`minSdk`**: 26 (Android 8.0) / **`targetSdk`** / **`compileSdk`**: 35 (Android 15)
+- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 9 / 1.0.8）
+- 単一モジュール構成（`:app`）
 
 ## アーキテクチャ
 
-MVVM + Clean Architecture の3層構造:
+MVVM + Clean Architecture の 3 層:
 
 ```
 presentation/ → domain/ → data/
 ```
 
-- **presentation/**: Jetpack Compose UI、ViewModel
-- **domain/**: UseCase、Repository interface、Model
-- **data/**: RepositoryImpl、BLE、Room、DataStore
+- **presentation/**: Jetpack Compose UI と ViewModel
+- **domain/**: model / repository interface / usecase / service interface
+- **data/**: repository 実装、BLE、Room、DataStore、エクスポート
+- DI は Hilt（`SingletonComponent`）。`@AndroidEntryPoint` / `@HiltViewModel` を使用。
 
-DI は Hilt（`@Singleton` スコープ）、`SingletonComponent` に集約。
+## エントリポイント
 
-## 技術スタック
+- `SmartGlassesDetectorApp.kt`: `@HiltAndroidApp` を付与した `Application`
+- `MainActivity.kt`: `@AndroidEntryPoint` な `ComponentActivity`。`AppNavigation()` で Compose の `NavHost` を構築
+- `service/ScanningForegroundService.kt`: BLE 探索を継続するフォアグラウンドサービス
+- `AndroidManifest.xml`: 権限、`MainActivity`、`ScanningForegroundService`（`foregroundServiceType="connectedDevice"`）、`FileProvider` を宣言
 
-| カテゴリ | ライブラリ | バージョン |
-|---------|-----------|-----------|
-| 言語 | Kotlin | 2.0.21 |
-| UI | Jetpack Compose (BOM) | 2024.09.00 |
-| DI | Hilt | 2.50 |
-| DB | Room | 2.6.1 |
-| 設定永続化 | DataStore Preferences | 1.0.0 |
-| 非同期 | Coroutines + Flow | (lifecycle 2.7.0) |
-| ナビゲーション | Compose Navigation | 2.7.7 |
-| ビルドシステム | Gradle KTS + libs.versions.toml | AGP 8.7.3 |
-| コード生成 | KSP | 2.0.21-1.0.28 |
-
-## 主要ファイル構造
+## ディレクトリ構成（`app/src/main/java/jp/smartglasses/detector/`）
 
 ```
-app/src/main/java/jp/smartglasses/detector/
-├── di/
-│   ├── BluetoothModule.kt       # BluetoothManager/Adapter の DI 提供
-│   ├── DatabaseModule.kt        # Room DB / DAO の DI 提供
-│   └── RepositoryModule.kt      # Repository 実装の DI バインド
-├── domain/
-│   ├── model/
-│   │   ├── SmartGlassesDevice.kt
-│   │   ├── Manufacturer.kt      # DetectionMethod (COMPANY_ID / DEVICE_NAME)
-│   │   └── DetectionLog.kt
-│   ├── repository/
-│   │   ├── BluetoothRepository.kt
-│   │   └── DetectionLogRepository.kt
-│   └── usecase/
-│       ├── StartScanningUseCase.kt
-│       ├── StopScanningUseCase.kt
-│       ├── GetDetectionHistoryUseCase.kt
-│       └── UpdateSettingsUseCase.kt
-├── data/
-│   ├── bluetooth/
-│   │   ├── SmartGlassesDetector.kt   # BLE スキャン + 検出ロジック中核
-│   │   └── BluetoothRepositoryImpl.kt
-│   ├── database/
-│   │   ├── AppDatabase.kt
-│   │   ├── DetectionLogEntity.kt
-│   │   └── DetectionLogDao.kt
-│   ├── repository/
-│   │   └── DetectionLogRepositoryImpl.kt
-│   └── preferences/
-│       └── AppPreferences.kt         # DataStore ラッパー
-├── service/
-│   └── ScanningForegroundService.kt  # BLE バックグラウンド動作の核心
-├── presentation/
-│   ├── main/        # メイン画面 (スキャン開始/停止)
-│   ├── history/     # 検出履歴画面
-│   ├── settings/    # 設定画面
-│   └── onboarding/  # 初回起動・権限説明
-└── util/
-    └── Constants.kt  # メーカー ID マップ / クールダウン定数 / Enum
+di/            # AppModule, BluetoothModule, DatabaseModule, RepositoryModule
+domain/
+  model/       # SmartGlassesDevice, Manufacturer(+DetectionMethod), DetectionLog,
+               # DiagnosticLog, DiagnosticLogDeduplication, BluetoothScanFailure
+  repository/  # BluetoothRepository, DetectionLogRepository,
+               # DiagnosticLogRepository, SettingsRepository (interface)
+  service/     # ScanServiceController (interface)
+  usecase/     # StartScanningUseCase, StopScanningUseCase,
+               # GetDetectionHistoryUseCase, UpdateSettingsUseCase
+data/
+  bluetooth/   # SmartGlassesDetector, SmartGlassesClassifier,
+               # DetectionCooldownGate, BluetoothRepositoryImpl
+  database/    # AppDatabase(Room), DetectionLog(Dao/Entity), DiagnosticLog(Dao/Entity)
+  preferences/ # AppPreferences (DataStore ラッパー)
+  repository/  # DetectionLogRepositoryImpl, DiagnosticLogRepositoryImpl,
+               # SettingsRepositoryImpl
+  service/     # ScanServiceControllerImpl
+  export/      # DiagnosticLogExporter
+presentation/
+  navigation/  # Screen (onboarding/main/history/settings/about/privacy)
+  main/ history/ settings/ onboarding/ about/ privacy/ components/
+ui/theme/      # Color, Theme, Type
+util/          # Constants (検出ルール / クールダウン / ScanSensitivity),
+               # BackgroundScanSupport
+MainActivity.kt, SmartGlassesDetectorApp.kt
 ```
 
-## 検出ロジック
+## セットアップ
 
-`SmartGlassesDetector` が2段階で検出:
+- JDK 17 以上（ビルドは `compileOptions` / `kotlinOptions.jvmTarget = 11`）
+- Android SDK Platform 35（`compileSdk = 35`）
+- Gradle Wrapper（Gradle 9.3.1、AGP 8.7.3）を使用。ラッパーが未取得の場合は初回実行時にダウンロードされます。
+- 依存バージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) のバージョンカタログで一元管理。
 
-1. **Company ID 検出** (`Constants.SMART_GLASSES_MANUFACTURER_IDS`):
-   - Seiko Epson (0x0040), Apple (0x004C), Google (0x00E0), Amazon (0x0171),
-     Meta (0x01AB / 0x058E), Huawei (0x027D), Lenovo (0x02C5), Meizu (0x03AB),
-     Snapchat (0x03C2), TCL (0x0BC6), Luxottica (0x0D53)
+## ビルド / テスト / Lint / 型チェック（実在コマンド）
 
-2. **デバイス名パターン検出** (`Constants.SMART_GLASSES_NAME_PATTERNS`):
-   - XREAL, Rokid, INMO, Looktech, LAWAKEN, Halliday, VITURE
+Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[`docs/build-environment.md`](docs/build-environment.md)）を使用します。
 
-**クールダウン**:
-- 同一デバイス: 30秒 (`COOLDOWN_SAME_DEVICE_MS`)
-- 同一メーカー: 15秒 (`COOLDOWN_SAME_MANUFACTURER_MS`)
+```bash
+# ビルド
+./gradlew assembleDebug
+./gradlew assembleRelease
+./gradlew bundleRelease
 
-## スキャン感度 (ScanSensitivity enum)
+# ユニットテスト（app/src/test, JUnit4）
+./gradlew test
+./gradlew testDebugUnitTest
 
-| 値 | BLE ScanMode | 用途 |
-|----|-------------|------|
-| `LOW_POWER` | SCAN_MODE_LOW_POWER | バッテリー節約 |
-| `BALANCED` | SCAN_MODE_BALANCED | 標準（デフォルト） |
-| `HIGH_ACCURACY` | SCAN_MODE_LOW_LATENCY | 高精度 |
+# 計測テスト（app/src/androidTest, 要エミュレータ/実機）
+./gradlew connectedAndroidTest
 
-## バックグラウンド動作
+# Android Lint
+./gradlew lint
+./gradlew lintDebug
+./gradlew lintRelease
 
-`ScanningForegroundService`:
-- `ACTION_START` / `ACTION_STOP` インテントで制御
-- `START_STICKY` で再起動対応
-- Android 14+ は `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` 必須
-- 検出時: DB 保存 → 通知 → バイブレーション
-
-通知チャンネル:
-- `scanning_channel`: 常駐通知（PRIORITY_LOW、スワイプ不可）
-- `detection_channel`: 検出通知（PRIORITY_HIGH、ヘッドアップ）
-
-## 設定 (AppPreferences / DataStore)
-
-| キー | デフォルト | 型 |
-|-----|----------|---|
-| `background_enabled` | true | Boolean |
-| `notification_enabled` | true | Boolean |
-| `vibration_enabled` | true | Boolean |
-| `sound_enabled` | true | Boolean |
-| `sensitivity` | 1 (BALANCED) | Int (0/1/2) |
-| `onboarding_completed` | false | Boolean |
-| `is_scanning` | false | Boolean |
-
-## 権限
-
-```xml
-BLUETOOTH_SCAN, BLUETOOTH_CONNECT           <!-- Android 12+ -->
-ACCESS_FINE_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN  <!-- Android 11以前 -->
-FOREGROUND_SERVICE, FOREGROUND_SERVICE_CONNECTED_DEVICE
-VIBRATE, POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED
+# クリーン
+./gradlew clean
 ```
 
-## デザイン方針
+- **型チェック**: Kotlin の型検査はコンパイル時に行われます。専用タスクはないため、`compileDebugKotlin` などのコンパイル、または `assembleDebug` / `test` で確認します。
+- ktlint / detekt / spotless などのフォーマッタ・静的解析ツールは**設定されていません**。存在しない lint コマンドを追加・記載しないでください。
 
-- Material Design 3 準拠
-- カラーパレット: 暖色系（Orange / Amber / Coral）
-- 背景: クリーム色 (`0xFFFFF8E1`)
-- 非エンジニアユーザー向け: 技術用語なし、丸みのある UI
+## コーディング規約
 
-## 開発時の注意点
+- `kotlin.code.style=official`（`gradle.properties`）に従う。インデントは 4 スペース。
+- 依存関係の追加・更新は必ず `gradle/libs.versions.toml` を経由し、`build.gradle.kts` では `libs.*` エイリアスで参照する。バージョンを直書きしない。
+- レイヤー依存は `presentation → domain → data` の一方向を維持する。`domain` はフレームワーク非依存の interface / model を置く。
+- DI は Hilt を使用。新しい依存は該当する `di/` モジュール（`AppModule` / `BluetoothModule` / `DatabaseModule` / `RepositoryModule`）で提供・バインドする。
+- UI は Jetpack Compose + Material 3。テーマは `ui/theme/` を使用する。
+- 検出対象メーカーやクールダウン等の定数は `util/Constants.kt`（`SMART_GLASSES_DETECTION_RULES`、`COOLDOWN_*`、`MIN_DETECTION_RSSI_DBM`）に集約する。
+- 設定キーとデフォルト値は `data/preferences/AppPreferences.kt` に定義（DataStore Preferences）。
 
-1. **BLE スキャンには `@SuppressLint("MissingPermission")` が必要** — 権限チェックは呼び出し元で行う
-2. **`ManufacturerSpecificData` の読み方**: `data.get(0)` でインデックス 0 取得後、リトルエンディアン 2 バイトで Company ID を構築
-3. **フォアグラウンドサービス**: Android 14 以降は `ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を `startForeground()` に渡す
-4. **`isMinifyEnabled = false`** (現在 release でも無効) — リリース前に有効化を検討
-5. **`BootReceiver` はまだ未実装** (PROJECT_PLAN.md に記載あり、`receiver/` ディレクトリなし)
-6. **プレゼンテーション層の多くが未実装** — MainScreen, HistoryScreen, SettingsScreen 等はまだ作成されていない
+## 注意点
 
-## 未実装の主要コンポーネント
+1. **BLE スキャンには権限チェックが必要**: 実行前に `BLUETOOTH_SCAN`（Android 12+）や位置情報権限（Android 11 以前）を確認する。`@SuppressLint("MissingPermission")` を使う場合は呼び出し元で権限を担保する。
+2. **フォアグラウンドサービス**: `ScanningForegroundService` は `foregroundServiceType="connectedDevice"` で宣言済み。Android 14 以降は `startForeground()` に `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を渡す。
+3. **release の署名**: `app/build.gradle.kts` はルートの `keystore.properties` があれば release 署名を設定する。存在しない場合 release は未署名になる。`keystore.properties` と keystore は**コミットしない**（テンプレートは `keystore.properties.example`）。
+4. **リリースビルドの縮小**: release は `isMinifyEnabled = true` / `isShrinkResources = true`。ProGuard/R8 ルールは `app/proguard-rules.pro` を編集する。難読化で壊れやすいクラス（リフレクション利用箇所等）に注意する。
+5. **`BootReceiver` は未実装**: `RECEIVE_BOOT_COMPLETED` 権限やブート起動レシーバは現状のマニフェスト・コードに存在しない（`PROJECT_PLAN.md` には構想あり）。
+6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。
+7. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
 
-- `presentation/main/MainScreen.kt` および `MainViewModel.kt`
-- `presentation/history/HistoryScreen.kt` および `HistoryViewModel.kt`
-- `presentation/settings/SettingsScreen.kt`
-- `presentation/onboarding/OnboardingScreen.kt` および `PermissionScreen.kt`
-- `presentation/theme/` (Color.kt, Theme.kt, Type.kt, Shape.kt)
-- `receiver/BootReceiver.kt`
-- `di/RepositoryModule.kt` (一部)
-- `MainActivity.kt`
-- `domain/model/DetectionMethod.kt` に `DetectionMethod` enum が必要（`SmartGlassesDetector` で使用）
+## ドキュメント
+
+- 開発計画: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
+- ビルド環境（Windows ラッパー）: [`docs/build-environment.md`](docs/build-environment.md)
+- 署名手順: [`docs/github-release-signing.md`](docs/github-release-signing.md)
+- Play 公開チェック: [`docs/play-release-checklist.md`](docs/play-release-checklist.md)
