@@ -53,7 +53,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Google",
-            companyIds = setOf(0x00E0),
+            companyIds = setOf(0x00E0, 0x018E),
             namePatterns = listOf(
                 "Google Glass",
                 "Glass EE",
@@ -69,19 +69,8 @@ object Constants {
             namePatterns = listOf("Echo Frame", "Echo Frames", "Amazon Frame")
         ),
         DetectionRule(
-            manufacturerName = "Google LLC",
-            companyIds = setOf(0x018E),
-            namePatterns = listOf(
-                "Google Glass",
-                "Glass EE",
-                "Glass Enterprise",
-                "Android XR"
-            ),
-            allowCompanyIdOnly = false
-        ),
-        DetectionRule(
             manufacturerName = "Meta Platforms",
-            companyIds = setOf(0x01AB),
+            companyIds = setOf(0x01AB, 0x058E),
             namePatterns = listOf(
                 "Ray-Ban",
                 "RayBan",
@@ -127,19 +116,6 @@ object Constants {
             namePatterns = listOf("Spectacles", "Snap Glass")
         ),
         DetectionRule(
-            manufacturerName = "Meta Tech",
-            companyIds = setOf(0x058E),
-            namePatterns = listOf(
-                "Ray-Ban",
-                "RayBan",
-                "Ray Ban",
-                "META_RB",
-                "Oakley Meta"
-            ),
-            serviceUuids = setOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
-            payloadPatterns = listOf("META_RB_GLASS")
-        ),
-        DetectionRule(
             manufacturerName = "TCL",
             companyIds = setOf(0x0BC6),
             namePatterns = listOf("RayNeo", "NXTWEAR", "TCL Glass")
@@ -152,7 +128,7 @@ object Constants {
         DetectionRule(
             manufacturerName = "Vuzix",
             companyIds = setOf(0x060C),
-            namePatterns = listOf("Vuzix", "Vuzix Blade", "Vuzix Shield", "Vuzix M400")
+            namePatterns = listOf("Vuzix", "Vuzix Blade", "Vuzix Shield", "Vuzix M400", "Ultralite", "Vuzix Z100")
         ),
         DetectionRule(
             manufacturerName = "Kopin",
@@ -308,11 +284,6 @@ object Constants {
         DetectionRule(
             manufacturerName = "Nubia",
             namePatterns = listOf("Nubia Glass", "Neovision"),
-            allowCompanyIdOnly = false
-        ),
-        DetectionRule(
-            manufacturerName = "Vuzix Companion",
-            namePatterns = listOf("Ultralite", "Vuzix Z100"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
