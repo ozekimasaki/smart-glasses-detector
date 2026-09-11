@@ -696,6 +696,16 @@ class SmartGlassesClassifierTest {
                 uuid.equals("00009100-0000-1000-8000-00805F9B34FB", ignoreCase = true)
             }
         )
+
+        val brilliant = Constants.SMART_GLASSES_DETECTION_RULES.first { rule ->
+            rule.manufacturerName == "Brilliant Labs"
+        }
+        assertTrue(
+            "Brilliant Labs Frame official BLE UUID should be configured",
+            brilliant.serviceUuids.any { uuid ->
+                uuid.equals("7A230001-5475-A6A4-654C-8431F6AD49C4", ignoreCase = true)
+            }
+        )
     }
 
     @Test
@@ -724,10 +734,90 @@ class SmartGlassesClassifierTest {
                 rssi = -60
             )
         )
+        val halliday = classifier.classify(
+            DetectionSignal(
+                deviceName = "HALLIDAYGP101",
+                address = "AA:BB:CC:DD:EE:35",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val frameName = classifier.classify(
+            DetectionSignal(
+                deviceName = "Frame 4F",
+                address = "AA:BB:CC:DD:EE:36",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
 
         assertEquals("INMO", inmo?.manufacturer?.name)
         assertEquals("Samsung", galaxyXr?.manufacturer?.name)
         assertEquals("Even Realities", evenG3?.manufacturer?.name)
+        assertEquals("Halliday", halliday?.manufacturer?.name)
+        assertEquals("Brilliant Labs", frameName?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, frameName?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `brilliant frame service uuid is detected without a name`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:37",
+                companyIds = emptySet(),
+                rssi = -58,
+                serviceUuids = listOf("7A230001-5475-A6A4-654C-8431F6AD49C4")
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Brilliant Labs", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `unknown chinese glasses name is detected by heuristic`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "智能眼镜-A1",
+                address = "AA:BB:CC:DD:EE:38",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `camera glasses name is detected by heuristic`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Pocket Camera Glass",
+                address = "AA:BB:CC:DD:EE:39",
+                companyIds = emptySet(),
+                rssi = -61
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `smart watch names are excluded from generic glasses heuristic`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Watch Glasses",
+                address = "AA:BB:CC:DD:EE:40",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertNull(detected)
     }
 
     private fun asciiToHex(value: String): String {

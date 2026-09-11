@@ -39,6 +39,42 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `resumes persisted scanning when app is visible even without background`() {
+        assertTrue(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = false,
+                hasPermissions = true,
+                appInForeground = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = false,
+                hasPermissions = true,
+                appInForeground = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldResume(
+                wasScanning = false,
+                backgroundEnabled = false,
+                hasPermissions = true,
+                appInForeground = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = false,
+                hasPermissions = false,
+                appInForeground = true
+            )
+        )
+    }
+
+    @Test
     fun `handles boot and package replaced actions`() {
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_BOOT_COMPLETED))
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_MY_PACKAGE_REPLACED))

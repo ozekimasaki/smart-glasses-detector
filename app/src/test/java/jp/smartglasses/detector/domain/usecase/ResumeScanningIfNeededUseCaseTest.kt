@@ -1,0 +1,107 @@
+package jp.smartglasses.detector.domain.usecase
+
+import jp.smartglasses.detector.domain.model.BluetoothScanFailure
+import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.repository.BluetoothRepository
+import jp.smartglasses.detector.domain.repository.SettingsRepository
+import jp.smartglasses.detector.domain.service.ScanServiceController
+import jp.smartglasses.detector.util.ScanSensitivity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class ResumeScanningIfNeededUseCaseTest {
+    @Test
+    fun `starts the scan service when the app is visible and scanning was persisted`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = false),
+            bluetoothRepository = FakeBluetoothRepository(permissions = true),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(1, controller.startCount)
+    }
+
+    @Test
+    fun `does not start from background when background scanning is unavailable`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = false),
+            bluetoothRepository = FakeBluetoothRepository(permissions = true),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = false)
+
+        assertEquals(0, controller.startCount)
+    }
+
+    @Test
+    fun `does not start when the user is not scanning`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = false, background = true),
+            bluetoothRepository = FakeBluetoothRepository(permissions = true),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(0, controller.startCount)
+    }
+
+    private class RecordingScanServiceController : ScanServiceController {
+        var startCount = 0
+
+        override fun startScanService() {
+            startCount += 1
+        }
+
+        override fun stopScanService() = Unit
+    }
+
+    private class FakeSettingsRepository(
+        scanning: Boolean,
+        background: Boolean
+    ) : SettingsRepository {
+        override val backgroundEnabled = MutableStateFlow(background)
+        override val notificationEnabled = MutableStateFlow(true)
+        override val vibrationEnabled = MutableStateFlow(true)
+        override val soundEnabled = MutableStateFlow(true)
+        override val sensitivity = MutableStateFlow(ScanSensitivity.BALANCED)
+        override val onboardingCompleted = MutableStateFlow(true)
+        override val isScanning = MutableStateFlow(scanning)
+
+        override suspend fun setBackgroundEnabled(enabled: Boolean) = Unit
+        override suspend fun setNotificationEnabled(enabled: Boolean) = Unit
+        override suspend fun setVibrationEnabled(enabled: Boolean) = Unit
+        override suspend fun setSoundEnabled(enabled: Boolean) = Unit
+        override suspend fun setSensitivity(sensitivity: ScanSensitivity) = Unit
+        override suspend fun setOnboardingCompleted(completed: Boolean) = Unit
+        override suspend fun setIsScanning(scanning: Boolean) = Unit
+    }
+
+    private class FakeBluetoothRepository(
+        private val permissions: Boolean
+    ) : BluetoothRepository {
+        override val scannedDevices: Flow<SmartGlassesDevice> = emptyFlow()
+        override val scanFailures: Flow<BluetoothScanFailure> = emptyFlow()
+        override val isScanning = MutableStateFlow(false)
+        override val nearbyDevices = MutableStateFlow(emptyList<SmartGlassesDevice>())
+
+        override suspend fun startScanning() = Unit
+        override suspend fun stopScanning() = Unit
+        override fun updateScanSensitivity(sensitivity: ScanSensitivity) = Unit
+        override fun hasPermissions() = permissions
+        override fun hasNotificationPermission() = true
+        override fun hasBleHardwareSupport() = true
+        override fun isBluetoothEnabled() = true
+        override fun isLocationServicesEnabled() = true
+    }
+}

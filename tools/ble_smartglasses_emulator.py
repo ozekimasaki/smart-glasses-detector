@@ -57,6 +57,10 @@ NAME_PATTERN_DEVICES = {
     40: "Even G2_12_L_ABCDEF",
     41: "INMOAIR3_A1B2",
     42: "Galaxy XR-01",
+    43: "Frame 4F",
+    44: "HALLIDAYGP101",
+    45: "Even G3_12_L",
+    46: "智能眼镜-A1",
 }
 
 UUID_DEVICES = {

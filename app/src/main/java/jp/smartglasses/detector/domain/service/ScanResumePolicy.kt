@@ -4,9 +4,13 @@ object ScanResumePolicy {
     fun shouldResume(
         wasScanning: Boolean,
         backgroundEnabled: Boolean,
-        hasPermissions: Boolean
+        hasPermissions: Boolean,
+        appInForeground: Boolean = false
     ): Boolean {
-        return wasScanning && backgroundEnabled && hasPermissions
+        if (!wasScanning || !hasPermissions) {
+            return false
+        }
+        return backgroundEnabled || appInForeground
     }
 
     fun shouldHandleAction(action: String?, bluetoothState: Int? = null): Boolean {

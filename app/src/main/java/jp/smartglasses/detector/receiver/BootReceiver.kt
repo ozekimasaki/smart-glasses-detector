@@ -32,7 +32,7 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                resumeScanningIfNeeded()
+                resumeScanningIfNeeded(appInForeground = false)
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to resume scanning after ${intent?.action}", e)
             } finally {

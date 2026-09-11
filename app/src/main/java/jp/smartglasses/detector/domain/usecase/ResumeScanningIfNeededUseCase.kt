@@ -13,13 +13,14 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
     private val bluetoothRepository: BluetoothRepository,
     private val scanServiceController: ScanServiceController
 ) {
-    suspend operator fun invoke() {
+    suspend operator fun invoke(appInForeground: Boolean = false) {
         val shouldResume = ScanResumePolicy.shouldResume(
             wasScanning = settingsRepository.isScanning.first(),
             backgroundEnabled = BackgroundScanSupport.isEnabled(
                 settingsRepository.backgroundEnabled.first()
             ),
-            hasPermissions = bluetoothRepository.hasPermissions()
+            hasPermissions = bluetoothRepository.hasPermissions(),
+            appInForeground = appInForeground
         )
         if (!shouldResume) {
             return

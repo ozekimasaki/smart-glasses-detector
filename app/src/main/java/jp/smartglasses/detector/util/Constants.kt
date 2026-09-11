@@ -33,6 +33,7 @@ object Constants {
     internal val GENERIC_GLASSES_NAME_REGEXES = listOf(
         Regex("""(?i)smart[\s-]?glass"""),
         Regex("""(?i)\b(?:ai|ar|xr|mr)[\s-]?glass"""),
+        Regex("""(?i)camera[\s-]?glass"""),
         Regex("""(?i)eye-?wear"""),
         Regex("""(?i)\beyewear\b"""),
         Regex("""(?i)spectacles"""),
@@ -42,10 +43,13 @@ object Constants {
         Regex("""(?i)ai[\s-]?eyewear"""),
         Regex("""(?i)ar[\s-]?eyewear"""),
         Regex("""スマートグラス"""),
+        Regex("""スマート眼鏡"""),
         Regex("""アイウェア"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
-        Regex("""AIグラス""")
+        Regex("""AIグラス"""),
+        Regex("""智能眼镜"""),
+        Regex("""智能眼鏡""")
     )
 
     internal val GENERIC_NON_GLASSES_NAME_REGEXES = listOf(
@@ -55,7 +59,15 @@ object Constants {
         Regex("""(?i)headphones?"""),
         Regex("""(?i)earbuds?"""),
         Regex("""(?i)\bheadset\b"""),
-        Regex("""(?i)\bspeaker\b""")
+        Regex("""(?i)\bspeaker\b"""),
+        Regex("""(?i)smart[\s-]?watch"""),
+        Regex("""(?i)galaxy\s*watch"""),
+        Regex("""(?i)pixel\s*watch"""),
+        Regex("""(?i)fitbit"""),
+        Regex("""(?i)airtag"""),
+        Regex("""(?i)smart[\s-]?tag"""),
+        Regex("""(?i)smart[\s-]?band"""),
+        Regex("""(?i)smart[\s-]?ring""")
     )
 
     internal val SMART_GLASSES_DETECTION_RULES = listOf(
@@ -97,7 +109,12 @@ object Constants {
         DetectionRule(
             manufacturerName = "Amazon",
             companyIds = setOf(0x0171),
-            namePatterns = listOf("Echo Frame", "Echo Frames", "Amazon Frame")
+            namePatterns = listOf(
+                "Echo Frame",
+                "Echo Frames",
+                "Echo Frames 2",
+                "Amazon Frame"
+            )
         ),
         DetectionRule(
             manufacturerName = "Meta Platforms",
@@ -111,6 +128,7 @@ object Constants {
                 "Meta Ray Ban",
                 "Oakley Meta",
                 "Oakley HSTN",
+                "Oakley Vanguard",
                 "Ray-Ban Display",
                 "RayBan Display",
                 "Ray-Ban Stories",
@@ -141,18 +159,30 @@ object Constants {
                 "Legion Glass",
                 "ThinkReality",
                 "ThinkReality A3",
+                "ThinkReality VRX",
                 "Lenovo Glass"
             )
         ),
         DetectionRule(
             manufacturerName = "Meizu",
             companyIds = setOf(0x03AB),
-            namePatterns = listOf("MYVU", "StarV", "Meizu Glass")
+            namePatterns = listOf(
+                "MYVU",
+                "MYVU Explorer",
+                "StarV",
+                "StarV View",
+                "Meizu Glass"
+            )
         ),
         DetectionRule(
             manufacturerName = "Snapchat",
             companyIds = setOf(0x03C2),
-            namePatterns = listOf("Spectacles", "Snap Glass", "Snap Spectacles"),
+            namePatterns = listOf(
+                "Spectacles",
+                "Snap Glass",
+                "Snap Spectacles",
+                "Spectacles 5"
+            ),
             serviceUuids = setOf("0000FE45-0000-1000-8000-00805F9B34FB")
         ),
         DetectionRule(
@@ -164,9 +194,12 @@ object Constants {
                 "TCL Glass",
                 "RayNeo X2",
                 "RayNeo X3",
+                "RayNeo X3 Pro",
+                "RayNeo V3",
                 "RayNeo Air",
                 "RayNeo Air 2",
                 "RayNeo Air 3",
+                "RayNeo Air 3s",
                 "NXTWEAR S",
                 "NXTWEAR AIR"
             )
@@ -179,6 +212,7 @@ object Constants {
                 "RayBan",
                 "Oakley Meta",
                 "Oakley HSTN",
+                "Oakley Vanguard",
                 "Ray-Ban Stories",
                 "Essilor"
             )
@@ -189,8 +223,10 @@ object Constants {
             namePatterns = listOf(
                 "Vuzix",
                 "Vuzix Blade",
+                "Vuzix Blade 2",
                 "Vuzix Shield",
                 "Vuzix M400",
+                "Vuzix M4000",
                 "Ultralite",
                 "Vuzix Z100"
             )
@@ -198,7 +234,14 @@ object Constants {
         DetectionRule(
             manufacturerName = "Kopin",
             companyIds = setOf(0x041F),
-            namePatterns = listOf("Solos", "AirGo", "Solos AirGo", "AirGo Vision")
+            namePatterns = listOf(
+                "Solos",
+                "AirGo",
+                "Solos AirGo",
+                "AirGo Vision",
+                "AirGo 3",
+                "AirGo3"
+            )
         ),
         DetectionRule(
             manufacturerName = "North",
@@ -264,8 +307,11 @@ object Constants {
                 "Nreal",
                 "XREAL One",
                 "XREAL One Pro",
+                "XREAL Eye",
                 "XREAL Air",
                 "XREAL Air 2",
+                "XREAL Air 2 Pro",
+                "XREAL Air 2 Ultra",
                 "Nreal Air",
                 "Nreal Light"
             ),
@@ -281,7 +327,8 @@ object Constants {
                 "Rokid Max Ultra",
                 "Rokid Glasses",
                 "Rokid Glass",
-                "Rokid AR Lite"
+                "Rokid AR Lite",
+                "Rokid AR Spatial"
             ),
             serviceUuids = setOf("00009100-0000-1000-8000-00805F9B34FB"),
             allowCompanyIdOnly = false
@@ -293,6 +340,7 @@ object Constants {
                 "INMO Air",
                 "INMO Air2",
                 "INMO Air 3",
+                "INMO Air3",
                 "INMOAIR",
                 "INMO GO",
                 "INMO GO2",
@@ -312,7 +360,14 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Halliday",
-            namePatterns = listOf("Halliday", "Halliday Glass", "Halliday AI"),
+            namePatterns = listOf(
+                "Halliday",
+                "Halliday Glass",
+                "Halliday AI",
+                "Halliday G2",
+                "GP101",
+                "HALLIDAYGP101"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -323,6 +378,7 @@ object Constants {
                 "VITURE One Lite",
                 "VITURE Beast",
                 "VITURE Luma",
+                "VITURE Luma Ultra",
                 "VITURE Pro",
                 "VITURE Neckband"
             ),
@@ -339,6 +395,9 @@ object Constants {
                 "Even G2",
                 "Even-G2",
                 "EvenG2",
+                "Even G3",
+                "Even-G3",
+                "EvenG3",
                 "Even G",
                 "G1_",
                 "G1-"
@@ -352,8 +411,11 @@ object Constants {
                 "Brilliant Halo",
                 "Monocle",
                 "Frame-",
+                "Frame ",
+                "Frame Update",
                 "Halo-"
             ),
+            serviceUuids = setOf("7A230001-5475-A6A4-654C-8431F6AD49C4"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -416,7 +478,12 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "RealWear",
-            namePatterns = listOf("RealWear", "Navigator-"),
+            namePatterns = listOf(
+                "RealWear",
+                "Navigator-",
+                "Navigator 500",
+                "Navigator 520"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
