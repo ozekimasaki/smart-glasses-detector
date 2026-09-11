@@ -76,6 +76,7 @@ class SmartGlassesDetector @Inject constructor(
     private var scanWatchdogJob: Job? = null
     private var nearbyPruneJob: Job? = null
     private var retryJob: Job? = null
+    private var classicDiscoveryJob: Job? = null
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
@@ -348,7 +349,13 @@ class SmartGlassesDetector @Inject constructor(
         if (!classicDiscoveryStarted.compareAndSet(false, true)) {
             return
         }
-        startClassicDiscovery()
+        classicDiscoveryJob?.cancel()
+        classicDiscoveryJob = diagnosticPersistenceScope.launch {
+            delay(Constants.CLASSIC_DISCOVERY_DELAY_MS)
+            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+                startClassicDiscovery()
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -433,9 +440,11 @@ class SmartGlassesDetector @Inject constructor(
         retryJob?.cancel()
         scanWatchdogJob?.cancel()
         nearbyPruneJob?.cancel()
+        classicDiscoveryJob?.cancel()
         retryJob = null
         scanWatchdogJob = null
         nearbyPruneJob = null
+        classicDiscoveryJob = null
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()

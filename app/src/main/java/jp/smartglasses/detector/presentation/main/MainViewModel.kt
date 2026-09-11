@@ -34,6 +34,7 @@ sealed interface MainEvent {
     data object OpenAppSettings : MainEvent
     data object OpenLocationSettings : MainEvent
     data object RequestEnableBluetooth : MainEvent
+    data object RequestScanPermissions : MainEvent
     data object RequestNotificationPermission : MainEvent
 }
 
@@ -113,7 +114,7 @@ class MainViewModel @Inject constructor(
                     return@launch
                 }
                 ScanStartRequirement.MissingScanPermissions -> {
-                    _event.send(MainEvent.OpenAppSettings)
+                    _event.send(MainEvent.RequestScanPermissions)
                     return@launch
                 }
                 ScanStartRequirement.LocationDisabled -> {
@@ -139,6 +140,16 @@ class MainViewModel @Inject constructor(
 
     fun onBluetoothEnabled() {
         startScanning()
+    }
+
+    fun onScanPermissionsResolved(granted: Boolean) {
+        if (granted) {
+            startScanning()
+            return
+        }
+        viewModelScope.launch {
+            _event.send(MainEvent.OpenAppSettings)
+        }
     }
 
     fun onNotificationPermissionResolved() {

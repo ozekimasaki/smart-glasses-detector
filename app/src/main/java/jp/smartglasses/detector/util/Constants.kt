@@ -21,6 +21,7 @@ object Constants {
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
     internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 4 * 60 * 1000L
     internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
+    internal const val CLASSIC_DISCOVERY_DELAY_MS = 15_000L
     internal const val NEARBY_DEVICE_TTL_MS = 20_000L
     internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
     internal const val DIAGNOSTIC_LOG_KEEP_COUNT = 500

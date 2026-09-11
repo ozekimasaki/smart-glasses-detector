@@ -37,7 +37,7 @@ class DiagnosticSignalSupportTest {
         )
 
         assertTrue(signal.hasDiagnosticPayload())
-        assertEquals("AA:BB:CC:DD:EE:FF", signal.toDiagnosticLog()?.deviceAddress)
+        assertEquals("AA:BB:CC:DD:EE:FF", signal.toDiagnosticLog().deviceAddress)
     }
 
     @Test
@@ -109,8 +109,7 @@ class DiagnosticSignalSupportTest {
         )
 
         assertNotNull(processed.detectedDevice)
-        assertNotNull(processed.diagnosticLog)
-        assertEquals("Ray-Ban Meta", processed.diagnosticLog?.advertisedName)
+        assertEquals("Ray-Ban Meta", processed.diagnosticLog.advertisedName)
     }
 
     @Test

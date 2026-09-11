@@ -102,6 +102,11 @@ fun MainScreen(
     ) {
         viewModel.onNotificationPermissionResolved()
     }
+    val scanPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        viewModel.onScanPermissionsResolved(permissions.values.all { granted -> granted })
+    }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
@@ -123,6 +128,17 @@ fun MainScreen(
                 }
                 MainEvent.RequestEnableBluetooth -> {
                     enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                }
+                MainEvent.RequestScanPermissions -> {
+                    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        arrayOf(
+                            Manifest.permission.BLUETOOTH_SCAN,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        )
+                    } else {
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                    scanPermissionLauncher.launch(permissions)
                 }
                 MainEvent.RequestNotificationPermission -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
