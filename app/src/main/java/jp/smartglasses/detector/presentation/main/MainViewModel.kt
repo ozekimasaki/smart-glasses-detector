@@ -7,10 +7,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
-import jp.smartglasses.detector.domain.service.ScanServiceController
 import jp.smartglasses.detector.domain.service.ScanStartPolicy
 import jp.smartglasses.detector.domain.service.ScanStartRequirement
 import jp.smartglasses.detector.domain.service.ScanUiStatePolicy
+import jp.smartglasses.detector.domain.usecase.StartScanningUseCase
+import jp.smartglasses.detector.domain.usecase.StopScanningUseCase
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,7 +39,8 @@ sealed interface MainEvent {
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val bluetoothRepository: BluetoothRepository,
-    private val scanServiceController: ScanServiceController,
+    private val startScanningUseCase: StartScanningUseCase,
+    private val stopScanningUseCase: StopScanningUseCase,
     private val detectionLogRepository: DetectionLogRepository,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
@@ -128,7 +130,7 @@ class MainViewModel @Inject constructor(
             }
 
             try {
-                scanServiceController.startScanService()
+                startScanningUseCase()
             } catch (_: Exception) {
                 _event.send(MainEvent.ShowMessage("探索を開始できませんでした。もう一度お試しください。"))
             }
@@ -146,7 +148,7 @@ class MainViewModel @Inject constructor(
     private fun stopScanning() {
         viewModelScope.launch {
             try {
-                scanServiceController.stopScanService()
+                stopScanningUseCase()
             } catch (_: Exception) {
                 _event.send(MainEvent.ShowMessage("探索の停止に失敗しました。"))
             }

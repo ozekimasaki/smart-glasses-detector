@@ -27,7 +27,7 @@ import jp.smartglasses.detector.presentation.onboarding.OnboardingScreen
 import jp.smartglasses.detector.presentation.onboarding.OnboardingViewModel
 import jp.smartglasses.detector.presentation.privacy.PrivacyScreen
 import jp.smartglasses.detector.presentation.settings.SettingsScreen
-import jp.smartglasses.detector.ui.theme.スマートグラス検出Theme
+import jp.smartglasses.detector.ui.theme.AppTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            スマートグラス検出Theme {
+            AppTheme {
                 AppNavigation()
             }
         }

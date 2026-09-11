@@ -1,12 +1,12 @@
 package jp.smartglasses.detector.domain.usecase
 
-import jp.smartglasses.detector.domain.repository.BluetoothRepository
+import jp.smartglasses.detector.domain.service.ScanServiceController
 import javax.inject.Inject
 
 class StartScanningUseCase @Inject constructor(
-    private val bluetoothRepository: BluetoothRepository
+    private val scanServiceController: ScanServiceController
 ) {
-    suspend operator fun invoke() {
-        bluetoothRepository.startScanning()
+    operator fun invoke() {
+        scanServiceController.startScanService()
     }
 }

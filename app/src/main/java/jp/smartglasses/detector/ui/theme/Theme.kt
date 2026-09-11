@@ -48,7 +48,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun スマートグラス検出Theme(
+fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

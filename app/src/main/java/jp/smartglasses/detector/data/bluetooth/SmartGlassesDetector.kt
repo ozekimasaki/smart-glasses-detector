@@ -17,6 +17,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.util.size
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
@@ -176,7 +177,7 @@ class SmartGlassesDetector @Inject constructor(
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
         val companyIds = mutableSetOf<Int>()
         val manufacturerSpecificData = scanRecord.manufacturerSpecificData
-        for (index in 0 until manufacturerSpecificData.size()) {
+        for (index in 0 until manufacturerSpecificData.size) {
             companyIds += manufacturerSpecificData.keyAt(index)
         }
         return companyIds

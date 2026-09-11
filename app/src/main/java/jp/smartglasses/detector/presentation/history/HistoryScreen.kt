@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
+import jp.smartglasses.detector.domain.model.DetectionHistoryGrouping
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
 import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
@@ -178,8 +179,13 @@ fun HistoryScreen(
 
 @Composable
 private fun DateHeader(label: String) {
+    val text = when (label) {
+        DetectionHistoryGrouping.TODAY_LABEL -> stringResource(R.string.history_today)
+        DetectionHistoryGrouping.YESTERDAY_LABEL -> stringResource(R.string.history_yesterday)
+        else -> label
+    }
     Text(
-        text = label,
+        text = text,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
