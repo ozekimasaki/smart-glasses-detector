@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- 今回の公開版は `versionCode = 11` / `versionName = 1.1.1`
+- 今回の公開版は `versionCode = 12` / `versionName = 1.1.2`
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 
 ## 2. プライバシーポリシー公開
@@ -32,6 +32,7 @@ scripts\gradlew-safe.cmd assembleRelease
 - `app/build/outputs/apk/release/app-release.apk` が生成される
 - lint に blocking error がない
 - テストが通る
+- native ライブラリは同梱しない。16 KB ページサイズは AGP 9.4 の `useLegacyPackaging = false` で揃える
 
 ## 4. Play Console 入力メモ
 
@@ -51,7 +52,7 @@ scripts\gradlew-safe.cmd assembleRelease
 
 ### 今回の版で入力する値
 
-- リリース名: `1.1.1`
+- リリース名: `1.1.2`
 - リリースノート見出し: `スマートグラス検出の対象拡大と探索の継続`
 - アプリ カテゴリ候補: `ツール`
 - 連絡先メールアドレス: 開発者が常時受信できる公開用アドレスを設定する
@@ -113,7 +114,7 @@ scripts\gradlew-safe.cmd assembleRelease
 ### 最終チェック項目
 
 - アップロード対象が `app/build/outputs/bundle/release/app-release.aab` である
-- Git の release tag が `v1.1.1` で push 済みである
+- Git の release tag が `v1.1.2` で push 済みである
 - Store listing の説明文がアプリ内プライバシー説明と矛盾しない
 - Data safety で「自動送信なし」と「ユーザー操作による共有のみ」が両立している
 - 新規個人 developer account の場合、closed testing 要件を満たしてから production に進む

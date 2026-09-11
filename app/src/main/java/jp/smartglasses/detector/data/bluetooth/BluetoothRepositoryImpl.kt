@@ -12,6 +12,7 @@ import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.data.preferences.AppPreferences
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
+import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -40,6 +41,10 @@ class BluetoothRepositoryImpl @Inject constructor(
     
     override suspend fun stopScanning() {
         smartGlassesDetector.stopScanning()
+    }
+
+    override fun updateScanSensitivity(sensitivity: ScanSensitivity) {
+        smartGlassesDetector.updateSensitivity(sensitivity)
     }
     
     override fun hasPermissions(): Boolean {

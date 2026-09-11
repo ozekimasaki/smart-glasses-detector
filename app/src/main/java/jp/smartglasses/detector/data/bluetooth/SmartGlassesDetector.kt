@@ -106,7 +106,7 @@ class SmartGlassesDetector @Inject constructor(
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val signal = extractSignal(result)
-            val processedSignal = scanSignalProcessor.process(signal)
+            val processedSignal = scanSignalProcessor.process(signal, lastSensitivity)
 
             val diagnosticLog = processedSignal.diagnosticLog
             persistDiagnosticLog(diagnosticLog)
@@ -140,7 +140,7 @@ class SmartGlassesDetector @Inject constructor(
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
-        return scanSignalProcessor.detectDevice(extractSignal(result))
+        return scanSignalProcessor.detectDevice(extractSignal(result), lastSensitivity)
     }
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
@@ -216,7 +216,7 @@ class SmartGlassesDetector @Inject constructor(
                 Constants.UNKNOWN_RSSI_DBM.toShort()
             ).toInt()
         )
-        val processed = scanSignalProcessor.process(signal)
+        val processed = scanSignalProcessor.process(signal, lastSensitivity)
         persistDiagnosticLog(processed.diagnosticLog)
 
         val detectedDevice = processed.detectedDevice
@@ -379,6 +379,17 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         startLeAndClassicScanning()
+    }
+
+    fun updateSensitivity(sensitivity: ScanSensitivity) {
+        if (lastSensitivity == sensitivity) {
+            return
+        }
+
+        lastSensitivity = sensitivity
+        if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+            refreshBleScan()
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -577,15 +588,21 @@ internal data class ProcessedScanSignal(
 internal class ScanSignalProcessor(
     private val classifier: SmartGlassesClassifier = SmartGlassesClassifier()
 ) {
-    fun process(signal: DetectionSignal): ProcessedScanSignal {
+    fun process(
+        signal: DetectionSignal,
+        sensitivity: ScanSensitivity = ScanSensitivity.BALANCED
+    ): ProcessedScanSignal {
         return ProcessedScanSignal(
-            detectedDevice = classifier.classify(signal),
+            detectedDevice = classifier.classify(signal, sensitivity),
             diagnosticLog = signal.toDiagnosticLog()
         )
     }
 
-    fun detectDevice(signal: DetectionSignal): SmartGlassesDevice? {
-        return classifier.classify(signal)
+    fun detectDevice(
+        signal: DetectionSignal,
+        sensitivity: ScanSensitivity = ScanSensitivity.BALANCED
+    ): SmartGlassesDevice? {
+        return classifier.classify(signal, sensitivity)
     }
 }
 

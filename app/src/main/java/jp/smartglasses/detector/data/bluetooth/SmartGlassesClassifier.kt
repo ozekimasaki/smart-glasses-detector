@@ -3,8 +3,11 @@ package jp.smartglasses.detector.data.bluetooth
 import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.Manufacturer
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.service.DetectionMatchClass
+import jp.smartglasses.detector.domain.service.DetectionRssiPolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.DetectionRule
+import jp.smartglasses.detector.util.ScanSensitivity
 
 internal data class DetectionSignal(
     val deviceName: String?,
@@ -18,16 +21,13 @@ internal data class DetectionSignal(
 
 internal class SmartGlassesClassifier(
     private val detectionRules: List<DetectionRule> = Constants.SMART_GLASSES_DETECTION_RULES,
-    private val minDetectionRssiDbm: Int = Constants.MIN_DETECTION_RSSI_DBM,
-    private val unknownRssiDbm: Int = Constants.UNKNOWN_RSSI_DBM,
     private val genericNameRegexes: List<Regex> = Constants.GENERIC_GLASSES_NAME_REGEXES,
     private val genericNonGlassesNameRegexes: List<Regex> = Constants.GENERIC_NON_GLASSES_NAME_REGEXES
 ) {
-    fun classify(signal: DetectionSignal): SmartGlassesDevice? {
-        if (!isRssiEligible(signal.rssi)) {
-            return null
-        }
-
+    fun classify(
+        signal: DetectionSignal,
+        sensitivity: ScanSensitivity = ScanSensitivity.BALANCED
+    ): SmartGlassesDevice? {
         val parsedAdvertisement = AdvertisementParser.parseHex(signal.advertisementDataHex)
         val resolvedName = signal.deviceName
             ?: parsedAdvertisement.completeName
@@ -40,17 +40,59 @@ internal class SmartGlassesClassifier(
             companyIds = signal.companyIds + parsedAdvertisement.companyIds
         )
 
-        return detectByCompanyId(resolved)
-            ?: detectByServiceUuid(resolved)
-            ?: detectByPayload(resolved)
-            ?: detectByManufacturerSuffix(resolved)
-            ?: detectByDeviceName(resolved)
-            ?: detectByAppearance(resolved)
-            ?: detectByHeuristicName(resolved)
+        return withEligibleRssi(
+            signal = resolved,
+            device = detectByCompanyId(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByServiceUuid(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByPayload(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByManufacturerSuffix(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByDeviceName(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByAppearance(resolved),
+            matchClass = DetectionMatchClass.WEAK,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByHeuristicName(resolved),
+            matchClass = DetectionMatchClass.WEAK,
+            sensitivity = sensitivity
+        )
     }
 
-    private fun isRssiEligible(rssi: Int): Boolean {
-        return rssi == unknownRssiDbm || rssi >= minDetectionRssiDbm
+    private fun withEligibleRssi(
+        signal: DetectionSignal,
+        device: SmartGlassesDevice?,
+        matchClass: DetectionMatchClass,
+        sensitivity: ScanSensitivity
+    ): SmartGlassesDevice? {
+        if (device == null) {
+            return null
+        }
+
+        if (!DetectionRssiPolicy.isEligible(signal.rssi, sensitivity, matchClass)) {
+            return null
+        }
+
+        return device
     }
 
     private fun detectByCompanyId(signal: DetectionSignal): SmartGlassesDevice? {

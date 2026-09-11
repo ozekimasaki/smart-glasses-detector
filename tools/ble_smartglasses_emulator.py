@@ -54,6 +54,11 @@ NAME_PATTERN_DEVICES = {
     37: "XyBLE_A1B2",
     38: "A.Look 000128",
     39: "Frame-1A2B",
+    40: "Even G2_12_L_ABCDEF",
+}
+
+UUID_DEVICES = {
+    51: ("Rokid Glasses (Service UUID 0x9100)", 0x9100),
 }
 
 
@@ -125,6 +130,30 @@ def start_advertise_name_only(device_name):
     print(f"  -> 送信中: デバイス名 = {device_name}")
 
 
+def start_advertise_service_uuid(name, uuid16):
+    stop_advertise()
+    time.sleep(0.5)
+
+    run("sudo hciconfig hci0 up")
+    run('sudo hciconfig hci0 name "BLE Device"')
+
+    low = uuid16 & 0xFF
+    high = (uuid16 >> 8) & 0xFF
+    adv_data = (
+        f"sudo hcitool -i hci0 cmd 0x08 0x0008 "
+        f"07 "
+        f"02 01 06 "
+        f"03 03 {low:02X} {high:02X} "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00"
+    )
+    run(adv_data)
+    run("sudo hciconfig hci0 leadv 3")
+    print(f"  -> 送信中: {name} (Service UUID: 0x{uuid16:04X}, デバイス名なし)")
+
+
 def print_menu():
     print("\n" + "=" * 55)
     print("  BLE Smart Glasses Emulator")
@@ -135,6 +164,9 @@ def print_menu():
         print(f"  {num:2d}) {name} (0x{cid:04X})")
     print("\n--- デバイス名パターン検出テスト ---")
     for num, name in NAME_PATTERN_DEVICES.items():
+        print(f"  {num:2d}) {name}")
+    print("\n--- Service UUID 検出テスト ---")
+    for num, (name, uuid16) in UUID_DEVICES.items():
         print(f"  {num:2d}) {name}")
     print("\n--- コントロール ---")
     print("  88) 全メーカー順番にテスト (各20秒)")
@@ -152,9 +184,9 @@ def auto_test_all():
         start_advertise_company_id(name, cid, name.split("(")[0].strip())
         time.sleep(duration)
 
-    for num, dev_name in NAME_PATTERN_DEVICES.items():
-        print(f"\n[Name Pattern] {dev_name}")
-        start_advertise_name_only(dev_name)
+    for num, (name, uuid16) in UUID_DEVICES.items():
+        print(f"\n[Service UUID] {name}")
+        start_advertise_service_uuid(name, uuid16)
         time.sleep(duration)
 
     stop_advertise()
@@ -199,6 +231,9 @@ def main():
         elif num in COMPANY_ID_DEVICES:
             name, cid = COMPANY_ID_DEVICES[num]
             start_advertise_company_id(name, cid, name.split("(")[0].strip())
+        elif num in UUID_DEVICES:
+            name, uuid16 = UUID_DEVICES[num]
+            start_advertise_service_uuid(name, uuid16)
         elif num in NAME_PATTERN_DEVICES:
             dev_name = NAME_PATTERN_DEVICES[num]
             start_advertise_name_only(dev_name)

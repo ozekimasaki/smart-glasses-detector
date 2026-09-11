@@ -2,6 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.util.Constants
+import jp.smartglasses.detector.util.ScanSensitivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -113,17 +114,83 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
-    fun `signals below rssi threshold are ignored`() {
+    fun `distant catalog matches remain detectable at balanced sensitivity`() {
         val detected = classifier.classify(
             DetectionSignal(
                 deviceName = "Ray-Ban Meta",
                 address = "AA:BB:CC:DD:EE:06",
                 companyIds = setOf(0x01AB),
+                rssi = -90
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `weak heuristic names stay ignored at the old balanced floor`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Pocket HUD-01",
+                address = "AA:BB:CC:DD:EE:06B",
+                companyIds = emptySet(),
                 rssi = -80
             )
         )
 
         assertNull(detected)
+    }
+
+    @Test
+    fun `low power sensitivity ignores distant catalog matches`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Ray-Ban Meta",
+                address = "AA:BB:CC:DD:EE:06C",
+                companyIds = setOf(0x01AB),
+                rssi = -90
+            ),
+            sensitivity = ScanSensitivity.LOW_POWER
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `high accuracy sensitivity detects farther catalog matches`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06D",
+                companyIds = emptySet(),
+                rssi = -108,
+                serviceUuids = listOf("00009100-0000-1000-8000-00805F9B34FB")
+            ),
+            sensitivity = ScanSensitivity.HIGH_ACCURACY
+        )
+
+        assertNotNull(detected)
+        assertEquals("Rokid", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `rokid unnamed advertisement is detected by service uuid`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06E",
+                companyIds = emptySet(),
+                rssi = -88,
+                serviceUuids = listOf("00009100-0000-1000-8000-00805F9B34FB")
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Rokid", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
     }
 
     @Test
@@ -603,6 +670,16 @@ class SmartGlassesClassifierTest {
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
+
+        val rokid = Constants.SMART_GLASSES_DETECTION_RULES.first { rule ->
+            rule.manufacturerName == "Rokid"
+        }
+        assertTrue(
+            "Rokid Glasses official BLE UUID should be configured",
+            rokid.serviceUuids.any { uuid ->
+                uuid.equals("00009100-0000-1000-8000-00805F9B34FB", ignoreCase = true)
+            }
+        )
     }
 
     private fun asciiToHex(value: String): String {

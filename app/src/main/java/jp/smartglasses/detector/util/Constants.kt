@@ -16,7 +16,6 @@ object Constants {
     const val NOTIFICATION_ID_SCANNING = 1001
     const val NOTIFICATION_ID_DETECTION = 1002
 
-    internal const val MIN_DETECTION_RSSI_DBM = -75
     internal const val UNKNOWN_RSSI_DBM = -127
     internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
@@ -103,8 +102,11 @@ object Constants {
                 "Ray Ban",
                 "META_RB",
                 "Oakley Meta",
+                "Oakley HSTN",
                 "Ray-Ban Display",
-                "RayBan Display"
+                "RayBan Display",
+                "Ray-Ban Stories",
+                "RayBan Stories"
             ),
             serviceUuids = setOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
             payloadPatterns = listOf("META_RB_GLASS")
@@ -159,7 +161,14 @@ object Constants {
         DetectionRule(
             manufacturerName = "Luxottica",
             companyIds = setOf(0x0D53),
-            namePatterns = listOf("Ray-Ban", "RayBan", "Oakley Meta", "Essilor")
+            namePatterns = listOf(
+                "Ray-Ban",
+                "RayBan",
+                "Oakley Meta",
+                "Oakley HSTN",
+                "Ray-Ban Stories",
+                "Essilor"
+            )
         ),
         DetectionRule(
             manufacturerName = "Vuzix",
@@ -255,8 +264,10 @@ object Constants {
                 "Rokid Max 2",
                 "Rokid Max Ultra",
                 "Rokid Glasses",
-                "Rokid Glass"
+                "Rokid Glass",
+                "Rokid AR Lite"
             ),
+            serviceUuids = setOf("00009100-0000-1000-8000-00805F9B34FB"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -306,6 +317,8 @@ object Constants {
                 "Even-G1",
                 "EvenG1",
                 "Even G2",
+                "Even-G2",
+                "EvenG2",
                 "G1_"
             )
         ),

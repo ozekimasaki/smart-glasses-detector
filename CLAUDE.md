@@ -81,15 +81,17 @@ app/src/main/java/jp/smartglasses/detector/
 
 ## 検出ロジック
 
-`SmartGlassesDetector` が2段階で検出:
+`SmartGlassesClassifier` は照合クラスごとに RSSI 下限を適用して検出する:
 
-1. **Company ID 検出** (`Constants.SMART_GLASSES_MANUFACTURER_IDS`):
-   - Seiko Epson (0x0040), Apple (0x004C), Google (0x00E0), Amazon (0x0171),
-     Meta (0x01AB / 0x058E), Huawei (0x027D), Lenovo (0x02C5), Meizu (0x03AB),
-     Snapchat (0x03C2), TCL (0x0BC6), Luxottica (0x0D53)
+1. **Company ID**（`allowCompanyIdOnly` のルールのみ）
+2. **Service UUID**（例: Meta `0xFD5F`、Snap `0xFE45`、Rokid `0x9100`、HeyCyan、ActiveLook）
+3. **広告ペイロード**（例: `META_RB_GLASS`）
+4. **メーカーデータ末尾**（ActiveLook `0x08F2`）
+5. **デバイス名パターン**
+6. **GAP Appearance**（眼鏡 `0x01C0`–`0x01FF`）
+7. **汎用名ヒューリスティック**（`smart glass` / `AI/AR/XR glasses` / `HUD` 等）
 
-2. **デバイス名パターン検出** (`Constants.SMART_GLASSES_NAME_PATTERNS`):
-   - XREAL, Rokid, INMO, Looktech, LAWAKEN, Halliday, VITURE
+RSSI 下限は `DetectionRssiPolicy` が感度と照合クラスで変える。カタログ一致はおすすめ設定で -100 dBm まで通し、ヒューリスティックは誤検出を抑えるためより近くに限定する。
 
 **クールダウン**:
 - 同一デバイス: 30秒 (`COOLDOWN_SAME_DEVICE_MS`)
@@ -146,7 +148,7 @@ VIBRATE, POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED
 ## 開発時の注意点
 
 1. **BLE スキャンには `@SuppressLint("MissingPermission")` が必要** — 権限チェックは呼び出し元で行う
-2. **`ManufacturerSpecificData` の読み方**: `data.get(0)` でインデックス 0 取得後、リトルエンディアン 2 バイトで Company ID を構築
+2. **`ManufacturerSpecificData` の読み方**: `keyAt(index)` で Company ID を取得する。広告バイト列からも type `0xFF` の先頭 2 バイト（リトルエンディアン）を読む
 3. **フォアグラウンドサービス**: Android 14 以降は `ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を `startForeground()` に渡す
 4. **`isMinifyEnabled = true`**（release）。ProGuard ルールは `app/proguard-rules.pro`
 5. **起動復帰**: `BootReceiver` が再起動・アップデート・Bluetooth ON で探索を再開する

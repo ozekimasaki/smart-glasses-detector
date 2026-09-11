@@ -8,7 +8,7 @@
 - **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
 - **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
 - **`minSdk`**: 26 (Android 8.0) / **`targetSdk`**: 35 (Android 15) / **`compileSdk`**: 37
-- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 11 / 1.1.1）
+- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 12 / 1.1.2）
 - 単一モジュール構成（`:app`）
 
 ## アーキテクチャ
@@ -108,7 +108,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 - レイヤー依存は `presentation → domain → data` の一方向を維持する。`domain` はフレームワーク非依存の interface / model を置く。
 - DI は Hilt を使用。新しい依存は該当する `di/` モジュール（`AppModule` / `BluetoothModule` / `DatabaseModule` / `RepositoryModule`）で提供・バインドする。
 - UI は Jetpack Compose + Material 3。テーマは `ui/theme/` を使用する。
-- 検出対象メーカーやクールダウン等の定数は `util/Constants.kt`（`SMART_GLASSES_DETECTION_RULES`、`COOLDOWN_*`、`MIN_DETECTION_RSSI_DBM`）に集約する。
+- 検出対象メーカーやクールダウン等の定数は `util/Constants.kt`（`SMART_GLASSES_DETECTION_RULES`、`COOLDOWN_*`）に集約する。RSSI 下限は `DetectionRssiPolicy` が感度と照合クラスごとに決める。
 - 設定キーとデフォルト値は `data/preferences/AppPreferences.kt` に定義（DataStore Preferences）。
 
 ## 注意点

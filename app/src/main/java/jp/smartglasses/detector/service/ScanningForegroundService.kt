@@ -65,6 +65,7 @@ class ScanningForegroundService : Service() {
     private var healthCheckJob: Job? = null
     private var backgroundSettingsJob: Job? = null
     private var scanningStateJob: Job? = null
+    private var sensitivityJob: Job? = null
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + supervisorJob)
     private val isStopping = AtomicBoolean(false)
@@ -322,6 +323,7 @@ class ScanningForegroundService : Service() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         backgroundSettingsJob?.cancel()
         scanningStateJob?.cancel()
+        sensitivityJob?.cancel()
         healthCheckJob?.cancel()
 
         if (!isStopping.get()) {
@@ -411,6 +413,12 @@ class ScanningForegroundService : Service() {
         scanningStateJob = scope.launch {
             settingsRepository.isScanning.collect { scanning ->
                 persistedScanningState = scanning
+            }
+        }
+
+        sensitivityJob = scope.launch {
+            settingsRepository.sensitivity.collect { sensitivity ->
+                bluetoothRepository.updateScanSensitivity(sensitivity)
             }
         }
     }
