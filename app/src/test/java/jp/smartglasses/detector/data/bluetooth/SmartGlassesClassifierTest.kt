@@ -320,6 +320,70 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `meta service uuid in raw advertisement is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:22",
+                companyIds = emptySet(),
+                rssi = -58,
+                advertisementDataHex = "03035FFD"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `company id encoded in advertisement bytes is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:23",
+                companyIds = emptySet(),
+                rssi = -52,
+                advertisementDataHex = "05FFAB010000"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `even realities g1 coded names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "G1_8A21",
+                address = "AA:BB:CC:DD:EE:24",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Even Realities", detected?.manufacturer?.name)
+    }
+
+    @Test
+    fun `japanese generic glasses names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "ARグラス-01",
+                address = "AA:BB:CC:DD:EE:25",
+                companyIds = emptySet(),
+                rssi = -61
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `every manufacturer rule can be detected by at least one configured signal`() {
         Constants.SMART_GLASSES_DETECTION_RULES.forEach { rule ->
             val detected = when {

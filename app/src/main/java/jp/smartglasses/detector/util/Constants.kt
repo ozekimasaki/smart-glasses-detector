@@ -31,7 +31,10 @@ object Constants {
         Regex("""(?i)eye[\s-]?glasses"""),
         Regex("""(?i)\bglasses\b"""),
         Regex("""スマートグラス"""),
-        Regex("""アイウェア""")
+        Regex("""アイウェア"""),
+        Regex("""ARグラス"""),
+        Regex("""XRグラス"""),
+        Regex("""AIグラス""")
     )
 
     internal val SMART_GLASSES_DETECTION_RULES = listOf(
@@ -231,7 +234,8 @@ object Constants {
                 "Even Realities",
                 "Even G1",
                 "Even-G1",
-                "EvenG1"
+                "EvenG1",
+                "G1_"
             ),
             allowCompanyIdOnly = false
         ),
@@ -319,6 +323,56 @@ object Constants {
         DetectionRule(
             manufacturerName = "Microsoft",
             namePatterns = listOf("HoloLens"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Magic Leap",
+            namePatterns = listOf("Magic Leap", "MagicLeap"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "DigiLens",
+            namePatterns = listOf("DigiLens"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Shiftall",
+            namePatterns = listOf("MeganeX", "Shiftall"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Soundcore",
+            namePatterns = listOf("Soundcore Frame", "Soundcore Frames"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Vue",
+            namePatterns = listOf("Vue Smart", "Vue Glass"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Honor",
+            namePatterns = listOf("Honor Glass", "Honor Glasses"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Vivo",
+            namePatterns = listOf("Vivo Glass", "Vivo Glasses"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Nothing",
+            namePatterns = listOf("Nothing Glass", "Nothing Glasses"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Pico",
+            namePatterns = listOf("Pico Glass", "Pico Glasses"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Ampere",
+            namePatterns = listOf("Ampere"),
             allowCompanyIdOnly = false
         )
     )

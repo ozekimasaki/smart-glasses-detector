@@ -57,6 +57,44 @@ class AdvertisementParserTest {
         assertNull(AdvertisementParser.hexToBytes("ABC"))
         assertEquals(ParsedAdvertisement(), AdvertisementParser.parseHex("GG"))
     }
+
+    @Test
+    fun `parses 16-bit service uuids from advertisement`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x03, 0x03, 0x5F, 0xFD.toByte())
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses manufacturer company id from advertisement`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x05, 0xFF.toByte(), 0xAB.toByte(), 0x01, 0x00, 0x00)
+        )
+
+        assertEquals(setOf(0x01AB), parsed.companyIds)
+    }
+
+    @Test
+    fun `parses little endian 128-bit service uuid`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(
+                0x11, 0x07,
+                0xD0.toByte(), 0x00, 0x2D, 0x12, 0x1E, 0x4B, 0x0F, 0xA4.toByte(),
+                0x99.toByte(), 0x4E, 0xCE.toByte(), 0xB5.toByte(),
+                0xF0.toByte(), 0xFF.toByte(), 0x05, 0x79
+            )
+        )
+
+        assertEquals(
+            listOf("7905FFF0-B5CE-4E99-A40F-4B1E122D00D0"),
+            parsed.serviceUuids
+        )
+    }
 }
 
 class BleUuidTest {
@@ -75,10 +113,10 @@ class BleUuidTest {
     }
 
     @Test
-    fun `normalizes 128 bit uuids`() {
+    fun `normalizes 32 bit assigned numbers`() {
         assertEquals(
-            "7905FFF0-B5CE-4E99-A40F-4B1E122D00D0",
-            BleUuid.normalize("7905fff0b5ce4e99a40f4b1e122d00d0")
+            "12345678-0000-1000-8000-00805F9B34FB",
+            BleUuid.normalize("0x12345678")
         )
     }
 }

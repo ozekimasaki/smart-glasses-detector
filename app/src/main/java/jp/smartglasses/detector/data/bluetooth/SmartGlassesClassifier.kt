@@ -34,7 +34,9 @@ internal class SmartGlassesClassifier(
         val resolvedAppearance = signal.appearance ?: parsedAdvertisement.appearance
         val resolved = signal.copy(
             deviceName = resolvedName,
-            appearance = resolvedAppearance
+            appearance = resolvedAppearance,
+            serviceUuids = (signal.serviceUuids + parsedAdvertisement.serviceUuids).distinct(),
+            companyIds = signal.companyIds + parsedAdvertisement.companyIds
         )
 
         return detectByCompanyId(resolved)

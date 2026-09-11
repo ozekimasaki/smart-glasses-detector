@@ -14,6 +14,7 @@ internal object BleUuid {
 
         return when (hex.length) {
             4 -> "0000$hex$BASE_UUID_SUFFIX"
+            8 -> "$hex$BASE_UUID_SUFFIX"
             32 -> format128Bit(hex)
             else -> value.trim().uppercase()
         }
