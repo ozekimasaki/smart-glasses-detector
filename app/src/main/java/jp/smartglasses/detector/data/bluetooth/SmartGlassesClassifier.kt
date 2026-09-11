@@ -20,7 +20,8 @@ internal class SmartGlassesClassifier(
     private val detectionRules: List<DetectionRule> = Constants.SMART_GLASSES_DETECTION_RULES,
     private val minDetectionRssiDbm: Int = Constants.MIN_DETECTION_RSSI_DBM,
     private val unknownRssiDbm: Int = Constants.UNKNOWN_RSSI_DBM,
-    private val genericNameRegexes: List<Regex> = Constants.GENERIC_GLASSES_NAME_REGEXES
+    private val genericNameRegexes: List<Regex> = Constants.GENERIC_GLASSES_NAME_REGEXES,
+    private val genericNonGlassesNameRegexes: List<Regex> = Constants.GENERIC_NON_GLASSES_NAME_REGEXES
 ) {
     fun classify(signal: DetectionSignal): SmartGlassesDevice? {
         if (!isRssiEligible(signal.rssi)) {
@@ -153,7 +154,9 @@ internal class SmartGlassesClassifier(
             return toDevice(
                 signal = signal,
                 rule = rule,
-                companyId = null,
+                companyId = signal.companyIds.firstOrNull { companyId ->
+                    companyId in rule.companyIds
+                },
                 detectionMethod = DetectionMethod.DEVICE_NAME
             )
         }
@@ -188,6 +191,9 @@ internal class SmartGlassesClassifier(
 
     private fun detectByHeuristicName(signal: DetectionSignal): SmartGlassesDevice? {
         val deviceName = signal.deviceName ?: return null
+        if (genericNonGlassesNameRegexes.any { regex -> regex.containsMatchIn(deviceName) }) {
+            return null
+        }
         if (genericNameRegexes.none { regex -> regex.containsMatchIn(deviceName) }) {
             return null
         }

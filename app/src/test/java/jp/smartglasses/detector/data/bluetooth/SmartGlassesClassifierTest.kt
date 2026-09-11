@@ -384,6 +384,68 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `even realities company id is detected without a device name`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:26",
+                companyIds = setOf(0x10F9),
+                rssi = -58
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Even Realities", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `snap assigned uuid is detected from advertisement bytes`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:27",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementDataHex = "030345FE"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Snapchat", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `headphone names are excluded from generic glasses heuristic`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Glasses Headphones",
+                address = "AA:BB:CC:DD:EE:28",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `unknown hud glasses name is detected by heuristic`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Pocket HUD-01",
+                address = "AA:BB:CC:DD:EE:29",
+                companyIds = emptySet(),
+                rssi = -62
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `every manufacturer rule can be detected by at least one configured signal`() {
         Constants.SMART_GLASSES_DETECTION_RULES.forEach { rule ->
             val detected = when {
@@ -435,7 +497,7 @@ class SmartGlassesClassifierTest {
             .map { rule -> rule.manufacturerName }
             .toSet()
 
-        assertTrue(manufacturerNames.size >= 40)
+        assertTrue(manufacturerNames.size >= 45)
         listOf(
             "Vuzix",
             "Even Realities",
@@ -444,7 +506,9 @@ class SmartGlassesClassifierTest {
             "XREAL",
             "Rokid",
             "VITURE",
-            "Halliday"
+            "Halliday",
+            "Lucyd",
+            "Tooz"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }

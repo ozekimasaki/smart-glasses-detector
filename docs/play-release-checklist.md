@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- 今回の公開版は `versionCode = 9` / `versionName = 1.0.8` / Git tag `v1.0.8`
+- 今回の公開版は `versionCode = 11` / `versionName = 1.1.1`
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 
 ## 2. プライバシーポリシー公開

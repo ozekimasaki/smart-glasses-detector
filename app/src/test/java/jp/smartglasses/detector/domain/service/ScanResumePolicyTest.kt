@@ -46,4 +46,25 @@ class ScanResumePolicyTest {
         assertFalse(ScanResumePolicy.shouldHandleAction(Intent.ACTION_SCREEN_ON))
         assertFalse(ScanResumePolicy.shouldHandleAction(null))
     }
+
+    @Test
+    fun `resumes when bluetooth turns on`() {
+        assertTrue(
+            ScanResumePolicy.shouldHandleAction(
+                ScanResumePolicy.ACTION_BLUETOOTH_STATE_CHANGED,
+                ScanResumePolicy.BLUETOOTH_STATE_ON
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldHandleAction(
+                ScanResumePolicy.ACTION_BLUETOOTH_STATE_CHANGED,
+                10
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldHandleAction(
+                ScanResumePolicy.ACTION_BLUETOOTH_STATE_CHANGED
+            )
+        )
+    }
 }

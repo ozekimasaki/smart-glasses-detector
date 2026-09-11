@@ -21,18 +21,22 @@ import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -54,6 +58,12 @@ class SmartGlassesDetector @Inject constructor(
     private val detectionCooldownGate = DetectionCooldownGate()
     private val scanSignalProcessor = ScanSignalProcessor()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
+    private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
+    private val userRequestedScanning = AtomicBoolean(false)
+    private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
+    private var retryAttempt = 0
+    private var scanWatchdogJob: Job? = null
+    private var retryJob: Job? = null
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
@@ -65,10 +75,28 @@ class SmartGlassesDetector @Inject constructor(
             when (intent?.action) {
                 BluetoothDevice.ACTION_FOUND -> handleClassicDiscoveryResult(intent)
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    if (_isScanning.value && isClassicDiscoveryReceiverRegistered.get()) {
+                    if (userRequestedScanning.get() && isClassicDiscoveryReceiverRegistered.get()) {
                         startClassicDiscovery()
                     }
                 }
+            }
+        }
+    }
+
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != BluetoothAdapter.ACTION_STATE_CHANGED) {
+                return
+            }
+
+            when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+                BluetoothAdapter.STATE_ON -> {
+                    if (userRequestedScanning.get()) {
+                        startLeAndClassicScanning()
+                    }
+                }
+                BluetoothAdapter.STATE_OFF,
+                BluetoothAdapter.STATE_TURNING_OFF -> pauseHardwareScan()
             }
         }
     }
@@ -87,8 +115,24 @@ class SmartGlassesDetector @Inject constructor(
             }
         }
         
+        override fun onBatchScanResults(results: MutableList<ScanResult>) {
+            results.forEach { result ->
+                onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result)
+            }
+        }
+
         override fun onScanFailed(errorCode: Int) {
+            if (ScanFailurePolicy.shouldIgnore(errorCode)) {
+                return
+            }
+
             _isScanning.value = false
+            if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
+                Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
+                scheduleScanRetry()
+                return
+            }
+
             _scanFailures.trySend(BluetoothScanFailure(errorCode))
         }
     }
@@ -264,7 +308,7 @@ class SmartGlassesDetector @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun startClassicDiscovery() {
         val adapter = bluetoothAdapter ?: return
-        if (!hasRequiredScanPermission()) {
+        if (!hasRequiredScanPermission() || !adapter.isEnabled) {
             return
         }
 
@@ -299,50 +343,137 @@ class SmartGlassesDetector @Inject constructor(
             throw IllegalStateException("Bluetooth adapter is unavailable.")
         }
 
-        if (!bluetoothAdapter.isEnabled) {
-            _isScanning.value = false
-            throw IllegalStateException("Bluetooth is disabled.")
-        }
-
-        val scanner = bluetoothAdapter.bluetoothLeScanner ?: run {
-            _isScanning.value = false
-            throw IllegalStateException("Bluetooth LE scanner is unavailable.")
-        }
-
         if (!hasRequiredScanPermission()) {
             _isScanning.value = false
             throw SecurityException("Bluetooth scan permission is missing.")
         }
 
+        lastSensitivity = sensitivity
+        userRequestedScanning.set(true)
+        retryAttempt = 0
         detectionCooldownGate.clear()
         ensureClassicDiscoveryReceiverRegistered()
-        
-        val settings = buildScanSettings(sensitivity)
-        
+        ensureBluetoothStateReceiverRegistered()
+        startScanWatchdog()
+
+        if (!bluetoothAdapter.isEnabled) {
+            _isScanning.value = false
+            return
+        }
+
+        startLeAndClassicScanning()
+    }
+
+    @SuppressLint("MissingPermission")
+    fun stopScanning() {
+        userRequestedScanning.set(false)
+        retryJob?.cancel()
+        scanWatchdogJob?.cancel()
+        retryJob = null
+        scanWatchdogJob = null
+        pauseHardwareScan()
+        unregisterClassicDiscoveryReceiver()
+        unregisterBluetoothStateReceiver()
+        detectionCooldownGate.clear()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startLeAndClassicScanning() {
+        val adapter = bluetoothAdapter ?: return
+        if (!userRequestedScanning.get() || !adapter.isEnabled || !hasRequiredScanPermission()) {
+            return
+        }
+
+        val scanner = adapter.bluetoothLeScanner ?: run {
+            Log.w(TAG, "Bluetooth LE scanner is unavailable.")
+            scheduleScanRetry()
+            return
+        }
+
         try {
-            scanner.startScan(null, settings, scanCallback)
+            scanner.startScan(null, buildScanSettings(lastSensitivity), scanCallback)
             _isScanning.value = true
+            retryAttempt = 0
             startClassicDiscovery()
         } catch (e: Exception) {
             _isScanning.value = false
-            stopClassicDiscovery()
-            unregisterClassicDiscoveryReceiver()
-            throw e
+            Log.w(TAG, "Failed to start BLE scan", e)
+            scheduleScanRetry()
         }
     }
-    
+
     @SuppressLint("MissingPermission")
-    fun stopScanning() {
+    private fun pauseHardwareScan() {
         _isScanning.value = false
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop BLE scan", e)
-        } finally {
-            stopClassicDiscovery()
-            unregisterClassicDiscoveryReceiver()
-            detectionCooldownGate.clear()
         }
+        stopClassicDiscovery()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun refreshBleScan() {
+        if (!userRequestedScanning.get() || bluetoothAdapter?.isEnabled != true) {
+            return
+        }
+
+        try {
+            bluetoothAdapter.bluetoothLeScanner?.stopScan(scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to refresh BLE scan", e)
+        }
+        startLeAndClassicScanning()
+    }
+
+    private fun scheduleScanRetry() {
+        if (!userRequestedScanning.get()) {
+            return
+        }
+
+        retryJob?.cancel()
+        retryAttempt += 1
+        val delayMs = ScanFailurePolicy.retryDelayMs(retryAttempt)
+        retryJob = diagnosticPersistenceScope.launch {
+            delay(delayMs)
+            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+                startLeAndClassicScanning()
+            }
+        }
+    }
+
+    private fun startScanWatchdog() {
+        scanWatchdogJob?.cancel()
+        scanWatchdogJob = diagnosticPersistenceScope.launch {
+            while (isActive) {
+                delay(Constants.BLE_SCAN_REFRESH_INTERVAL_MS)
+                if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+                    refreshBleScan()
+                }
+            }
+        }
+    }
+
+    private fun ensureBluetoothStateReceiverRegistered() {
+        if (!isBluetoothStateReceiverRegistered.compareAndSet(false, true)) {
+            return
+        }
+
+        ContextCompat.registerReceiver(
+            context,
+            bluetoothStateReceiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_EXPORTED
+        )
+    }
+
+    private fun unregisterBluetoothStateReceiver() {
+        if (!isBluetoothStateReceiverRegistered.compareAndSet(true, false)) {
+            return
+        }
+
+        context.unregisterReceiver(bluetoothStateReceiver)
     }
     
     fun hasBleHardwareSupport(): Boolean {

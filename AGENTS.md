@@ -7,8 +7,8 @@
 - **アプリ名 / 表示名**: スマートグラス検出
 - **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
 - **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
-- **`minSdk`**: 26 (Android 8.0) / **`targetSdk`** / **`compileSdk`**: 35 (Android 15)
-- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 9 / 1.0.8）
+- **`minSdk`**: 26 (Android 8.0) / **`targetSdk`**: 35 (Android 15) / **`compileSdk`**: 37
+- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 11 / 1.1.1）
 - 単一モジュール構成（`:app`）
 
 ## アーキテクチャ
@@ -29,7 +29,7 @@ presentation/ → domain/ → data/
 - `SmartGlassesDetectorApp.kt`: `@HiltAndroidApp` を付与した `Application`
 - `MainActivity.kt`: `@AndroidEntryPoint` な `ComponentActivity`。`AppNavigation()` で Compose の `NavHost` を構築
 - `service/ScanningForegroundService.kt`: BLE 探索を継続するフォアグラウンドサービス
-- `AndroidManifest.xml`: 権限、`MainActivity`、`ScanningForegroundService`（`foregroundServiceType="connectedDevice"`）、`FileProvider` を宣言
+- `AndroidManifest.xml`: 権限、`MainActivity`、`ScanningForegroundService`（`foregroundServiceType="connectedDevice"`）、`BootReceiver`、`FileProvider` を宣言
 
 ## ディレクトリ構成（`app/src/main/java/jp/smartglasses/detector/`）
 
@@ -40,18 +40,21 @@ domain/
                # DiagnosticLog, DiagnosticLogDeduplication, BluetoothScanFailure
   repository/  # BluetoothRepository, DetectionLogRepository,
                # DiagnosticLogRepository, SettingsRepository (interface)
-  service/     # ScanServiceController (interface)
+  service/     # ScanServiceController, ScanResumePolicy, ScanFailurePolicy
   usecase/     # StartScanningUseCase, StopScanningUseCase,
-               # GetDetectionHistoryUseCase, UpdateSettingsUseCase
+               # GetDetectionHistoryUseCase, UpdateSettingsUseCase,
+               # ResumeScanningIfNeededUseCase
 data/
   bluetooth/   # SmartGlassesDetector, SmartGlassesClassifier,
-               # DetectionCooldownGate, BluetoothRepositoryImpl
+               # AdvertisementParser, BleUuid, DetectionCooldownGate,
+               # BluetoothRepositoryImpl
   database/    # AppDatabase(Room), DetectionLog(Dao/Entity), DiagnosticLog(Dao/Entity)
   preferences/ # AppPreferences (DataStore ラッパー)
   repository/  # DetectionLogRepositoryImpl, DiagnosticLogRepositoryImpl,
                # SettingsRepositoryImpl
   service/     # ScanServiceControllerImpl
   export/      # DiagnosticLogExporter
+receiver/      # BootReceiver（再起動・アップデート・Bluetooth ON で探索復帰）
 presentation/
   navigation/  # Screen (onboarding/main/history/settings/about/privacy)
   main/ history/ settings/ onboarding/ about/ privacy/ components/
@@ -63,9 +66,10 @@ MainActivity.kt, SmartGlassesDetectorApp.kt
 
 ## セットアップ
 
-- JDK 17 以上（ビルドは `compileOptions` / `kotlinOptions.jvmTarget = 11`）
-- Android SDK Platform 35（`compileSdk = 35`）
-- Gradle Wrapper（Gradle 9.3.1、AGP 8.7.3）を使用。ラッパーが未取得の場合は初回実行時にダウンロードされます。
+- JDK 17 以上（ビルドは `compileOptions` / JVM 11）
+- Android SDK Platform 37（`compileSdk = 37`）。`targetSdk` は 35
+- Gradle Wrapper（Gradle 9.7.1、AGP 9.4.0）。built-in Kotlin を使用
+- 依存バージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) のバージョンカタログで一元管理。
 - 依存バージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) のバージョンカタログで一元管理。
 
 ## ビルド / テスト / Lint / 型チェック（実在コマンド）
@@ -113,7 +117,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 2. **フォアグラウンドサービス**: `ScanningForegroundService` は `foregroundServiceType="connectedDevice"` で宣言済み。Android 14 以降は `startForeground()` に `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を渡す。
 3. **release の署名**: `app/build.gradle.kts` はルートの `keystore.properties` があれば release 署名を設定する。存在しない場合 release は未署名になる。`keystore.properties` と keystore は**コミットしない**（テンプレートは `keystore.properties.example`）。
 4. **リリースビルドの縮小**: release は `isMinifyEnabled = true` / `isShrinkResources = true`。ProGuard/R8 ルールは `app/proguard-rules.pro` を編集する。難読化で壊れやすいクラス（リフレクション利用箇所等）に注意する。
-5. **`BootReceiver` は未実装**: `RECEIVE_BOOT_COMPLETED` 権限やブート起動レシーバは現状のマニフェスト・コードに存在しない（`PROJECT_PLAN.md` には構想あり）。
+5. **起動・Bluetooth 復帰**: `BootReceiver` が `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` / Bluetooth ON を受け、探索中かつバックグラウンド許可時にフォアグラウンドサービスを再開する。Android 8+ の暗黙ブロードキャスト制限対策として `SmartGlassesDetectorApp` でも Bluetooth 状態を動的登録する。
 6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。
 7. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
 

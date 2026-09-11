@@ -19,6 +19,7 @@ object Constants {
     internal const val UNKNOWN_RSSI_DBM = -127
     internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
+    internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
@@ -30,6 +31,9 @@ object Constants {
         Regex("""(?i)spectacles"""),
         Regex("""(?i)eye[\s-]?glasses"""),
         Regex("""(?i)\bglasses\b"""),
+        Regex("""(?i)\bhud\b"""),
+        Regex("""(?i)ai[\s-]?eyewear"""),
+        Regex("""(?i)ar[\s-]?eyewear"""),
         Regex("""スマートグラス"""),
         Regex("""アイウェア"""),
         Regex("""ARグラス"""),
@@ -37,11 +41,27 @@ object Constants {
         Regex("""AIグラス""")
     )
 
+    internal val GENERIC_NON_GLASSES_NAME_REGEXES = listOf(
+        Regex("""(?i)airpods"""),
+        Regex("""(?i)pixel\s*buds"""),
+        Regex("""(?i)galaxy\s*buds"""),
+        Regex("""(?i)headphones?"""),
+        Regex("""(?i)earbuds?"""),
+        Regex("""(?i)\bheadset\b"""),
+        Regex("""(?i)\bspeaker\b""")
+    )
+
     internal val SMART_GLASSES_DETECTION_RULES = listOf(
         DetectionRule(
             manufacturerName = "Seiko Epson",
             companyIds = setOf(0x0040),
-            namePatterns = listOf("Moverio", "Epson BT")
+            namePatterns = listOf(
+                "Moverio",
+                "Epson BT",
+                "BT-40",
+                "BT-35",
+                "BT-30"
+            )
         ),
         DetectionRule(
             manufacturerName = "Apple",
@@ -62,6 +82,7 @@ object Constants {
                 "Glass EE",
                 "Glass Enterprise",
                 "Android XR",
+                "Warby Parker",
                 "Warby"
             ),
             allowCompanyIdOnly = false
@@ -79,7 +100,9 @@ object Constants {
                 "RayBan",
                 "Ray Ban",
                 "META_RB",
-                "Oakley Meta"
+                "Oakley Meta",
+                "Ray-Ban Display",
+                "RayBan Display"
             ),
             serviceUuids = setOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
             payloadPatterns = listOf("META_RB_GLASS")
@@ -116,12 +139,19 @@ object Constants {
         DetectionRule(
             manufacturerName = "Snapchat",
             companyIds = setOf(0x03C2),
-            namePatterns = listOf("Spectacles", "Snap Glass")
+            namePatterns = listOf("Spectacles", "Snap Glass", "Snap Spectacles"),
+            serviceUuids = setOf("0000FE45-0000-1000-8000-00805F9B34FB")
         ),
         DetectionRule(
             manufacturerName = "TCL",
             companyIds = setOf(0x0BC6),
-            namePatterns = listOf("RayNeo", "NXTWEAR", "TCL Glass")
+            namePatterns = listOf(
+                "RayNeo",
+                "NXTWEAR",
+                "TCL Glass",
+                "RayNeo X2",
+                "RayNeo Air"
+            )
         ),
         DetectionRule(
             manufacturerName = "Luxottica",
@@ -131,12 +161,19 @@ object Constants {
         DetectionRule(
             manufacturerName = "Vuzix",
             companyIds = setOf(0x060C),
-            namePatterns = listOf("Vuzix", "Vuzix Blade", "Vuzix Shield", "Vuzix M400", "Ultralite", "Vuzix Z100")
+            namePatterns = listOf(
+                "Vuzix",
+                "Vuzix Blade",
+                "Vuzix Shield",
+                "Vuzix M400",
+                "Ultralite",
+                "Vuzix Z100"
+            )
         ),
         DetectionRule(
             manufacturerName = "Kopin",
             companyIds = setOf(0x041F),
-            namePatterns = listOf("Solos", "AirGo")
+            namePatterns = listOf("Solos", "AirGo", "Solos AirGo")
         ),
         DetectionRule(
             manufacturerName = "North",
@@ -176,6 +213,7 @@ object Constants {
             companyIds = setOf(0x0075),
             namePatterns = listOf(
                 "Galaxy Glass",
+                "Galaxy Glasses",
                 "Samsung Glass",
                 "Samsung XR"
             ),
@@ -195,17 +233,17 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "XREAL",
-            namePatterns = listOf("XREAL", "Nreal"),
+            namePatterns = listOf("XREAL", "Nreal", "XREAL One", "XREAL Air"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "Rokid",
-            namePatterns = listOf("Rokid"),
+            namePatterns = listOf("Rokid", "Rokid Max", "Rokid Glasses"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "INMO",
-            namePatterns = listOf("INMO"),
+            namePatterns = listOf("INMO", "INMO Air", "INMO GO"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -220,24 +258,24 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Halliday",
-            namePatterns = listOf("Halliday"),
+            namePatterns = listOf("Halliday", "Halliday Glass"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "VITURE",
-            namePatterns = listOf("VITURE"),
+            namePatterns = listOf("VITURE", "VITURE One", "VITURE Beast", "VITURE Luma"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "Even Realities",
+            companyIds = setOf(0x10F9),
             namePatterns = listOf(
                 "Even Realities",
                 "Even G1",
                 "Even-G1",
                 "EvenG1",
                 "G1_"
-            ),
-            allowCompanyIdOnly = false
+            )
         ),
         DetectionRule(
             manufacturerName = "Brilliant Labs",
@@ -257,7 +295,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Mentra",
-            namePatterns = listOf("Mentra"),
+            namePatterns = listOf("Mentra", "Mentra Live", "Mentra Mach"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -287,6 +325,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Nubia",
+            companyIds = setOf(0x08CA),
             namePatterns = listOf("Nubia Glass", "Neovision"),
             allowCompanyIdOnly = false
         ),
@@ -342,6 +381,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Soundcore",
+            companyIds = setOf(0x0CC2),
             namePatterns = listOf("Soundcore Frame", "Soundcore Frames"),
             allowCompanyIdOnly = false
         ),
@@ -373,6 +413,31 @@ object Constants {
         DetectionRule(
             manufacturerName = "Ampere",
             namePatterns = listOf("Ampere"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Lucyd",
+            namePatterns = listOf("Lucyd", "Lucyd Lyte"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Tooz",
+            namePatterns = listOf("Tooz"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Mojo Vision",
+            namePatterns = listOf("Mojo Vision", "Mojo Lens"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "ThirdEye",
+            namePatterns = listOf("ThirdEye"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Zungle",
+            namePatterns = listOf("Zungle"),
             allowCompanyIdOnly = false
         )
     )

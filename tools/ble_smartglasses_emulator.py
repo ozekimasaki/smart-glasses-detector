@@ -29,6 +29,7 @@ COMPANY_ID_DEVICES = {
     14: ("Kopin (Solos)", 0x041F),
     15: ("North (Focals)", 0x0562),
     16: ("Fauna", 0x0976),
+    17: ("Even Realities (G1)", 0x10F9),
 }
 
 # デバイス名パターンで検出されるもの
@@ -46,6 +47,9 @@ NAME_PATTERN_DEVICES = {
     31: "Apple Vision Pro",
     32: "Glass EE2",
     33: "AI Glasses-9C",
+    34: "Halliday Glass",
+    35: "Lucyd Lyte",
+    36: "Mentra Live",
 }
 
 

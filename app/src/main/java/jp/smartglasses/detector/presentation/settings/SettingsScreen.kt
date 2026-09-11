@@ -1,5 +1,7 @@
 package jp.smartglasses.detector.presentation.settings
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.BatterySaver
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material3.Card
@@ -31,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +57,7 @@ fun SettingsScreen(
     val soundEnabled by viewModel.soundEnabled.collectAsStateWithLifecycle()
     val sensitivity by viewModel.sensitivity.collectAsStateWithLifecycle()
     val backgroundSupported = BackgroundScanSupport.isSupported()
+    val context = LocalContext.current
 
     Scaffold(
         bottomBar = {
@@ -105,6 +110,17 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_sound_desc),
                     checked = soundEnabled,
                     onCheckedChange = viewModel::setSoundEnabled
+                )
+                SettingDivider()
+                SettingNavRow(
+                    icon = Icons.Outlined.BatterySaver,
+                    title = stringResource(R.string.settings_battery_optimization),
+                    onClick = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
                 )
             }
 
