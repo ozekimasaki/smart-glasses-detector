@@ -25,6 +25,7 @@ import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.model.hasPayload
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
@@ -66,6 +67,7 @@ class SmartGlassesDetector @Inject constructor(
     private val scanSignalProcessor = ScanSignalProcessor()
     private val diagnosticWriteGate = DiagnosticLogWriteGate()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
+    private val classicDiscoveryStarted = AtomicBoolean(false)
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
@@ -82,13 +84,8 @@ class SmartGlassesDetector @Inject constructor(
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                BluetoothDevice.ACTION_FOUND -> handleClassicDiscoveryResult(intent)
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    if (userRequestedScanning.get() && isClassicDiscoveryReceiverRegistered.get()) {
-                        startClassicDiscovery()
-                    }
-                }
+            if (intent?.action == BluetoothDevice.ACTION_FOUND) {
+                handleClassicDiscoveryResult(intent)
             }
         }
     }
@@ -102,6 +99,7 @@ class SmartGlassesDetector @Inject constructor(
             when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
                 BluetoothAdapter.STATE_ON -> {
                     if (userRequestedScanning.get()) {
+                        classicDiscoveryStarted.set(false)
                         startLeAndClassicScanning()
                     }
                 }
@@ -325,7 +323,6 @@ class SmartGlassesDetector @Inject constructor(
 
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_FOUND)
-            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         ContextCompat.registerReceiver(
             context,
@@ -341,6 +338,17 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         context.unregisterReceiver(classicDiscoveryReceiver)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startClassicDiscoveryIfNeeded() {
+        if (!ClassicDiscoveryPolicy.shouldStartClassicDiscovery(classicDiscoveryStarted.get())) {
+            return
+        }
+        if (!classicDiscoveryStarted.compareAndSet(false, true)) {
+            return
+        }
+        startClassicDiscovery()
     }
 
     @SuppressLint("MissingPermission")
@@ -389,6 +397,7 @@ class SmartGlassesDetector @Inject constructor(
         lastSensitivity = sensitivity
         userRequestedScanning.set(true)
         usingExtendedAdvertising = true
+        classicDiscoveryStarted.set(false)
         _isScanning.value = true
         retryAttempt = 0
         detectionCooldownGate.clear()
@@ -432,6 +441,7 @@ class SmartGlassesDetector @Inject constructor(
         unregisterBluetoothStateReceiver()
         detectionCooldownGate.clear()
         diagnosticWriteGate.clear()
+        classicDiscoveryStarted.set(false)
         _nearbyDevices.value = nearbyDeviceTracker.clear()
     }
 
@@ -457,7 +467,7 @@ class SmartGlassesDetector @Inject constructor(
         try {
             startLeScan(scanner, usingExtendedAdvertising)
             retryAttempt = 0
-            startClassicDiscovery()
+            startClassicDiscoveryIfNeeded()
         } catch (e: Exception) {
             if (usingExtendedAdvertising) {
                 Log.w(TAG, "Extended BLE scan failed, retrying with legacy advertisements", e)
@@ -465,7 +475,7 @@ class SmartGlassesDetector @Inject constructor(
                 try {
                     startLeScan(scanner, extendedAdvertising = false)
                     retryAttempt = 0
-                    startClassicDiscovery()
+                    startClassicDiscoveryIfNeeded()
                 } catch (legacyError: Exception) {
                     Log.w(TAG, "Failed to start BLE scan", legacyError)
                     scheduleScanRetry()

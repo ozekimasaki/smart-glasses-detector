@@ -4,6 +4,7 @@ import jp.smartglasses.detector.data.database.DetectionLogDao
 import jp.smartglasses.detector.data.database.DetectionLogEntity
 import jp.smartglasses.detector.domain.model.DetectionLog
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
+import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Calendar
@@ -33,6 +34,10 @@ class DetectionLogRepositoryImpl @Inject constructor(
     
     override suspend fun insertLog(log: DetectionLog) {
         dao.insertLog(log.toEntity())
+        val overflow = dao.count() - Constants.DETECTION_LOG_KEEP_COUNT
+        if (overflow > 0) {
+            dao.deleteOldest(overflow)
+        }
     }
     
     override suspend fun deleteOldLogs(before: Long) {

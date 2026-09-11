@@ -25,6 +25,7 @@ object Constants {
     internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
     internal const val DIAGNOSTIC_LOG_KEEP_COUNT = 500
     internal const val DIAGNOSTIC_LOG_WRITE_COOLDOWN_MS = 30_000L
+    internal const val DETECTION_LOG_KEEP_COUNT = 1000
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
