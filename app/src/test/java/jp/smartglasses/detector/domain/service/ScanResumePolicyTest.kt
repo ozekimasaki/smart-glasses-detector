@@ -105,23 +105,30 @@ class ScanResumePolicyTest {
     }
 
     @Test
-    fun `keeps scanning intent after unexpected stop only when background is enabled`() {
+    fun `keeps scanning intent after unexpected stop so foreground resume can restart`() {
+        assertTrue(ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = false))
+        assertFalse(ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = true))
+    }
+
+    @Test
+    fun `foreground-only scanning resumes when the app becomes visible again`() {
         assertTrue(
-            ScanResumePolicy.shouldKeepScanningIntent(
-                userOrPolicyStop = false,
-                backgroundEnabled = true
+            ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = false)
+        )
+        assertTrue(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = false,
+                hasPermissions = true,
+                appInForeground = true
             )
         )
         assertFalse(
-            ScanResumePolicy.shouldKeepScanningIntent(
-                userOrPolicyStop = false,
-                backgroundEnabled = false
-            )
-        )
-        assertFalse(
-            ScanResumePolicy.shouldKeepScanningIntent(
-                userOrPolicyStop = true,
-                backgroundEnabled = true
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = false,
+                hasPermissions = true,
+                appInForeground = false
             )
         )
     }

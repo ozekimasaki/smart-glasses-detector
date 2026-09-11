@@ -75,7 +75,7 @@ class ScanningForegroundService : Service() {
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
         override fun onStop(owner: LifecycleOwner) {
             if (!shouldKeepScanningInBackground()) {
-                stopScanningAndStopSelf()
+                pauseScanningForBackground()
             }
         }
     }
@@ -185,8 +185,7 @@ class ScanningForegroundService : Service() {
                 stopBluetoothScanSafely()
                 if (
                     !ScanResumePolicy.shouldKeepScanningIntent(
-                        userOrPolicyStop = isStopping.get(),
-                        backgroundEnabled = backgroundScanningEnabled
+                        userOrPolicyStop = isStopping.get()
                     )
                 ) {
                     persistScanningState(false)
@@ -212,11 +211,29 @@ class ScanningForegroundService : Service() {
         }
     }
 
+    private fun pauseScanningForBackground() {
+        if (isStopping.get()) {
+            return
+        }
+
+        scope.launch {
+            val activeJob = scanJob
+            scanJob = null
+            if (activeJob != null) {
+                activeJob.cancelAndJoin()
+            } else {
+                stopBluetoothScanSafely()
+            }
+
+            stopForegroundAndSelf()
+        }
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
 
         if (!shouldKeepScanningInBackground()) {
-            stopScanningAndStopSelf()
+            pauseScanningForBackground()
         }
     }
 
@@ -406,7 +423,7 @@ class ScanningForegroundService : Service() {
                         appInForeground = isAppInForeground()
                     )
                 ) {
-                    stopScanningAndStopSelf()
+                    pauseScanningForBackground()
                 }
             }
         }

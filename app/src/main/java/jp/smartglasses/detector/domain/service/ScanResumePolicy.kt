@@ -21,14 +21,8 @@ object ScanResumePolicy {
         return action in HANDLED_ACTIONS
     }
 
-    fun shouldKeepScanningIntent(
-        userOrPolicyStop: Boolean,
-        backgroundEnabled: Boolean
-    ): Boolean {
-        if (userOrPolicyStop) {
-            return false
-        }
-        return backgroundEnabled
+    fun shouldKeepScanningIntent(userOrPolicyStop: Boolean): Boolean {
+        return !userOrPolicyStop
     }
 
     const val ACTION_BLUETOOTH_STATE_CHANGED = "android.bluetooth.adapter.action.STATE_CHANGED"
