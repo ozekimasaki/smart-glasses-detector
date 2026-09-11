@@ -35,7 +35,7 @@ jobs:
             fi
           fi
 
-      - name: Unit test and debug assemble
+      - name: Unit test, debug assemble, and lint
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest assembleDebug --stacktrace
+          ./gradlew testDebugUnitTest assembleDebug lintDebug --stacktrace
