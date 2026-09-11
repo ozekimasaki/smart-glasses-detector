@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
@@ -29,7 +30,7 @@ sealed class MainUiState {
 }
 
 sealed interface MainEvent {
-    data class ShowMessage(val message: String) : MainEvent
+    data class ShowMessage(val messageResId: Int) : MainEvent
     data object OpenAppSettings : MainEvent
     data object OpenLocationSettings : MainEvent
     data object RequestEnableBluetooth : MainEvent
@@ -104,7 +105,7 @@ class MainViewModel @Inject constructor(
                 )
             ) {
                 ScanStartRequirement.MissingBleHardware -> {
-                    _event.send(MainEvent.ShowMessage("この端末は Bluetooth Low Energy に対応していません。"))
+                    _event.send(MainEvent.ShowMessage(R.string.error_ble_unsupported))
                     return@launch
                 }
                 ScanStartRequirement.BluetoothDisabled -> {
@@ -116,11 +117,7 @@ class MainViewModel @Inject constructor(
                     return@launch
                 }
                 ScanStartRequirement.LocationDisabled -> {
-                    _event.send(
-                        MainEvent.ShowMessage(
-                            "Android 11 以前では、端末の位置情報をオンにしてから探索を開始してください。"
-                        )
-                    )
+                    _event.send(MainEvent.ShowMessage(R.string.error_location_pre_s))
                     _event.send(MainEvent.OpenLocationSettings)
                     return@launch
                 }
@@ -135,7 +132,7 @@ class MainViewModel @Inject constructor(
             try {
                 startScanningUseCase()
             } catch (_: Exception) {
-                _event.send(MainEvent.ShowMessage("探索を開始できませんでした。もう一度お試しください。"))
+                _event.send(MainEvent.ShowMessage(R.string.error_scan_start))
             }
         }
     }
@@ -153,7 +150,7 @@ class MainViewModel @Inject constructor(
             try {
                 stopScanningUseCase()
             } catch (_: Exception) {
-                _event.send(MainEvent.ShowMessage("探索の停止に失敗しました。"))
+                _event.send(MainEvent.ShowMessage(R.string.error_scan_stop))
             }
         }
     }

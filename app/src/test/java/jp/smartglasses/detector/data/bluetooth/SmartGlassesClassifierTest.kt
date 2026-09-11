@@ -698,6 +698,38 @@ class SmartGlassesClassifierTest {
         )
     }
 
+    @Test
+    fun `compact recent product names stay detectable`() {
+        val inmo = classifier.classify(
+            DetectionSignal(
+                deviceName = "INMOAIR3_A1B2",
+                address = "AA:BB:CC:DD:EE:30",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val galaxyXr = classifier.classify(
+            DetectionSignal(
+                deviceName = "Galaxy XR-01",
+                address = "AA:BB:CC:DD:EE:31",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val evenG3 = classifier.classify(
+            DetectionSignal(
+                deviceName = "Even G3_12_L",
+                address = "AA:BB:CC:DD:EE:32",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("INMO", inmo?.manufacturer?.name)
+        assertEquals("Samsung", galaxyXr?.manufacturer?.name)
+        assertEquals("Even Realities", evenG3?.manufacturer?.name)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

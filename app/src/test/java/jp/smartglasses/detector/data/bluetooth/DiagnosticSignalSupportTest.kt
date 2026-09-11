@@ -2,6 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.deduplicationKey
+import jp.smartglasses.detector.domain.model.hasPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -51,6 +52,7 @@ class DiagnosticSignalSupportTest {
         )
 
         assertFalse(signal.hasDiagnosticPayload())
+        assertFalse(signal.toDiagnosticLog().hasPayload())
     }
 
     @Test

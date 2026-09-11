@@ -47,6 +47,16 @@ class NearbyDeviceTrackerTest {
     }
 
     @Test
+    fun `empty addresses keep different names as separate devices`() {
+        val tracker = NearbyDeviceTracker(ttlMs = 20_000L, clock = { 1_000L })
+
+        tracker.record(device(address = "", rssi = -50, name = "Even G1"))
+        val snapshot = tracker.record(device(address = "", rssi = -40, name = "INMOAIR3"))
+
+        assertEquals(listOf("INMOAIR3", "Even G1"), snapshot.map { device -> device.name })
+    }
+
+    @Test
     fun `clear removes every nearby device`() {
         val tracker = NearbyDeviceTracker(ttlMs = 20_000L, clock = { 1_000L })
         tracker.record(device(address = "AA:01", rssi = -50, name = "Gone"))

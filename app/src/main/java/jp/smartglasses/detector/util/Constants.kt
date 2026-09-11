@@ -19,10 +19,12 @@ object Constants {
     internal const val UNKNOWN_RSSI_DBM = -127
     internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
-    internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+    internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 4 * 60 * 1000L
     internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
     internal const val NEARBY_DEVICE_TTL_MS = 20_000L
     internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
+    internal const val DIAGNOSTIC_LOG_KEEP_COUNT = 500
+    internal const val DIAGNOSTIC_LOG_WRITE_COOLDOWN_MS = 30_000L
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
@@ -103,6 +105,8 @@ object Constants {
                 "RayBan",
                 "Ray Ban",
                 "META_RB",
+                "Meta Glasses",
+                "Meta Ray Ban",
                 "Oakley Meta",
                 "Oakley HSTN",
                 "Ray-Ban Display",
@@ -134,6 +138,7 @@ object Constants {
             namePatterns = listOf(
                 "Legion Glass",
                 "ThinkReality",
+                "ThinkReality A3",
                 "Lenovo Glass"
             )
         ),
@@ -157,7 +162,11 @@ object Constants {
                 "TCL Glass",
                 "RayNeo X2",
                 "RayNeo X3",
-                "RayNeo Air"
+                "RayNeo Air",
+                "RayNeo Air 2",
+                "RayNeo Air 3",
+                "NXTWEAR S",
+                "NXTWEAR AIR"
             )
         ),
         DetectionRule(
@@ -228,6 +237,7 @@ object Constants {
             namePatterns = listOf(
                 "Galaxy Glass",
                 "Galaxy Glasses",
+                "Galaxy XR",
                 "Samsung Glass",
                 "Samsung XR"
             ),
@@ -253,6 +263,7 @@ object Constants {
                 "XREAL One",
                 "XREAL One Pro",
                 "XREAL Air",
+                "XREAL Air 2",
                 "Nreal Air",
                 "Nreal Light"
             ),
@@ -264,6 +275,7 @@ object Constants {
                 "Rokid",
                 "Rokid Max",
                 "Rokid Max 2",
+                "Rokid Max2",
                 "Rokid Max Ultra",
                 "Rokid Glasses",
                 "Rokid Glass",
@@ -279,8 +291,10 @@ object Constants {
                 "INMO Air",
                 "INMO Air2",
                 "INMO Air 3",
+                "INMOAIR",
                 "INMO GO",
-                "INMO GO2"
+                "INMO GO2",
+                "INMOGO"
             ),
             allowCompanyIdOnly = false
         ),
@@ -304,9 +318,11 @@ object Constants {
             namePatterns = listOf(
                 "VITURE",
                 "VITURE One",
+                "VITURE One Lite",
                 "VITURE Beast",
                 "VITURE Luma",
-                "VITURE Pro"
+                "VITURE Pro",
+                "VITURE Neckband"
             ),
             allowCompanyIdOnly = false
         ),
@@ -321,6 +337,7 @@ object Constants {
                 "Even G2",
                 "Even-G2",
                 "EvenG2",
+                "Even G",
                 "G1_",
                 "G1-"
             )
@@ -332,7 +349,8 @@ object Constants {
                 "Brilliant Frame",
                 "Brilliant Halo",
                 "Monocle",
-                "Frame-"
+                "Frame-",
+                "Halo-"
             ),
             allowCompanyIdOnly = false
         ),
@@ -356,6 +374,7 @@ object Constants {
                 "MENTRA_LIVE_BLE",
                 "MENTRA_LIVE_BT",
                 "XyBLE_",
+                "XyBLE",
                 "NIMO"
             ),
             allowCompanyIdOnly = false
@@ -369,7 +388,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "JINS",
-            namePatterns = listOf("JINS MEME", "JINS-MEME"),
+            namePatterns = listOf("JINS MEME", "JINS-MEME", "MEME ES"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

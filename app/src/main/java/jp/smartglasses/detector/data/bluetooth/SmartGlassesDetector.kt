@@ -22,6 +22,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.model.deduplicationKey
+import jp.smartglasses.detector.domain.model.hasPayload
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
@@ -62,10 +64,12 @@ class SmartGlassesDetector @Inject constructor(
     private val detectionCooldownGate = DetectionCooldownGate()
     private val nearbyDeviceTracker = NearbyDeviceTracker()
     private val scanSignalProcessor = ScanSignalProcessor()
+    private val diagnosticWriteGate = DiagnosticLogWriteGate()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
+    private var usingExtendedAdvertising = true
     private var retryAttempt = 0
     private var scanWatchdogJob: Job? = null
     private var nearbyPruneJob: Job? = null
@@ -130,6 +134,17 @@ class SmartGlassesDetector @Inject constructor(
 
         override fun onScanFailed(errorCode: Int) {
             if (ScanFailurePolicy.shouldIgnore(errorCode)) {
+                return
+            }
+
+            if (
+                ScanFailurePolicy.shouldFallbackToLegacy(errorCode) &&
+                usingExtendedAdvertising &&
+                userRequestedScanning.get()
+            ) {
+                Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
+                usingExtendedAdvertising = false
+                startLeAndClassicScanning()
                 return
             }
 
@@ -373,10 +388,12 @@ class SmartGlassesDetector @Inject constructor(
 
         lastSensitivity = sensitivity
         userRequestedScanning.set(true)
+        usingExtendedAdvertising = true
         _isScanning.value = true
         retryAttempt = 0
         detectionCooldownGate.clear()
         nearbyDeviceTracker.clear()
+        diagnosticWriteGate.clear()
         _nearbyDevices.value = emptyList()
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
@@ -414,6 +431,7 @@ class SmartGlassesDetector @Inject constructor(
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
         detectionCooldownGate.clear()
+        diagnosticWriteGate.clear()
         _nearbyDevices.value = nearbyDeviceTracker.clear()
     }
 
@@ -431,17 +449,29 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         try {
-            startLeScan(scanner, extendedAdvertising = true)
+            scanner.stopScan(scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop previous BLE scan before restart", e)
+        }
+
+        try {
+            startLeScan(scanner, usingExtendedAdvertising)
             retryAttempt = 0
             startClassicDiscovery()
         } catch (e: Exception) {
-            Log.w(TAG, "Extended BLE scan failed, retrying with legacy advertisements", e)
-            try {
-                startLeScan(scanner, extendedAdvertising = false)
-                retryAttempt = 0
-                startClassicDiscovery()
-            } catch (legacyError: Exception) {
-                Log.w(TAG, "Failed to start BLE scan", legacyError)
+            if (usingExtendedAdvertising) {
+                Log.w(TAG, "Extended BLE scan failed, retrying with legacy advertisements", e)
+                usingExtendedAdvertising = false
+                try {
+                    startLeScan(scanner, extendedAdvertising = false)
+                    retryAttempt = 0
+                    startClassicDiscovery()
+                } catch (legacyError: Exception) {
+                    Log.w(TAG, "Failed to start BLE scan", legacyError)
+                    scheduleScanRetry()
+                }
+            } else {
+                Log.w(TAG, "Failed to start BLE scan", e)
                 scheduleScanRetry()
             }
         }
@@ -523,11 +553,11 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun rememberNearbyDevice(device: SmartGlassesDevice?) {
-        _nearbyDevices.value = if (device != null) {
-            nearbyDeviceTracker.record(device)
-        } else {
-            nearbyDeviceTracker.snapshot()
+        if (device == null) {
+            return
         }
+
+        _nearbyDevices.value = nearbyDeviceTracker.record(device)
     }
 
     private fun ensureBluetoothStateReceiverRegistered() {
@@ -560,6 +590,10 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun persistDiagnosticLog(log: DiagnosticLog) {
+        if (!log.hasPayload() || !diagnosticWriteGate.shouldWrite(log.deduplicationKey())) {
+            return
+        }
+
         diagnosticPersistenceScope.launch {
             diagnosticLogRepository.insertLog(log)
         }
@@ -579,10 +613,10 @@ class SmartGlassesDetector @Inject constructor(
         } else {
             ScanSettings.MATCH_MODE_AGGRESSIVE
         }
-        val numOfMatches = if (sensitivity == ScanSensitivity.HIGH_ACCURACY) {
-            ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT
-        } else {
+        val numOfMatches = if (sensitivity == ScanSensitivity.LOW_POWER) {
             ScanSettings.MATCH_NUM_FEW_ADVERTISEMENT
+        } else {
+            ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT
         }
 
         val builder = ScanSettings.Builder()
@@ -590,6 +624,7 @@ class SmartGlassesDetector @Inject constructor(
             .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
             .setMatchMode(matchMode)
             .setNumOfMatches(numOfMatches)
+            .setReportDelay(0)
             .setLegacy(!extendedAdvertising)
 
         if (extendedAdvertising) {

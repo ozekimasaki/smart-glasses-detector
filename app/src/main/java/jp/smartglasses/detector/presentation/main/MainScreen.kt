@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -88,6 +89,7 @@ fun MainScreen(
     val backgroundScanningEnabled by viewModel.backgroundScanningEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val resources = LocalResources.current
     val enableBluetoothLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -104,7 +106,9 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
-                is MainEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is MainEvent.ShowMessage -> snackbarHostState.showSnackbar(
+                    resources.getString(event.messageResId)
+                )
                 MainEvent.OpenAppSettings -> {
                     val intent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -572,11 +576,11 @@ private fun HintRow(icon: ImageVector, text: String) {
 
 private fun SmartGlassesDevice.toDetectionLog(): DetectionLog {
     return DetectionLog(
-        deviceName = name,
+        deviceName = name.ifBlank { manufacturer.name },
         deviceAddress = address,
         manufacturerName = manufacturer.name,
         rssi = rssi,
-        distance = distance.label,
+        distance = distance.name,
         detectedAt = detectedAt
     )
 }

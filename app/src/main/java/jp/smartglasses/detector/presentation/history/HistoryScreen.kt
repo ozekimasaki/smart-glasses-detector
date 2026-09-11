@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -56,12 +57,15 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
-                is HistoryEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is HistoryEvent.ShowMessage -> snackbarHostState.showSnackbar(
+                    resources.getString(event.messageResId)
+                )
                 is HistoryEvent.ShareDiagnosticLogs -> {
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "application/json"
@@ -72,7 +76,7 @@ fun HistoryScreen(
                     context.startActivity(
                         Intent.createChooser(
                             shareIntent,
-                            "調査ログを共有"
+                            resources.getString(R.string.history_share_diagnostic)
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }

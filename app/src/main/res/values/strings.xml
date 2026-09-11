@@ -86,6 +86,14 @@
     <string name="main_recent_open_history">すべての記録を見る</string>
     <string name="main_nearby_section">いま近くにいるスマートグラス</string>
     <string name="main_nearby_empty">探索中です。見つかるとここに表示されます</string>
+    <string name="unknown_device">不明な機器</string>
+    <string name="error_ble_unsupported">この端末は Bluetooth Low Energy に対応していません。</string>
+    <string name="error_location_pre_s">Android 11 以前では、端末の位置情報をオンにしてから探索を開始してください。</string>
+    <string name="error_scan_start">探索を開始できませんでした。もう一度お試しください。</string>
+    <string name="error_scan_stop">探索の停止に失敗しました。</string>
+    <string name="error_diagnostic_empty">共有できる調査ログがまだありません。</string>
+    <string name="error_diagnostic_create">調査ログの共有ファイルを作成できませんでした。</string>
+    <string name="error_diagnostic_prepare">調査ログの共有準備に失敗しました。</string>
     <string name="settings_group_behavior">動作</string>
     <string name="settings_group_sensitivity">検出の感度</string>
     <string name="settings_group_other">その他</string>

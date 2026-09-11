@@ -3,6 +3,7 @@ package jp.smartglasses.detector.presentation.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jp.smartglasses.detector.R
 import jp.smartglasses.detector.data.export.DiagnosticLogExporter
 import jp.smartglasses.detector.domain.model.DetectionHistoryGrouping
 import jp.smartglasses.detector.domain.model.DetectionLog
@@ -25,7 +26,7 @@ sealed class HistoryUiState {
 }
 
 sealed interface HistoryEvent {
-    data class ShowMessage(val message: String) : HistoryEvent
+    data class ShowMessage(val messageResId: Int) : HistoryEvent
     data class ShareDiagnosticLogs(val uri: Uri) : HistoryEvent
 }
 
@@ -53,14 +54,14 @@ class HistoryViewModel @Inject constructor(
             try {
                 val uri = diagnosticLogExporter.exportLatestLogs()
                 if (uri == null) {
-                    _event.send(HistoryEvent.ShowMessage("共有できる調査ログがまだありません。"))
+                    _event.send(HistoryEvent.ShowMessage(R.string.error_diagnostic_empty))
                 } else {
                     _event.send(HistoryEvent.ShareDiagnosticLogs(uri))
                 }
             } catch (_: IOException) {
-                _event.send(HistoryEvent.ShowMessage("調査ログの共有ファイルを作成できませんでした。"))
+                _event.send(HistoryEvent.ShowMessage(R.string.error_diagnostic_create))
             } catch (_: IllegalArgumentException) {
-                _event.send(HistoryEvent.ShowMessage("調査ログの共有準備に失敗しました。"))
+                _event.send(HistoryEvent.ShowMessage(R.string.error_diagnostic_prepare))
             }
         }
     }

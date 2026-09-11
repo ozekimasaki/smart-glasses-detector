@@ -20,5 +20,20 @@ enum class Distance(val label: String) {
     VERY_CLOSE("とても近い"),
     CLOSE("近い"),
     MODERATE("少し離れている"),
-    FAR("離れている")
+    FAR("離れている");
+
+    companion object {
+        fun fromStored(value: String): Distance {
+            entries.find { distance ->
+                distance.name.equals(value, ignoreCase = true)
+            }?.let { return it }
+
+            return when {
+                value.contains("とても近") -> VERY_CLOSE
+                value.contains("少し") -> MODERATE
+                value.contains("近") -> CLOSE
+                else -> FAR
+            }
+        }
+    }
 }

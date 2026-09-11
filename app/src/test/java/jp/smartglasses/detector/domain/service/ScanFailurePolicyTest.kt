@@ -14,12 +14,18 @@ class ScanFailurePolicyTest {
     }
 
     @Test
+    fun `unsupported extended advertising keeps scanning for a legacy fallback`() {
+        assertTrue(ScanFailurePolicy.shouldFallbackToLegacy(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+        assertTrue(ScanFailurePolicy.shouldKeepScanning(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+        assertFalse(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+    }
+
+    @Test
     fun `transient scan errors are retried`() {
         assertTrue(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_INTERNAL_ERROR))
         assertTrue(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_SCANNING_TOO_FREQUENTLY))
         assertTrue(ScanFailurePolicy.shouldKeepScanning(ScanFailurePolicy.SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES))
-        assertFalse(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
-        assertFalse(ScanFailurePolicy.shouldKeepScanning(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+        assertFalse(ScanFailurePolicy.shouldFallbackToLegacy(ScanFailurePolicy.SCAN_FAILED_INTERNAL_ERROR))
     }
 
     @Test

@@ -19,8 +19,14 @@ object ScanFailurePolicy {
             errorCode == SCAN_FAILED_SCANNING_TOO_FREQUENTLY
     }
 
+    fun shouldFallbackToLegacy(errorCode: Int): Boolean {
+        return errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED
+    }
+
     fun shouldKeepScanning(errorCode: Int): Boolean {
-        return shouldIgnore(errorCode) || isRecoverable(errorCode)
+        return shouldIgnore(errorCode) ||
+            isRecoverable(errorCode) ||
+            shouldFallbackToLegacy(errorCode)
     }
 
     fun retryDelayMs(attempt: Int): Long {

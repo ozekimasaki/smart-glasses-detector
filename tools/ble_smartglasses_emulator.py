@@ -55,6 +55,8 @@ NAME_PATTERN_DEVICES = {
     38: "A.Look 000128",
     39: "Frame-1A2B",
     40: "Even G2_12_L_ABCDEF",
+    41: "INMOAIR3_A1B2",
+    42: "Galaxy XR-01",
 }
 
 UUID_DEVICES = {

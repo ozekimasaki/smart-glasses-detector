@@ -23,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import jp.smartglasses.detector.MainActivity
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.model.Distance
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
@@ -230,7 +231,7 @@ class ScanningForegroundService : Service() {
                 deviceAddress = device.address,
                 manufacturerName = device.manufacturer.name,
                 rssi = device.rssi,
-                distance = device.distance.label,
+                distance = device.distance.name,
                 detectedAt = device.detectedAt
             )
         )
@@ -280,7 +281,7 @@ class ScanningForegroundService : Service() {
         
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_DETECTION)
             .setContentTitle(getString(R.string.notification_detection_title))
-            .setContentText("${device.name} - ${device.distance.label}")
+            .setContentText("${device.name} - ${getString(distanceLabelRes(device.distance))}")
             .setSmallIcon(R.drawable.ic_notification_alert)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -458,5 +459,14 @@ class ScanningForegroundService : Service() {
 
     private fun isAppInForeground(): Boolean {
         return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+    }
+
+    private fun distanceLabelRes(distance: Distance): Int {
+        return when (distance) {
+            Distance.VERY_CLOSE -> R.string.distance_very_close
+            Distance.CLOSE -> R.string.distance_close
+            Distance.MODERATE -> R.string.distance_medium
+            Distance.FAR -> R.string.distance_far
+        }
     }
 }
