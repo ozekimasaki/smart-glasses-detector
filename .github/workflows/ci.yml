@@ -21,7 +21,19 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK Platform 37
-        run: sdkmanager "platforms;android-37"
+        run: |
+          sdkmanager "platforms;android-37.0" "platforms;android-37.2"
+          if [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
+            if [ -d "$ANDROID_HOME/platforms/android-37.2" ]; then
+              ln -sfn "$ANDROID_HOME/platforms/android-37.2" "$ANDROID_HOME/platforms/android-37"
+            elif [ -d "$ANDROID_HOME/platforms/android-37.0" ]; then
+              ln -sfn "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+            else
+              echo "Android SDK Platform 37 was not installed"
+              ls -la "$ANDROID_HOME/platforms"
+              exit 1
+            fi
+          fi
 
       - name: Unit test and debug assemble
         run: |

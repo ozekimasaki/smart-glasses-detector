@@ -59,6 +59,18 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses 16-bit service data uuid`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x05, 0x16, 0x45.toByte(), 0xFE.toByte(), 0x00, 0x00)
+        )
+
+        assertEquals(
+            listOf("0000FE45-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
     fun `parses 16-bit service uuids from advertisement`() {
         val parsed = AdvertisementParser.parse(
             byteArrayOf(0x03, 0x03, 0x5F, 0xFD.toByte())
@@ -117,6 +129,22 @@ class BleUuidTest {
         assertEquals(
             "12345678-0000-1000-8000-00805F9B34FB",
             BleUuid.normalize("0x12345678")
+        )
+    }
+
+    @Test
+    fun `merges and normalizes service uuid sources`() {
+        assertEquals(
+            listOf(
+                "0000FE45-0000-1000-8000-00805F9B34FB",
+                "0000FD5F-0000-1000-8000-00805F9B34FB"
+            ),
+            BleUuid.merge(
+                listOf("FE45"),
+                listOf("0000fe45-0000-1000-8000-00805f9b34fb"),
+                listOf("0xFD5F"),
+                listOf(" ")
+            )
         )
     }
 }

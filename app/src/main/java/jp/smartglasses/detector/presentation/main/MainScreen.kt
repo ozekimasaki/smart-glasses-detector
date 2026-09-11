@@ -1,8 +1,14 @@
 package jp.smartglasses.detector.presentation.main
 
+import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -62,7 +68,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
+import jp.smartglasses.detector.domain.model.DetectionLog
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
+import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
 import jp.smartglasses.detector.ui.theme.BrandOrange
 
@@ -73,9 +81,22 @@ fun MainScreen(
 ) {
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val todayCount by viewModel.todayCount.collectAsStateWithLifecycle()
+    val recentDetections by viewModel.recentDetections.collectAsStateWithLifecycle()
     val backgroundScanningEnabled by viewModel.backgroundScanningEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val enableBluetoothLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            viewModel.onBluetoothEnabled()
+        }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.onNotificationPermissionResolved()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
@@ -92,6 +113,16 @@ fun MainScreen(
                     val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
+                }
+                MainEvent.RequestEnableBluetooth -> {
+                    enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                }
+                MainEvent.RequestNotificationPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        viewModel.onNotificationPermissionResolved()
+                    }
                 }
             }
         }
@@ -156,6 +187,14 @@ fun MainScreen(
             if (!isScanning) {
                 Spacer(modifier = Modifier.height(28.dp))
                 HowItWorks()
+            }
+
+            if (recentDetections.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(28.dp))
+                RecentDetections(
+                    logs = recentDetections,
+                    onOpenHistory = { onNavigate(Screen.History.route) }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -456,6 +495,30 @@ private fun HowItWorks() {
         HintRow(icon = Icons.Outlined.Bluetooth, text = stringResource(R.string.main_hint_scan))
         HintRow(icon = Icons.Outlined.Sensors, text = stringResource(R.string.main_hint_notify))
         HintRow(icon = Icons.Outlined.History, text = stringResource(R.string.main_hint_history))
+    }
+}
+
+@Composable
+private fun RecentDetections(
+    logs: List<DetectionLog>,
+    onOpenHistory: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.main_recent_section),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        logs.forEach { log ->
+            LogItem(log = log)
+        }
+        Text(
+            text = stringResource(R.string.main_recent_open_history),
+            style = MaterialTheme.typography.labelLarge,
+            color = BrandOrange,
+            modifier = Modifier.clickable(onClick = onOpenHistory)
+        )
     }
 }
 

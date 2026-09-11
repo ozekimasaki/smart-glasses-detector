@@ -20,6 +20,18 @@ internal object BleUuid {
         }
     }
 
+    fun merge(vararg groups: Collection<String>): List<String> {
+        val merged = linkedSetOf<String>()
+        for (group in groups) {
+            for (value in group) {
+                if (value.isNotBlank()) {
+                    merged += normalize(value)
+                }
+            }
+        }
+        return merged.toList()
+    }
+
     fun matches(signalUuid: String, ruleUuid: String): Boolean {
         return normalize(signalUuid) == normalize(ruleUuid)
     }

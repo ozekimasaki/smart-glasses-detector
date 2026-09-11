@@ -27,6 +27,8 @@ sealed interface MainEvent {
     data class ShowMessage(val message: String) : MainEvent
     data object OpenAppSettings : MainEvent
     data object OpenLocationSettings : MainEvent
+    data object RequestEnableBluetooth : MainEvent
+    data object RequestNotificationPermission : MainEvent
 }
 
 @HiltViewModel
@@ -58,9 +60,15 @@ class MainViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
+    val recentDetections = detectionLogRepository.getAllLogs()
+        .map { logs -> logs.take(5) }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val backgroundScanningEnabled = settingsRepository.backgroundEnabled
         .map { BackgroundScanSupport.isEnabled(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    private var notificationPrompted = false
 
     fun toggleScanning() {
         if (isScanning.value) {
@@ -78,7 +86,7 @@ class MainViewModel @Inject constructor(
             }
 
             if (!bluetoothRepository.isBluetoothEnabled()) {
-                _event.send(MainEvent.ShowMessage("Bluetooth をオンにしてから、もう一度お試しください。"))
+                _event.send(MainEvent.RequestEnableBluetooth)
                 return@launch
             }
 
@@ -99,12 +107,26 @@ class MainViewModel @Inject constructor(
                 return@launch
             }
 
+            if (!bluetoothRepository.hasNotificationPermission() && !notificationPrompted) {
+                notificationPrompted = true
+                _event.send(MainEvent.RequestNotificationPermission)
+                return@launch
+            }
+
             try {
                 scanServiceController.startScanService()
             } catch (_: Exception) {
                 _event.send(MainEvent.ShowMessage("探索を開始できませんでした。もう一度お試しください。"))
             }
         }
+    }
+
+    fun onBluetoothEnabled() {
+        startScanning()
+    }
+
+    fun onNotificationPermissionResolved() {
+        startScanning()
     }
 
     private fun stopScanning() {

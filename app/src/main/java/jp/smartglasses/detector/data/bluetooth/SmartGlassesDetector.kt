@@ -149,9 +149,13 @@ class SmartGlassesDetector @Inject constructor(
                 ?: parsedAdvertisement.completeName
                 ?: parsedAdvertisement.shortName,
             address = resolveDeviceAddress(result),
-            companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
+            companyIds = (scanRecord?.let(::extractCompanyIds).orEmpty()) + parsedAdvertisement.companyIds,
             rssi = result.rssi,
-            serviceUuids = scanRecord?.serviceUuids?.map { it.toString() }.orEmpty(),
+            serviceUuids = BleUuid.merge(
+                scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+                scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
+                parsedAdvertisement.serviceUuids
+            ),
             advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
             appearance = parsedAdvertisement.appearance
         )

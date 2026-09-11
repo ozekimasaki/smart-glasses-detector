@@ -51,6 +51,14 @@ class BluetoothRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun hasNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+
+        return hasPermission(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
     override fun hasBleHardwareSupport(): Boolean {
         return smartGlassesDetector.hasBleHardwareSupport()
     }

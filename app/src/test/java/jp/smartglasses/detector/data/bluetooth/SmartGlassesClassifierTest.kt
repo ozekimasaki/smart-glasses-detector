@@ -417,6 +417,23 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `snap service data uuid is detected from advertisement bytes`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:30",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementDataHex = "051645FE0000"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Snapchat", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `headphone names are excluded from generic glasses heuristic`() {
         val detected = classifier.classify(
             DetectionSignal(
