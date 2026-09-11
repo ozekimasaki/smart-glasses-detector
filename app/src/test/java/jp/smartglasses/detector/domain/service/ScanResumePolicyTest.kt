@@ -67,4 +67,26 @@ class ScanResumePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `keeps scanning intent after unexpected stop only when background is enabled`() {
+        assertTrue(
+            ScanResumePolicy.shouldKeepScanningIntent(
+                userOrPolicyStop = false,
+                backgroundEnabled = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldKeepScanningIntent(
+                userOrPolicyStop = false,
+                backgroundEnabled = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldKeepScanningIntent(
+                userOrPolicyStop = true,
+                backgroundEnabled = true
+            )
+        )
+    }
 }

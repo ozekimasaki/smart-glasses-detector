@@ -29,3 +29,7 @@
 -keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
     <fields>;
 }
+
+# BLE 探索のエントリポイント（Hilt が生成するレシーバ／サービス）
+-keep class jp.smartglasses.detector.receiver.BootReceiver
+-keep class jp.smartglasses.detector.service.ScanningForegroundService

@@ -28,6 +28,7 @@ import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.domain.service.BackgroundScanRuntimePolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
+import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.CoroutineScope
@@ -180,7 +181,12 @@ class ScanningForegroundService : Service() {
             } finally {
                 scanJob = null
                 stopBluetoothScanSafely()
-                if (isStopping.get()) {
+                if (
+                    !ScanResumePolicy.shouldKeepScanningIntent(
+                        userOrPolicyStop = isStopping.get(),
+                        backgroundEnabled = backgroundScanningEnabled
+                    )
+                ) {
                     persistScanningState(false)
                 }
             }
