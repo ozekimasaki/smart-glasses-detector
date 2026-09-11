@@ -73,6 +73,9 @@ class MainViewModel @Inject constructor(
         .map { logs -> logs.take(5) }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val nearbyDevices = bluetoothRepository.nearbyDevices
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val backgroundScanningEnabled = settingsRepository.backgroundEnabled
         .map { BackgroundScanSupport.isEnabled(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, false)

@@ -21,6 +21,8 @@ object Constants {
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
     internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
     internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
+    internal const val NEARBY_DEVICE_TTL_MS = 20_000L
+    internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
@@ -319,7 +321,8 @@ object Constants {
                 "Even G2",
                 "Even-G2",
                 "EvenG2",
-                "G1_"
+                "G1_",
+                "G1-"
             )
         ),
         DetectionRule(

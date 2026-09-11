@@ -66,9 +66,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.DetectionLog
+import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
 import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
@@ -82,6 +84,7 @@ fun MainScreen(
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val todayCount by viewModel.todayCount.collectAsStateWithLifecycle()
     val recentDetections by viewModel.recentDetections.collectAsStateWithLifecycle()
+    val nearbyDevices by viewModel.nearbyDevices.collectAsStateWithLifecycle()
     val backgroundScanningEnabled by viewModel.backgroundScanningEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -189,7 +192,10 @@ fun MainScreen(
                 HowItWorks()
             }
 
-            if (recentDetections.isNotEmpty()) {
+            if (isScanning) {
+                Spacer(modifier = Modifier.height(28.dp))
+                NearbyDetections(devices = nearbyDevices)
+            } else if (recentDetections.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(28.dp))
                 RecentDetections(
                     logs = recentDetections,
@@ -385,7 +391,7 @@ private fun ScanActionButton(
                         color = MaterialTheme.colorScheme.outline,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    .clickable { onClick() }
+                    .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -436,7 +442,7 @@ private fun ScanActionButton(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(BrandOrange)
-                    .clickable { onClick() }
+                    .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -499,6 +505,29 @@ private fun HowItWorks() {
 }
 
 @Composable
+private fun NearbyDetections(devices: List<SmartGlassesDevice>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.main_nearby_section),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (devices.isEmpty()) {
+            Text(
+                text = stringResource(R.string.main_nearby_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            devices.forEach { device ->
+                LogItem(log = device.toDetectionLog())
+            }
+        }
+    }
+}
+
+@Composable
 private fun RecentDetections(
     logs: List<DetectionLog>,
     onOpenHistory: () -> Unit
@@ -539,4 +568,15 @@ private fun HintRow(icon: ImageVector, text: String) {
             lineHeight = 18.sp
         )
     }
+}
+
+private fun SmartGlassesDevice.toDetectionLog(): DetectionLog {
+    return DetectionLog(
+        deviceName = name,
+        deviceAddress = address,
+        manufacturerName = manufacturer.name,
+        rssi = rssi,
+        distance = distance.label,
+        detectedAt = detectedAt
+    )
 }

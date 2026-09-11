@@ -9,6 +9,7 @@ interface BluetoothRepository {
     val scannedDevices: Flow<SmartGlassesDevice>
     val scanFailures: Flow<BluetoothScanFailure>
     val isScanning: Flow<Boolean>
+    val nearbyDevices: Flow<List<SmartGlassesDevice>>
 
     suspend fun startScanning()
     suspend fun stopScanning()

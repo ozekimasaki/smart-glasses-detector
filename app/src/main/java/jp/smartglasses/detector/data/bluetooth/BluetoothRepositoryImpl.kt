@@ -33,6 +33,9 @@ class BluetoothRepositoryImpl @Inject constructor(
     
     override val isScanning: Flow<Boolean>
         get() = smartGlassesDetector.isScanning
+
+    override val nearbyDevices: Flow<List<SmartGlassesDevice>>
+        get() = smartGlassesDetector.nearbyDevices
     
     override suspend fun startScanning() {
         val sensitivity = preferences.sensitivity.first()

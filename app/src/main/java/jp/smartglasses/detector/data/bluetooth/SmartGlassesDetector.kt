@@ -57,7 +57,10 @@ class SmartGlassesDetector @Inject constructor(
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+    private val _nearbyDevices = MutableStateFlow<List<SmartGlassesDevice>>(emptyList())
+    val nearbyDevices: StateFlow<List<SmartGlassesDevice>> = _nearbyDevices.asStateFlow()
     private val detectionCooldownGate = DetectionCooldownGate()
+    private val nearbyDeviceTracker = NearbyDeviceTracker()
     private val scanSignalProcessor = ScanSignalProcessor()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
@@ -65,6 +68,7 @@ class SmartGlassesDetector @Inject constructor(
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var retryAttempt = 0
     private var scanWatchdogJob: Job? = null
+    private var nearbyPruneJob: Job? = null
     private var retryJob: Job? = null
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
@@ -112,6 +116,7 @@ class SmartGlassesDetector @Inject constructor(
             persistDiagnosticLog(diagnosticLog)
 
             val device = processedSignal.detectedDevice
+            rememberNearbyDevice(device)
             if (device != null && shouldEmitDetection(device)) {
                 _scannedDevices.trySend(device)
             }
@@ -220,6 +225,7 @@ class SmartGlassesDetector @Inject constructor(
         persistDiagnosticLog(processed.diagnosticLog)
 
         val detectedDevice = processed.detectedDevice
+        rememberNearbyDevice(detectedDevice)
         if (detectedDevice != null && shouldEmitDetection(detectedDevice)) {
             _scannedDevices.trySend(detectedDevice)
         }
@@ -370,9 +376,12 @@ class SmartGlassesDetector @Inject constructor(
         _isScanning.value = true
         retryAttempt = 0
         detectionCooldownGate.clear()
+        nearbyDeviceTracker.clear()
+        _nearbyDevices.value = emptyList()
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
         startScanWatchdog()
+        startNearbyPrune()
 
         if (!bluetoothAdapter.isEnabled) {
             return
@@ -397,12 +406,15 @@ class SmartGlassesDetector @Inject constructor(
         userRequestedScanning.set(false)
         retryJob?.cancel()
         scanWatchdogJob?.cancel()
+        nearbyPruneJob?.cancel()
         retryJob = null
         scanWatchdogJob = null
+        nearbyPruneJob = null
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
         detectionCooldownGate.clear()
+        _nearbyDevices.value = nearbyDeviceTracker.clear()
     }
 
     @SuppressLint("MissingPermission")
@@ -495,6 +507,26 @@ class SmartGlassesDetector @Inject constructor(
                     refreshBleScan()
                 }
             }
+        }
+    }
+
+    private fun startNearbyPrune() {
+        nearbyPruneJob?.cancel()
+        nearbyPruneJob = diagnosticPersistenceScope.launch {
+            while (isActive) {
+                delay(Constants.NEARBY_DEVICE_PRUNE_INTERVAL_MS)
+                if (userRequestedScanning.get()) {
+                    _nearbyDevices.value = nearbyDeviceTracker.snapshot()
+                }
+            }
+        }
+    }
+
+    private fun rememberNearbyDevice(device: SmartGlassesDevice?) {
+        _nearbyDevices.value = if (device != null) {
+            nearbyDeviceTracker.record(device)
+        } else {
+            nearbyDeviceTracker.snapshot()
         }
     }
 

@@ -177,6 +177,22 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `even g1 hyphenated names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "G1-2048",
+                address = "AA:BB:CC:DD:EE:06F",
+                companyIds = emptySet(),
+                rssi = -62
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Even Realities", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `rokid unnamed advertisement is detected by service uuid`() {
         val detected = classifier.classify(
             DetectionSignal(
