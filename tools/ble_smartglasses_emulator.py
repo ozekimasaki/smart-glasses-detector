@@ -30,6 +30,7 @@ COMPANY_ID_DEVICES = {
     15: ("North (Focals)", 0x0562),
     16: ("Fauna", 0x0976),
     17: ("Even Realities (G1)", 0x10F9),
+    18: ("Engo / ActiveLook", 0x08F2),
 }
 
 # デバイス名パターンで検出されるもの
@@ -50,6 +51,9 @@ NAME_PATTERN_DEVICES = {
     34: "Halliday Glass",
     35: "Lucyd Lyte",
     36: "Mentra Live",
+    37: "XyBLE_A1B2",
+    38: "A.Look 000128",
+    39: "Frame-1A2B",
 }
 
 

@@ -51,8 +51,8 @@ scripts\gradlew-safe.cmd assembleRelease
 
 ### 今回の版で入力する値
 
-- リリース名: `1.0.8`
-- リリースノート見出し: `診断ログ永続化の修正`
+- リリース名: `1.1.1`
+- リリースノート見出し: `スマートグラス検出の対象拡大と探索の継続`
 - アプリ カテゴリ候補: `ツール`
 - 連絡先メールアドレス: 開発者が常時受信できる公開用アドレスを設定する
 - プライバシーポリシー URL: `https://smart-glasses-detector-policy.maigo999.workers.dev`
@@ -113,7 +113,7 @@ scripts\gradlew-safe.cmd assembleRelease
 ### 最終チェック項目
 
 - アップロード対象が `app/build/outputs/bundle/release/app-release.aab` である
-- Git の release tag が `v1.0.8` で push 済みである
+- Git の release tag が `v1.1.1` で push 済みである
 - Store listing の説明文がアプリ内プライバシー説明と矛盾しない
 - Data safety で「自動送信なし」と「ユーザー操作による共有のみ」が両立している
 - 新規個人 developer account の場合、closed testing 要件を満たしてから production に進む

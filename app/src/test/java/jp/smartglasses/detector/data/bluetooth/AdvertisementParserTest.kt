@@ -107,6 +107,49 @@ class AdvertisementParserTest {
             parsed.serviceUuids
         )
     }
+
+    @Test
+    fun `parses advertising data map entries`() {
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(
+            mapOf(
+                AdvertisementParser.AD_TYPE_APPEARANCE to byteArrayOf(0xC0.toByte(), 0x01),
+                AdvertisementParser.AD_TYPE_COMPLETE_16BIT_UUIDS to byteArrayOf(
+                    0x45.toByte(),
+                    0xFE.toByte()
+                )
+            )
+        )
+
+        assertEquals(0x01C0, parsed.appearance)
+        assertEquals(
+            listOf("0000FE45-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `detects activelook manufacturer data suffix`() {
+        assertTrue(AdvertisementParser.hasManufacturerDataSuffix("05FFFADA08F2", 0x08F2))
+        assertFalse(AdvertisementParser.hasManufacturerDataSuffix("051645FE08F2", 0x08F2))
+        assertFalse(AdvertisementParser.hasManufacturerDataSuffix("05FFFADA0000", 0x08F2))
+    }
+
+    @Test
+    fun `merges advertisement fields from truncated packets`() {
+        val merged = AdvertisementParser.parseHex("030345FE").merge(
+            AdvertisementParser.parseAdvertisingDataMap(
+                mapOf(
+                    AdvertisementParser.AD_TYPE_COMPLETE_NAME to "A.Look 000128".encodeToByteArray()
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("0000FE45-0000-1000-8000-00805F9B34FB"),
+            merged.serviceUuids
+        )
+        assertEquals("A.Look 000128", merged.completeName)
+    }
 }
 
 class BleUuidTest {

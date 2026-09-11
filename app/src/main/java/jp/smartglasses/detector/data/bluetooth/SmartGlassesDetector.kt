@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
@@ -126,13 +127,13 @@ class SmartGlassesDetector @Inject constructor(
                 return
             }
 
-            _isScanning.value = false
             if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
                 Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
                 scheduleScanRetry()
                 return
             }
 
+            _isScanning.value = false
             _scanFailures.trySend(BluetoothScanFailure(errorCode))
         }
     }
@@ -143,7 +144,7 @@ class SmartGlassesDetector @Inject constructor(
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
-        val parsedAdvertisement = AdvertisementParser.parse(scanRecord?.bytes)
+        val parsedAdvertisement = parseAdvertisement(scanRecord)
         return DetectionSignal(
             deviceName = resolveDeviceName(result, scanRecord)
                 ?: parsedAdvertisement.completeName
@@ -158,6 +159,17 @@ class SmartGlassesDetector @Inject constructor(
             ),
             advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
             appearance = parsedAdvertisement.appearance
+        )
+    }
+
+    private fun parseAdvertisement(scanRecord: ScanRecord?): ParsedAdvertisement {
+        val fromBytes = AdvertisementParser.parse(scanRecord?.bytes)
+        if (scanRecord == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return fromBytes
+        }
+
+        return fromBytes.merge(
+            AdvertisementParser.parseAdvertisingDataMap(scanRecord.advertisingDataMap)
         )
     }
 
@@ -354,6 +366,7 @@ class SmartGlassesDetector @Inject constructor(
 
         lastSensitivity = sensitivity
         userRequestedScanning.set(true)
+        _isScanning.value = true
         retryAttempt = 0
         detectionCooldownGate.clear()
         ensureClassicDiscoveryReceiverRegistered()
@@ -361,7 +374,6 @@ class SmartGlassesDetector @Inject constructor(
         startScanWatchdog()
 
         if (!bluetoothAdapter.isEnabled) {
-            _isScanning.value = false
             return
         }
 
@@ -395,20 +407,35 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         try {
-            scanner.startScan(null, buildScanSettings(lastSensitivity), scanCallback)
-            _isScanning.value = true
+            startLeScan(scanner, extendedAdvertising = true)
             retryAttempt = 0
             startClassicDiscovery()
         } catch (e: Exception) {
-            _isScanning.value = false
-            Log.w(TAG, "Failed to start BLE scan", e)
-            scheduleScanRetry()
+            Log.w(TAG, "Extended BLE scan failed, retrying with legacy advertisements", e)
+            try {
+                startLeScan(scanner, extendedAdvertising = false)
+                retryAttempt = 0
+                startClassicDiscovery()
+            } catch (legacyError: Exception) {
+                Log.w(TAG, "Failed to start BLE scan", legacyError)
+                scheduleScanRetry()
+            }
         }
     }
 
     @SuppressLint("MissingPermission")
+    private fun startLeScan(
+        scanner: BluetoothLeScanner,
+        extendedAdvertising: Boolean
+    ) {
+        scanner.startScan(null, buildScanSettings(lastSensitivity, extendedAdvertising), scanCallback)
+    }
+
+    @SuppressLint("MissingPermission")
     private fun pauseHardwareScan() {
-        _isScanning.value = false
+        if (!userRequestedScanning.get()) {
+            _isScanning.value = false
+        }
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         } catch (e: Exception) {
@@ -494,7 +521,10 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
-    private fun buildScanSettings(sensitivity: ScanSensitivity): ScanSettings {
+    private fun buildScanSettings(
+        sensitivity: ScanSensitivity,
+        extendedAdvertising: Boolean
+    ): ScanSettings {
         val scanMode = when (sensitivity) {
             ScanSensitivity.LOW_POWER -> ScanSettings.SCAN_MODE_LOW_POWER
             ScanSensitivity.BALANCED -> ScanSettings.SCAN_MODE_BALANCED
@@ -511,12 +541,18 @@ class SmartGlassesDetector @Inject constructor(
             ScanSettings.MATCH_NUM_FEW_ADVERTISEMENT
         }
 
-        return ScanSettings.Builder()
+        val builder = ScanSettings.Builder()
             .setScanMode(scanMode)
             .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
             .setMatchMode(matchMode)
             .setNumOfMatches(numOfMatches)
-            .build()
+            .setLegacy(!extendedAdvertising)
+
+        if (extendedAdvertising) {
+            builder.setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+        }
+
+        return builder.build()
     }
 
     companion object {

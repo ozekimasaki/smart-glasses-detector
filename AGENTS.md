@@ -113,7 +113,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 
 ## 注意点
 
-1. **BLE スキャンには権限チェックが必要**: 実行前に `BLUETOOTH_SCAN`（Android 12+）や位置情報権限（Android 11 以前）を確認する。`@SuppressLint("MissingPermission")` を使う場合は呼び出し元で権限を担保する。
+1. **BLE スキャンには権限チェックが必要**: 実行前に `BLUETOOTH_SCAN`（Android 12+）や位置情報権限（Android 11 以前）を確認する。Android 12+ の `BLUETOOTH_SCAN` は `neverForLocation` を付け、位置情報権限なしで広告を受け取る。`@SuppressLint("MissingPermission")` を使う場合は呼び出し元で権限を担保する。拡張広告は `ScanSettings.setLegacy(false)` で拾い、端末が非対応なら legacy に落とす。
 2. **フォアグラウンドサービス**: `ScanningForegroundService` は `foregroundServiceType="connectedDevice"` で宣言済み。Android 14 以降は `startForeground()` に `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を渡す。
 3. **release の署名**: `app/build.gradle.kts` はルートの `keystore.properties` があれば release 署名を設定する。存在しない場合 release は未署名になる。`keystore.properties` と keystore は**コミットしない**（テンプレートは `keystore.properties.example`）。
 4. **リリースビルドの縮小**: release は `isMinifyEnabled = true` / `isShrinkResources = true`。ProGuard/R8 ルールは `app/proguard-rules.pro` を編集する。難読化で壊れやすいクラス（リフレクション利用箇所等）に注意する。

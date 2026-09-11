@@ -6,6 +6,7 @@ internal data class DetectionRule(
     val namePatterns: List<String> = emptyList(),
     val serviceUuids: Set<String> = emptySet(),
     val payloadPatterns: List<String> = emptyList(),
+    val manufacturerDataSuffixes: Set<Int> = emptySet(),
     val allowCompanyIdOnly: Boolean = true
 )
 
@@ -20,6 +21,7 @@ object Constants {
     internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
     internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+    internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
@@ -150,6 +152,7 @@ object Constants {
                 "NXTWEAR",
                 "TCL Glass",
                 "RayNeo X2",
+                "RayNeo X3",
                 "RayNeo Air"
             )
         ),
@@ -173,7 +176,7 @@ object Constants {
         DetectionRule(
             manufacturerName = "Kopin",
             companyIds = setOf(0x041F),
-            namePatterns = listOf("Solos", "AirGo", "Solos AirGo")
+            namePatterns = listOf("Solos", "AirGo", "Solos AirGo", "AirGo Vision")
         ),
         DetectionRule(
             manufacturerName = "North",
@@ -233,17 +236,39 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "XREAL",
-            namePatterns = listOf("XREAL", "Nreal", "XREAL One", "XREAL Air"),
+            namePatterns = listOf(
+                "XREAL",
+                "Nreal",
+                "XREAL One",
+                "XREAL One Pro",
+                "XREAL Air",
+                "Nreal Air",
+                "Nreal Light"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "Rokid",
-            namePatterns = listOf("Rokid", "Rokid Max", "Rokid Glasses"),
+            namePatterns = listOf(
+                "Rokid",
+                "Rokid Max",
+                "Rokid Max 2",
+                "Rokid Max Ultra",
+                "Rokid Glasses",
+                "Rokid Glass"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "INMO",
-            namePatterns = listOf("INMO", "INMO Air", "INMO GO"),
+            namePatterns = listOf(
+                "INMO",
+                "INMO Air",
+                "INMO Air2",
+                "INMO Air 3",
+                "INMO GO",
+                "INMO GO2"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -253,17 +278,23 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "LAWAKEN",
-            namePatterns = listOf("LAWAKEN"),
+            namePatterns = listOf("LAWAKEN", "LAWKAN"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "Halliday",
-            namePatterns = listOf("Halliday", "Halliday Glass"),
+            namePatterns = listOf("Halliday", "Halliday Glass", "Halliday AI"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "VITURE",
-            namePatterns = listOf("VITURE", "VITURE One", "VITURE Beast", "VITURE Luma"),
+            namePatterns = listOf(
+                "VITURE",
+                "VITURE One",
+                "VITURE Beast",
+                "VITURE Luma",
+                "VITURE Pro"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -274,12 +305,19 @@ object Constants {
                 "Even G1",
                 "Even-G1",
                 "EvenG1",
+                "Even G2",
                 "G1_"
             )
         ),
         DetectionRule(
             manufacturerName = "Brilliant Labs",
-            namePatterns = listOf("Brilliant Labs", "Brilliant Frame", "Monocle"),
+            namePatterns = listOf(
+                "Brilliant Labs",
+                "Brilliant Frame",
+                "Brilliant Halo",
+                "Monocle",
+                "Frame-"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -295,13 +333,23 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Mentra",
-            namePatterns = listOf("Mentra", "Mentra Live", "Mentra Mach"),
+            namePatterns = listOf(
+                "Mentra",
+                "Mentra Live",
+                "Mentra Mach",
+                "MENTRA_LIVE_BLE",
+                "MENTRA_LIVE_BT",
+                "XyBLE_",
+                "NIMO"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
             manufacturerName = "Engo",
-            namePatterns = listOf("Engo"),
-            allowCompanyIdOnly = false
+            namePatterns = listOf("Engo", "ActiveLook", "A.Look"),
+            companyIds = setOf(0x08F2),
+            serviceUuids = setOf("0783B03E-8535-B5A0-7140-A304D2495CB7"),
+            manufacturerDataSuffixes = setOf(0x08F2)
         ),
         DetectionRule(
             manufacturerName = "JINS",

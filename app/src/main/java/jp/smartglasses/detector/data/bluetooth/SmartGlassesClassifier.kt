@@ -43,6 +43,7 @@ internal class SmartGlassesClassifier(
         return detectByCompanyId(resolved)
             ?: detectByServiceUuid(resolved)
             ?: detectByPayload(resolved)
+            ?: detectByManufacturerSuffix(resolved)
             ?: detectByDeviceName(resolved)
             ?: detectByAppearance(resolved)
             ?: detectByHeuristicName(resolved)
@@ -122,6 +123,36 @@ internal class SmartGlassesClassifier(
                         pattern.replace("_", "").replace(" ", "").uppercase(),
                         ignoreCase = false
                     )
+            }
+            if (!matched) {
+                continue
+            }
+
+            return toDevice(
+                signal = signal,
+                rule = rule,
+                companyId = signal.companyIds.firstOrNull { companyId ->
+                    companyId in rule.companyIds
+                },
+                detectionMethod = DetectionMethod.PAYLOAD
+            )
+        }
+
+        return null
+    }
+
+    private fun detectByManufacturerSuffix(signal: DetectionSignal): SmartGlassesDevice? {
+        if (signal.advertisementDataHex.isBlank()) {
+            return null
+        }
+
+        for (rule in detectionRules) {
+            if (rule.manufacturerDataSuffixes.isEmpty()) {
+                continue
+            }
+
+            val matched = rule.manufacturerDataSuffixes.any { suffix ->
+                AdvertisementParser.hasManufacturerDataSuffix(signal.advertisementDataHex, suffix)
             }
             if (!matched) {
                 continue

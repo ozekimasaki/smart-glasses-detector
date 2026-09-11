@@ -8,9 +8,13 @@ import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.domain.service.ScanServiceController
+import jp.smartglasses.detector.domain.service.ScanStartPolicy
+import jp.smartglasses.detector.domain.service.ScanStartRequirement
+import jp.smartglasses.detector.domain.service.ScanUiStatePolicy
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -36,15 +40,18 @@ class MainViewModel @Inject constructor(
     private val bluetoothRepository: BluetoothRepository,
     private val scanServiceController: ScanServiceController,
     private val detectionLogRepository: DetectionLogRepository,
-    settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     private val _event = Channel<MainEvent>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
 
-    val isScanning = bluetoothRepository.isScanning
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    val isScanning = combine(
+        settingsRepository.isScanning,
+        bluetoothRepository.isScanning,
+        ScanUiStatePolicy::isScanning
+    ).stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    val uiState = bluetoothRepository.isScanning
+    val uiState = isScanning
         .map { scanning -> if (scanning) MainUiState.Scanning else MainUiState.Idle }
         .stateIn(viewModelScope, SharingStarted.Lazily, MainUiState.Idle)
 
@@ -80,37 +87,44 @@ class MainViewModel @Inject constructor(
 
     private fun startScanning() {
         viewModelScope.launch {
-            if (!bluetoothRepository.hasBleHardwareSupport()) {
-                _event.send(MainEvent.ShowMessage("この端末は Bluetooth Low Energy に対応していません。"))
-                return@launch
-            }
-
-            if (!bluetoothRepository.isBluetoothEnabled()) {
-                _event.send(MainEvent.RequestEnableBluetooth)
-                return@launch
-            }
-
-            if (!bluetoothRepository.hasPermissions()) {
-                _event.send(MainEvent.OpenAppSettings)
-                return@launch
-            }
-
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
-                !bluetoothRepository.isLocationServicesEnabled()
-            ) {
-                _event.send(
-                    MainEvent.ShowMessage(
-                        "Android 11 以前では、端末の位置情報をオンにしてから探索を開始してください。"
-                    )
+            when (
+                ScanStartPolicy.evaluate(
+                    hasBleHardware = bluetoothRepository.hasBleHardwareSupport(),
+                    bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+                    hasScanPermissions = bluetoothRepository.hasPermissions(),
+                    requiresLocationServices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+                    locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled(),
+                    hasNotificationPermission = bluetoothRepository.hasNotificationPermission(),
+                    notificationPrompted = notificationPrompted
                 )
-                _event.send(MainEvent.OpenLocationSettings)
-                return@launch
-            }
-
-            if (!bluetoothRepository.hasNotificationPermission() && !notificationPrompted) {
-                notificationPrompted = true
-                _event.send(MainEvent.RequestNotificationPermission)
-                return@launch
+            ) {
+                ScanStartRequirement.MissingBleHardware -> {
+                    _event.send(MainEvent.ShowMessage("この端末は Bluetooth Low Energy に対応していません。"))
+                    return@launch
+                }
+                ScanStartRequirement.BluetoothDisabled -> {
+                    _event.send(MainEvent.RequestEnableBluetooth)
+                    return@launch
+                }
+                ScanStartRequirement.MissingScanPermissions -> {
+                    _event.send(MainEvent.OpenAppSettings)
+                    return@launch
+                }
+                ScanStartRequirement.LocationDisabled -> {
+                    _event.send(
+                        MainEvent.ShowMessage(
+                            "Android 11 以前では、端末の位置情報をオンにしてから探索を開始してください。"
+                        )
+                    )
+                    _event.send(MainEvent.OpenLocationSettings)
+                    return@launch
+                }
+                ScanStartRequirement.NotificationPermissionNeeded -> {
+                    notificationPrompted = true
+                    _event.send(MainEvent.RequestNotificationPermission)
+                    return@launch
+                }
+                ScanStartRequirement.Ready -> Unit
             }
 
             try {

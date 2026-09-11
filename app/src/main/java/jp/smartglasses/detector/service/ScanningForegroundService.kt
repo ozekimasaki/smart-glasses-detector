@@ -16,6 +16,7 @@ import android.os.Vibrator
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +26,7 @@ import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
+import jp.smartglasses.detector.domain.service.BackgroundScanRuntimePolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import jp.smartglasses.detector.util.Constants
@@ -36,6 +38,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -58,6 +61,7 @@ class ScanningForegroundService : Service() {
     
     private val binder = LocalBinder()
     private var scanJob: Job? = null
+    private var healthCheckJob: Job? = null
     private var backgroundSettingsJob: Job? = null
     private var scanningStateJob: Job? = null
     private val supervisorJob = SupervisorJob()
@@ -158,12 +162,15 @@ class ScanningForegroundService : Service() {
 
                 bluetoothRepository.startScanning()
                 persistScanningState(true)
+                startHealthCheck()
 
                 try {
                     awaitCancellation()
                 } finally {
                     deviceCollectionJob.cancel()
                     scanFailureCollectionJob.cancel()
+                    healthCheckJob?.cancel()
+                    healthCheckJob = null
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -309,6 +316,7 @@ class ScanningForegroundService : Service() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         backgroundSettingsJob?.cancel()
         scanningStateJob?.cancel()
+        healthCheckJob?.cancel()
 
         if (!isStopping.get()) {
             runBlocking {
@@ -382,6 +390,15 @@ class ScanningForegroundService : Service() {
         backgroundSettingsJob = scope.launch {
             settingsRepository.backgroundEnabled.collect { enabled ->
                 backgroundScanningEnabled = BackgroundScanSupport.isEnabled(enabled)
+                refreshScanningNotification()
+                if (
+                    BackgroundScanRuntimePolicy.shouldStopService(
+                        backgroundEnabled = backgroundScanningEnabled,
+                        appInForeground = isAppInForeground()
+                    )
+                ) {
+                    stopScanningAndStopSelf()
+                }
             }
         }
 
@@ -390,5 +407,42 @@ class ScanningForegroundService : Service() {
                 persistedScanningState = scanning
             }
         }
+    }
+
+    private fun startHealthCheck() {
+        healthCheckJob?.cancel()
+        healthCheckJob = scope.launch {
+            while (true) {
+                delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
+                if (!bluetoothRepository.hasPermissions() ||
+                    !bluetoothRepository.isLocationServicesEnabled()
+                ) {
+                    Log.w(TAG, "Required scan permission or location services are no longer available.")
+                    stopScanningAndStopSelf()
+                    return@launch
+                }
+            }
+        }
+    }
+
+    private fun refreshScanningNotification() {
+        if (isStopping.get() || scanJob?.isActive != true) {
+            return
+        }
+
+        val notification = createScanningNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                Constants.NOTIFICATION_ID_SCANNING,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            )
+        } else {
+            startForeground(Constants.NOTIFICATION_ID_SCANNING, notification)
+        }
+    }
+
+    private fun isAppInForeground(): Boolean {
+        return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 }

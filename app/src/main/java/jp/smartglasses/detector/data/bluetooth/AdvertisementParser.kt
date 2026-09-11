@@ -6,7 +6,17 @@ internal data class ParsedAdvertisement(
     val shortName: String? = null,
     val serviceUuids: List<String> = emptyList(),
     val companyIds: Set<Int> = emptySet()
-)
+) {
+    fun merge(other: ParsedAdvertisement): ParsedAdvertisement {
+        return ParsedAdvertisement(
+            appearance = appearance ?: other.appearance,
+            completeName = completeName ?: other.completeName,
+            shortName = shortName ?: other.shortName,
+            serviceUuids = BleUuid.merge(serviceUuids, other.serviceUuids),
+            companyIds = companyIds + other.companyIds
+        )
+    }
+}
 
 internal object AdvertisementParser {
     const val AD_TYPE_SHORT_NAME = 0x08
@@ -41,27 +51,12 @@ internal object AdvertisementParser {
         var shortName: String? = null
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
-        var offset = 0
 
-        while (offset < bytes.size) {
-            val length = bytes[offset].toInt() and 0xFF
-            if (length == 0) {
-                break
-            }
-
-            val recordEnd = offset + 1 + length
-            if (recordEnd > bytes.size) {
-                break
-            }
-
-            val type = bytes[offset + 1].toInt() and 0xFF
-            val data = bytes.copyOfRange(offset + 2, recordEnd)
+        forEachRecord(bytes) { type, data ->
             when (type) {
-                AD_TYPE_APPEARANCE -> if (data.size >= 2) {
-                    appearance = unsignedLe16(data, 0)
-                }
-                AD_TYPE_COMPLETE_NAME -> completeName = decodeUtf8(data)
-                AD_TYPE_SHORT_NAME -> shortName = decodeUtf8(data)
+                AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
+                AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
+                AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
                 AD_TYPE_INCOMPLETE_16BIT_UUIDS,
                 AD_TYPE_COMPLETE_16BIT_UUIDS -> {
                     serviceUuids += parseUuid16List(data)
@@ -87,7 +82,54 @@ internal object AdvertisementParser {
                     companyIds += unsignedLe16(data, 0)
                 }
             }
-            offset = recordEnd
+        }
+
+        return ParsedAdvertisement(
+            appearance = appearance,
+            completeName = completeName,
+            shortName = shortName,
+            serviceUuids = serviceUuids.toList(),
+            companyIds = companyIds
+        )
+    }
+
+    fun parseAdvertisingDataMap(entries: Map<Int, ByteArray>): ParsedAdvertisement {
+        var appearance: Int? = null
+        var completeName: String? = null
+        var shortName: String? = null
+        val serviceUuids = linkedSetOf<String>()
+        val companyIds = mutableSetOf<Int>()
+
+        for ((type, data) in entries) {
+            when (type) {
+                AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
+                AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
+                AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
+                AD_TYPE_INCOMPLETE_16BIT_UUIDS,
+                AD_TYPE_COMPLETE_16BIT_UUIDS -> {
+                    serviceUuids += parseUuid16List(data)
+                }
+                AD_TYPE_INCOMPLETE_32BIT_UUIDS,
+                AD_TYPE_COMPLETE_32BIT_UUIDS -> {
+                    serviceUuids += parseUuid32List(data)
+                }
+                AD_TYPE_INCOMPLETE_128BIT_UUIDS,
+                AD_TYPE_COMPLETE_128BIT_UUIDS -> {
+                    serviceUuids += parseUuid128List(data)
+                }
+                AD_TYPE_SERVICE_DATA_16BIT -> if (data.size >= 2) {
+                    serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, 0)))
+                }
+                AD_TYPE_SERVICE_DATA_32BIT -> if (data.size >= 4) {
+                    serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, 0)))
+                }
+                AD_TYPE_SERVICE_DATA_128BIT -> parseUuid128(data, 0)?.let { uuid ->
+                    serviceUuids += uuid
+                }
+                AD_TYPE_MANUFACTURER_SPECIFIC -> if (data.size >= 2) {
+                    companyIds += unsignedLe16(data, 0)
+                }
+            }
         }
 
         return ParsedAdvertisement(
@@ -101,6 +143,24 @@ internal object AdvertisementParser {
 
     fun parseHex(hex: String): ParsedAdvertisement {
         return parse(hexToBytes(hex))
+    }
+
+    fun hasManufacturerDataSuffix(hex: String, suffix: Int): Boolean {
+        val bytes = hexToBytes(hex) ?: return false
+        val high = (suffix shr 8) and 0xFF
+        val low = suffix and 0xFF
+        var matched = false
+        forEachRecord(bytes) { type, data ->
+            if (type == AD_TYPE_MANUFACTURER_SPECIFIC && data.size >= 4) {
+                val last = data.size - 1
+                if ((data[last - 1].toInt() and 0xFF) == high &&
+                    (data[last].toInt() and 0xFF) == low
+                ) {
+                    matched = true
+                }
+            }
+        }
+        return matched
     }
 
     fun asciiFromHex(hex: String): String {
@@ -132,6 +192,33 @@ internal object AdvertisementParser {
         return ByteArray(normalized.length / 2) { index ->
             normalized.substring(index * 2, index * 2 + 2).toInt(16).toByte()
         }
+    }
+
+    private fun forEachRecord(bytes: ByteArray, consume: (type: Int, data: ByteArray) -> Unit) {
+        var offset = 0
+        while (offset < bytes.size) {
+            val length = bytes[offset].toInt() and 0xFF
+            if (length == 0) {
+                break
+            }
+
+            val recordEnd = offset + 1 + length
+            if (recordEnd > bytes.size) {
+                break
+            }
+
+            val type = bytes[offset + 1].toInt() and 0xFF
+            val data = bytes.copyOfRange(offset + 2, recordEnd)
+            consume(type, data)
+            offset = recordEnd
+        }
+    }
+
+    private fun parseAppearance(data: ByteArray): Int? {
+        if (data.size < 2) {
+            return null
+        }
+        return unsignedLe16(data, 0)
     }
 
     private fun parseUuid16List(data: ByteArray): List<String> {

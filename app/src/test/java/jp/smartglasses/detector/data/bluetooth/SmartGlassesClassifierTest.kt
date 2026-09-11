@@ -434,6 +434,69 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `activelook manufacturer suffix is detected without company id only`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:31",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementDataHex = "05FFFADA08F2"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Engo", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.PAYLOAD, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `activelook complete name is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "A.Look 000128",
+                address = "AA:BB:CC:DD:EE:32",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Engo", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `mentra live legacy names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "XyBLE_A1B2",
+                address = "AA:BB:CC:DD:EE:33",
+                companyIds = emptySet(),
+                rssi = -59
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Mentra", detected?.manufacturer?.name)
+    }
+
+    @Test
+    fun `brilliant frame coded names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Frame-1A2B",
+                address = "AA:BB:CC:DD:EE:34",
+                companyIds = emptySet(),
+                rssi = -61
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Brilliant Labs", detected?.manufacturer?.name)
+    }
+
+    @Test
     fun `headphone names are excluded from generic glasses heuristic`() {
         val detected = classifier.classify(
             DetectionSignal(
@@ -492,6 +555,15 @@ class SmartGlassesClassifierTest {
                         advertisementDataHex = asciiToHex(rule.payloadPatterns.first())
                     )
                 )
+                rule.manufacturerDataSuffixes.isNotEmpty() -> classifier.classify(
+                    DetectionSignal(
+                        deviceName = null,
+                        address = "AA:BB:CC:DD:EE:21",
+                        companyIds = emptySet(),
+                        rssi = -50,
+                        advertisementDataHex = manufacturerSuffixHex(rule.manufacturerDataSuffixes.first())
+                    )
+                )
                 rule.namePatterns.isNotEmpty() -> classifier.classify(
                     DetectionSignal(
                         deviceName = rule.namePatterns.first(),
@@ -525,7 +597,9 @@ class SmartGlassesClassifierTest {
             "VITURE",
             "Halliday",
             "Lucyd",
-            "Tooz"
+            "Tooz",
+            "Engo",
+            "Mentra"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -535,5 +609,11 @@ class SmartGlassesClassifierTest {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')
         }
+    }
+
+    private fun manufacturerSuffixHex(suffix: Int): String {
+        val high = (suffix shr 8) and 0xFF
+        val low = suffix and 0xFF
+        return "05FF0000%02X%02X".format(high, low)
     }
 }
