@@ -27,7 +27,7 @@ val hasReleaseSigning = if (releaseSigningPropertiesFile.isFile) {
 
 android {
     namespace = "jp.smartglasses.detector"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -50,8 +50,8 @@ android {
         applicationId = "jp.smartglasses.detector"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.8"
+        versionCode = 10
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

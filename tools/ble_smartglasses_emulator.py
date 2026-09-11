@@ -25,6 +25,10 @@ COMPANY_ID_DEVICES = {
     10: ("Snapchat (Spectacles)", 0x03C2),
     11: ("TCL (RayNeo)", 0x0BC6),
     12: ("Luxottica", 0x0D53),
+    13: ("Vuzix", 0x060C),
+    14: ("Kopin (Solos)", 0x041F),
+    15: ("North (Focals)", 0x0562),
+    16: ("Fauna", 0x0976),
 }
 
 # デバイス名パターンで検出されるもの
@@ -36,6 +40,12 @@ NAME_PATTERN_DEVICES = {
     25: "LAWAKEN Glass",
     26: "Halliday glasses",
     27: "VITURE Pro",
+    28: "Even G1-2048",
+    29: "Brilliant Labs Frame",
+    30: "HeyCyan-A1B2",
+    31: "Apple Vision Pro",
+    32: "Glass EE2",
+    33: "AI Glasses-9C",
 }
 
 

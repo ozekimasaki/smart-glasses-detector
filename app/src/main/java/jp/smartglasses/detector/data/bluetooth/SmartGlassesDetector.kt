@@ -21,6 +21,7 @@ import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -98,13 +99,17 @@ class SmartGlassesDetector @Inject constructor(
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
+        val parsedAdvertisement = AdvertisementParser.parse(scanRecord?.bytes)
         return DetectionSignal(
-            deviceName = resolveDeviceName(result, scanRecord),
+            deviceName = resolveDeviceName(result, scanRecord)
+                ?: parsedAdvertisement.completeName
+                ?: parsedAdvertisement.shortName,
             address = resolveDeviceAddress(result),
             companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
             rssi = result.rssi,
             serviceUuids = scanRecord?.serviceUuids?.map { it.toString() }.orEmpty(),
-            advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty()
+            advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
+            appearance = parsedAdvertisement.appearance
         )
     }
 
@@ -140,14 +145,23 @@ class SmartGlassesDetector @Inject constructor(
 
     @SuppressLint("MissingPermission")
     private fun handleClassicDiscoveryResult(intent: Intent) {
-        val device = intent.extractBluetoothDevice() ?: return
-        val diagnosticLog = ClassicDiscoverySignal(
-            deviceName = resolveDeviceName(device),
-            address = resolveDeviceAddress(device),
-            rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, UNKNOWN_CLASSIC_RSSI.toShort()).toInt()
-        ).toDiagnosticLog()
+        val bluetoothDevice = intent.extractBluetoothDevice() ?: return
+        val signal = DetectionSignal(
+            deviceName = resolveDeviceName(bluetoothDevice),
+            address = resolveDeviceAddress(bluetoothDevice),
+            companyIds = emptySet(),
+            rssi = intent.getShortExtra(
+                BluetoothDevice.EXTRA_RSSI,
+                Constants.UNKNOWN_RSSI_DBM.toShort()
+            ).toInt()
+        )
+        val processed = scanSignalProcessor.process(signal)
+        persistDiagnosticLog(processed.diagnosticLog)
 
-        persistDiagnosticLog(diagnosticLog)
+        val detectedDevice = processed.detectedDevice
+        if (detectedDevice != null && shouldEmitDetection(detectedDevice)) {
+            _scannedDevices.trySend(detectedDevice)
+        }
     }
 
     private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord?): String? {
@@ -303,17 +317,7 @@ class SmartGlassesDetector @Inject constructor(
         detectionCooldownGate.clear()
         ensureClassicDiscoveryReceiverRegistered()
         
-        val settings = when (sensitivity) {
-            ScanSensitivity.LOW_POWER -> ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-                .build()
-            ScanSensitivity.BALANCED -> ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                .build()
-            ScanSensitivity.HIGH_ACCURACY -> ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                .build()
-        }
+        val settings = buildScanSettings(sensitivity)
         
         try {
             scanner.startScan(null, settings, scanCallback)
@@ -355,9 +359,33 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
+    private fun buildScanSettings(sensitivity: ScanSensitivity): ScanSettings {
+        val scanMode = when (sensitivity) {
+            ScanSensitivity.LOW_POWER -> ScanSettings.SCAN_MODE_LOW_POWER
+            ScanSensitivity.BALANCED -> ScanSettings.SCAN_MODE_BALANCED
+            ScanSensitivity.HIGH_ACCURACY -> ScanSettings.SCAN_MODE_LOW_LATENCY
+        }
+        val matchMode = if (sensitivity == ScanSensitivity.LOW_POWER) {
+            ScanSettings.MATCH_MODE_STICKY
+        } else {
+            ScanSettings.MATCH_MODE_AGGRESSIVE
+        }
+        val numOfMatches = if (sensitivity == ScanSensitivity.HIGH_ACCURACY) {
+            ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT
+        } else {
+            ScanSettings.MATCH_NUM_FEW_ADVERTISEMENT
+        }
+
+        return ScanSettings.Builder()
+            .setScanMode(scanMode)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+            .setMatchMode(matchMode)
+            .setNumOfMatches(numOfMatches)
+            .build()
+    }
+
     companion object {
         private const val TAG = "SmartGlassesDetector"
-        private const val UNKNOWN_CLASSIC_RSSI = -127
     }
 }
 
