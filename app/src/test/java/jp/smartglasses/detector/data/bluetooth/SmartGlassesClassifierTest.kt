@@ -251,6 +251,75 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `strong heuristic names remain detectable at catalog distance`() {
+        val smartGlasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Glasses",
+                address = "AA:BB:CC:DD:EE:06G",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val japanese = classifier.classify(
+            DetectionSignal(
+                deviceName = "スマートグラス-A1",
+                address = "AA:BB:CC:DD:EE:06H",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val chinese = classifier.classify(
+            DetectionSignal(
+                deviceName = "智能眼镜-A1",
+                address = "AA:BB:CC:DD:EE:06I",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val korean = classifier.classify(
+            DetectionSignal(
+                deviceName = "스마트글라스-01",
+                address = "AA:BB:CC:DD:EE:06L",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+
+        assertEquals(DetectionMethod.HEURISTIC, smartGlasses?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, japanese?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, chinese?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, korean?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `ambiguous glasses names stay ignored at catalog distance`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "My Glasses",
+                address = "AA:BB:CC:DD:EE:06J",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `ambiguous glasses names are still detected nearby`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "My Glasses",
+                address = "AA:BB:CC:DD:EE:06K",
+                companyIds = emptySet(),
+                rssi = -70
+            )
+        )
+
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `low power sensitivity ignores distant catalog matches`() {
         val detected = classifier.classify(
             DetectionSignal(
@@ -1209,6 +1278,62 @@ class SmartGlassesClassifierTest {
         assertEquals(DetectionMethod.HEURISTIC, megane?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, mixedReality?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, cameraGlasses?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `memomind one name is detected as memomind`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "MemoMind One",
+                address = "AA:BB:CC:DD:EE:39D",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+
+        assertEquals("MemoMind", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `dymesty and snap specs names are detected at catalog distance`() {
+        val dymesty = classifier.classify(
+            DetectionSignal(
+                deviceName = "Dymesty Cook Edge",
+                address = "AA:BB:CC:DD:EE:39E",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val snapSpecs = classifier.classify(
+            DetectionSignal(
+                deviceName = "Snap Specs",
+                address = "AA:BB:CC:DD:EE:39F",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val rogR1 = classifier.classify(
+            DetectionSignal(
+                deviceName = "ROG R1",
+                address = "AA:BB:CC:DD:EE:39G",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val xiaomiChinese = classifier.classify(
+            DetectionSignal(
+                deviceName = "小米AI眼镜",
+                address = "AA:BB:CC:DD:EE:39H",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+
+        assertEquals("Dymesty", dymesty?.manufacturer?.name)
+        assertEquals("Snapchat", snapSpecs?.manufacturer?.name)
+        assertEquals("XREAL", rogR1?.manufacturer?.name)
+        assertEquals("Xiaomi", xiaomiChinese?.manufacturer?.name)
     }
 
     @Test

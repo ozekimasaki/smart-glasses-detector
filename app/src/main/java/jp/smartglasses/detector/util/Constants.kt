@@ -36,30 +36,43 @@ object Constants {
 
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
-    internal val GENERIC_GLASSES_NAME_REGEXES = listOf(
+    // 未知メーカーでも Smart Glasses / スマートグラスと名乗る広告はカタログ距離で拾う
+    internal val GENERIC_STRONG_GLASSES_NAME_REGEXES = listOf(
+        Regex("""(?i)smart[\s-]?eye[\s-]?glass"""),
         Regex("""(?i)smart[\s-]?glass"""),
+        Regex("""(?i)\b(?:ai|ar|xr|mr)[\s-]?eye[\s-]?glass"""),
         Regex("""(?i)\b(?:ai|ar|xr|mr)[\s-]?glass"""),
         Regex("""(?i)camera[\s-]?glass"""),
-        Regex("""(?i)eye-?wear"""),
-        Regex("""(?i)\beyewear\b"""),
-        Regex("""(?i)spectacles"""),
-        Regex("""(?i)eye[\s-]?glasses"""),
-        Regex("""(?i)\bglasses\b"""),
-        Regex("""(?i)\bhud\b"""),
-        Regex("""(?i)ai[\s-]?eyewear"""),
-        Regex("""(?i)ar[\s-]?eyewear"""),
+        Regex("""(?i)(?:ai|smart)[\s-]?sunglass"""),
+        Regex("""(?i)(?:ai|ar|xr|mr)[\s-]?eyewear"""),
         Regex("""スマートグラス"""),
         Regex("""スマートメガネ"""),
         Regex("""スマート眼鏡"""),
-        Regex("""アイウェア"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
         Regex("""MRグラス"""),
         Regex("""AIグラス"""),
         Regex("""カメラグラス"""),
         Regex("""智能眼镜"""),
-        Regex("""智能眼鏡""")
+        Regex("""智能眼鏡"""),
+        Regex("""스마트글래스"""),
+        Regex("""스마트글라스"""),
+        Regex("""스마트안경""")
     )
+
+    // glasses / HUD / アイウェアはファッション眼鏡や汎用HUDに当たるため近い距離だけ
+    internal val GENERIC_WEAK_GLASSES_NAME_REGEXES = listOf(
+        Regex("""(?i)eye-?wear"""),
+        Regex("""(?i)\beyewear\b"""),
+        Regex("""(?i)spectacles"""),
+        Regex("""(?i)eye[\s-]?glasses"""),
+        Regex("""(?i)\bglasses\b"""),
+        Regex("""(?i)\bhud\b"""),
+        Regex("""アイウェア""")
+    )
+
+    internal val GENERIC_GLASSES_NAME_REGEXES =
+        GENERIC_STRONG_GLASSES_NAME_REGEXES + GENERIC_WEAK_GLASSES_NAME_REGEXES
 
     internal val GENERIC_NON_GLASSES_NAME_REGEXES = listOf(
         Regex("""(?i)airpods"""),
@@ -153,7 +166,9 @@ object Constants {
                 "Ray-Ban Display",
                 "RayBan Display",
                 "Ray-Ban Stories",
-                "RayBan Stories"
+                "RayBan Stories",
+                "Blayzer",
+                "Scriber"
             ),
             excludedNamePatterns = listOf(
                 "Quest",
@@ -201,7 +216,9 @@ object Constants {
                 "ThinkReality",
                 "ThinkReality A3",
                 "ThinkReality VRX",
-                "Lenovo Glass"
+                "Lenovo Glass",
+                "Vision AI Glass",
+                "Legion Glasses"
             )
         ),
         DetectionRule(
@@ -223,7 +240,9 @@ object Constants {
                 "Spectacles",
                 "Snap Glass",
                 "Snap Spectacles",
-                "Spectacles 5"
+                "Spectacles 5",
+                "Snap Specs",
+                "Snap SPECS"
             ),
             serviceUuids = setOf("0000FE45-0000-1000-8000-00805F9B34FB")
         ),
@@ -319,7 +338,11 @@ object Constants {
                 "Xiaomi Glass",
                 "Mi Glass",
                 "Wireless AR",
-                "Xiaomi Smart Glass"
+                "Xiaomi Smart Glass",
+                "Xiaomi AI Glass",
+                "小米眼镜",
+                "小米智能眼镜",
+                "小米AI眼镜"
             ),
             allowCompanyIdOnly = false
         ),
@@ -368,7 +391,11 @@ object Constants {
                 "XREAL Air 2 Pro",
                 "XREAL Air 2 Ultra",
                 "Nreal Air",
-                "Nreal Light"
+                "Nreal Light",
+                "XREAL Aura",
+                "XREAL R1",
+                "ROG R1",
+                "ROG XREAL"
             ),
             allowCompanyIdOnly = false
         ),
@@ -404,6 +431,8 @@ object Constants {
                 "INMOAIR",
                 "INMO GO",
                 "INMO GO2",
+                "INMO GO3",
+                "INMO GO 3",
                 "INMOGO",
                 "映莫"
             ),
@@ -426,6 +455,7 @@ object Constants {
                 "Halliday Glass",
                 "Halliday AI",
                 "Halliday G2",
+                "DigiWindow",
                 "GP101",
                 "HALLIDAYGP101"
             ),
@@ -642,7 +672,12 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Honor",
-            namePatterns = listOf("Honor Glass", "Honor Glasses"),
+            namePatterns = listOf(
+                "Honor Glass",
+                "Honor Glasses",
+                "荣耀眼镜",
+                "荣耀智能眼镜"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -675,6 +710,46 @@ object Constants {
                 "LCD008",
                 "LCD010",
                 "LCD011"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "MemoMind",
+            namePatterns = listOf(
+                "MemoMind",
+                "Memo Mind",
+                "XGIMI Memo"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Dymesty",
+            namePatterns = listOf("Dymesty"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Chamelo",
+            namePatterns = listOf("Chamelo"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "OhO Sunshine",
+            namePatterns = listOf(
+                "OhO Sunshine",
+                "OHO Sunshine",
+                "OhO Edge",
+                "OHO Edge",
+                "OhO Brave",
+                "OhO Globe"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "L'Atitude",
+            namePatterns = listOf(
+                "L'Atitude",
+                "Latitude 52",
+                "52°N"
             ),
             allowCompanyIdOnly = false
         ),

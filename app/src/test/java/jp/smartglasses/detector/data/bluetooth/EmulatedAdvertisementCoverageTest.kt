@@ -139,6 +139,13 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "XREAL One S" } &&
                 catalog.nameDevices.any { device -> device.name == "VITURE Luma Pro" }
         )
+        assertTrue(
+            "Strong heuristic and 2026 brand names should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Smart Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "スマートグラス" } &&
+                catalog.nameDevices.any { device -> device.name == "MemoMind One" } &&
+                catalog.nameDevices.any { device -> device.name == "Dymesty Cook Edge" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

@@ -91,6 +91,10 @@ NAME_PATTERN_DEVICES = {
     83: "RayNeo Air 3s",
     84: "XREAL One S",
     85: "VITURE Luma Pro",
+    86: "Smart Glasses",
+    87: "スマートグラス",
+    89: "MemoMind One",
+    90: "Dymesty Cook Edge",
 }
 
 UUID_DEVICES = {
@@ -178,8 +182,8 @@ def start_advertise_name_only(device_name):
     run("sudo hciconfig hci0 up")
     run(f'sudo hciconfig hci0 name "{device_name}"')
 
-    # Flags + Complete Local Name
-    name_bytes = device_name.encode("ascii")
+    # Flags + Complete Local Name（日本語・中国語名は UTF-8。31バイトADVに収める）
+    name_bytes = device_name.encode("utf-8")[: 31 - 5]
     name_len = len(name_bytes)
     name_hex = " ".join(f"{b:02X}" for b in name_bytes)
 
