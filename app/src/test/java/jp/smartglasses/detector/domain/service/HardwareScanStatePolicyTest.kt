@@ -38,5 +38,12 @@ class HardwareScanStatePolicyTest {
                 scanPermissionGranted = false
             )
         )
+        assertFalse(
+            HardwareScanStatePolicy.isActive(
+                userRequestedScanning = true,
+                bluetoothEnabled = true,
+                locationServicesSatisfied = false
+            )
+        )
     }
 }

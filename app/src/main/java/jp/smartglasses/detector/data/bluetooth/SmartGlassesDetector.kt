@@ -15,9 +15,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.core.util.size
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -76,6 +78,7 @@ class SmartGlassesDetector @Inject constructor(
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
     private val classicDiscoveryStarted = AtomicBoolean(false)
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
+    private val isLocationModeReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var usingExtendedAdvertising = true
@@ -119,6 +122,24 @@ class SmartGlassesDetector @Inject constructor(
                         BluetoothScanFailure(ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED)
                     )
                 }
+            }
+        }
+    }
+
+    private val locationModeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != LocationManager.MODE_CHANGED_ACTION) {
+                return
+            }
+            if (isLocationServicesSatisfied()) {
+                if (userRequestedScanning.get()) {
+                    startLeAndClassicScanning()
+                }
+            } else {
+                pauseHardwareScan(locationServicesSatisfied = false)
+                _scanFailures.trySend(
+                    BluetoothScanFailure(ScanFailurePolicy.SCAN_ENVIRONMENT_LOCATION_DISABLED)
+                )
             }
         }
     }
@@ -457,7 +478,8 @@ class SmartGlassesDetector @Inject constructor(
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = true,
             bluetoothEnabled = bluetoothAdapter.isEnabled,
-            scanPermissionGranted = true
+            scanPermissionGranted = true,
+            locationServicesSatisfied = isLocationServicesSatisfied()
         )
         retryAttempt = 0
         detectionCooldownGate.clear()
@@ -466,10 +488,11 @@ class SmartGlassesDetector @Inject constructor(
         _nearbyDevices.value = emptyList()
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
+        ensureLocationModeReceiverRegistered()
         startScanWatchdog()
         startNearbyPrune()
 
-        if (!bluetoothAdapter.isEnabled) {
+        if (!bluetoothAdapter.isEnabled || !isLocationServicesSatisfied()) {
             return
         }
 
@@ -482,7 +505,7 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         lastSensitivity = sensitivity
-        if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+        if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
             refreshBleScan()
         }
     }
@@ -501,6 +524,7 @@ class SmartGlassesDetector @Inject constructor(
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
+        unregisterLocationModeReceiver()
         detectionCooldownGate.clear()
         diagnosticWriteGate.clear()
         classicDiscoveryStarted.set(false)
@@ -510,11 +534,17 @@ class SmartGlassesDetector @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun startLeAndClassicScanning() {
         val adapter = bluetoothAdapter ?: return
-        if (!userRequestedScanning.get() || !adapter.isEnabled || !hasRequiredScanPermission()) {
+        if (
+            !userRequestedScanning.get() ||
+            !adapter.isEnabled ||
+            !hasRequiredScanPermission() ||
+            !isLocationServicesSatisfied()
+        ) {
             _isScanning.value = HardwareScanStatePolicy.isActive(
                 userRequestedScanning = userRequestedScanning.get(),
                 bluetoothEnabled = adapter.isEnabled,
-                scanPermissionGranted = hasRequiredScanPermission()
+                scanPermissionGranted = hasRequiredScanPermission(),
+                locationServicesSatisfied = isLocationServicesSatisfied()
             )
             return
         }
@@ -575,11 +605,15 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun pauseHardwareScan(bluetoothEnabled: Boolean? = null) {
+    private fun pauseHardwareScan(
+        bluetoothEnabled: Boolean? = null,
+        locationServicesSatisfied: Boolean? = null
+    ) {
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = userRequestedScanning.get(),
             bluetoothEnabled = bluetoothEnabled ?: (bluetoothAdapter?.isEnabled == true),
-            scanPermissionGranted = hasRequiredScanPermission()
+            scanPermissionGranted = hasRequiredScanPermission(),
+            locationServicesSatisfied = locationServicesSatisfied ?: isLocationServicesSatisfied()
         )
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
@@ -591,7 +625,7 @@ class SmartGlassesDetector @Inject constructor(
 
     @SuppressLint("MissingPermission")
     private fun refreshBleScan() {
-        if (!userRequestedScanning.get() || bluetoothAdapter?.isEnabled != true) {
+        if (!userRequestedScanning.get() || bluetoothAdapter?.isEnabled != true || !isLocationServicesSatisfied()) {
             return
         }
 
@@ -613,7 +647,7 @@ class SmartGlassesDetector @Inject constructor(
         val delayMs = ScanFailurePolicy.retryDelayMs(retryAttempt)
         retryJob = diagnosticPersistenceScope.launch {
             delay(delayMs)
-            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
                 startLeAndClassicScanning()
             }
         }
@@ -624,7 +658,7 @@ class SmartGlassesDetector @Inject constructor(
         scanWatchdogJob = diagnosticPersistenceScope.launch {
             while (isActive) {
                 delay(BleScanRefreshPolicy.intervalMs(isAppInForeground()))
-                if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+                if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
                     refreshBleScan()
                 }
             }
@@ -670,6 +704,39 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         context.unregisterReceiver(bluetoothStateReceiver)
+    }
+
+    private fun ensureLocationModeReceiverRegistered() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return
+        }
+        if (!isLocationModeReceiverRegistered.compareAndSet(false, true)) {
+            return
+        }
+
+        ContextCompat.registerReceiver(
+            context,
+            locationModeReceiver,
+            IntentFilter(LocationManager.MODE_CHANGED_ACTION),
+            ContextCompat.RECEIVER_EXPORTED
+        )
+    }
+
+    private fun unregisterLocationModeReceiver() {
+        if (!isLocationModeReceiverRegistered.compareAndSet(true, false)) {
+            return
+        }
+
+        context.unregisterReceiver(locationModeReceiver)
+    }
+
+    private fun isLocationServicesSatisfied(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return true
+        }
+
+        val locationManager = context.getSystemService(LocationManager::class.java) ?: return false
+        return LocationManagerCompat.isLocationEnabled(locationManager)
     }
     
     fun hasBleHardwareSupport(): Boolean {

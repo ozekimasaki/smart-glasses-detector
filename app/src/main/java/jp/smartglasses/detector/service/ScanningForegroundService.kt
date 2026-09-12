@@ -153,8 +153,9 @@ class ScanningForegroundService : Service() {
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
                     if (
                         ScanFailurePolicy.shouldPauseScanning(
-                            failure.errorCode,
-                            bluetoothRepository.isBluetoothEnabled()
+                            errorCode = failure.errorCode,
+                            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+                            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
                         )
                     ) {
                         pauseScanningKeepingIntent()

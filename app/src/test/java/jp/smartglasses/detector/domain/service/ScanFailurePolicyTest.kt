@@ -85,4 +85,27 @@ class ScanFailurePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `stale location disabled failures do not pause after location returns`() {
+        assertFalse(
+            ScanFailurePolicy.shouldKeepScanning(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_LOCATION_DISABLED
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(
+                errorCode = ScanFailurePolicy.SCAN_ENVIRONMENT_LOCATION_DISABLED,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldPauseScanning(
+                errorCode = ScanFailurePolicy.SCAN_ENVIRONMENT_LOCATION_DISABLED,
+                bluetoothEnabled = true,
+                locationServicesEnabled = false
+            )
+        )
+    }
 }

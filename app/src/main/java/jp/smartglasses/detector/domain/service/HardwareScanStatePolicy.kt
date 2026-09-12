@@ -4,8 +4,12 @@ object HardwareScanStatePolicy {
     fun isActive(
         userRequestedScanning: Boolean,
         bluetoothEnabled: Boolean,
-        scanPermissionGranted: Boolean = true
+        scanPermissionGranted: Boolean = true,
+        locationServicesSatisfied: Boolean = true
     ): Boolean {
-        return userRequestedScanning && bluetoothEnabled && scanPermissionGranted
+        return userRequestedScanning &&
+            bluetoothEnabled &&
+            scanPermissionGranted &&
+            locationServicesSatisfied
     }
 }
