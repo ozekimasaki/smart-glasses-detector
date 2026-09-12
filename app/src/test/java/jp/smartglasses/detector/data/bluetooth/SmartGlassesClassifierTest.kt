@@ -1461,6 +1461,31 @@ class SmartGlassesClassifierTest {
         assertNull(frameTv)
     }
 
+    @Test
+    fun `mentra display legacy nexsim names and nimo ble side channel are detected`() {
+        val nexSim = classifier.classify(
+            DetectionSignal(
+                deviceName = "NexSim A1B2C3",
+                address = "AA:BB:CC:DD:EE:63",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val nimoBle = classifier.classify(
+            DetectionSignal(
+                deviceName = "nimo_ble",
+                address = "AA:BB:CC:DD:EE:64",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+
+        assertEquals("Mentra", nexSim?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, nexSim?.manufacturer?.detectionMethod)
+        assertEquals("Mentra", nimoBle?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, nimoBle?.manufacturer?.detectionMethod)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

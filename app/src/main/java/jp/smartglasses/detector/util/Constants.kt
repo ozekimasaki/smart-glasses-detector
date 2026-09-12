@@ -498,6 +498,7 @@ object Constants {
                 "Mentra Display",
                 "Mentra Nex",
                 "Nex1-",
+                "NexSim",
                 "MENTRA_DISPLAY_",
                 "mentra_live",
                 "MENTRA_LIVE_BLE",

@@ -75,6 +75,7 @@ NAME_PATTERN_DEVICES = {
     62: "Solos AirGo3 1234",
     63: "Solos AirGo 3 1234",
     64: "RayNeo Air 4 Pro",
+    65: "NexSim A1B2C3",
 }
 
 UUID_DEVICES = {

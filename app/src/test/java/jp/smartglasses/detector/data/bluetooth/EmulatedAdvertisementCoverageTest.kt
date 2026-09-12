@@ -96,6 +96,10 @@ class EmulatedAdvertisementCoverageTest {
             "RayNeo Air 4 Pro name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "RayNeo Air 4 Pro" }
         )
+        assertTrue(
+            "Mentra Display legacy NexSim name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "NexSim A1B2C3" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(
