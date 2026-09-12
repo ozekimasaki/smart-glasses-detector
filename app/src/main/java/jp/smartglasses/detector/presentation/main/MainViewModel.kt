@@ -87,13 +87,15 @@ class MainViewModel @Inject constructor(
     private val scanBlockerRefresh = MutableStateFlow(0)
     val restorePrompt = combine(
         settingsRepository.isScanning,
+        bluetoothRepository.isScanning,
         scanBlockerRefresh
-    ) { persistedIntent, _ ->
+    ) { persistedIntent, _, _ ->
         ScanUiStatePolicy.restorePrompt(
             persistedIntent = persistedIntent,
             hasScanPermissions = bluetoothRepository.hasPermissions(),
             requiresLocationServices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
-            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled(),
+            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, ScanRestorePrompt.None)
 
@@ -107,6 +109,9 @@ class MainViewModel @Inject constructor(
         when (restorePrompt.value) {
             ScanRestorePrompt.ScanPermission -> viewModelScope.launch {
                 _event.send(MainEvent.RequestScanPermissions)
+            }
+            ScanRestorePrompt.Bluetooth -> viewModelScope.launch {
+                _event.send(MainEvent.RequestEnableBluetooth)
             }
             ScanRestorePrompt.Location -> viewModelScope.launch {
                 _event.send(MainEvent.ShowMessage(R.string.error_location_pre_s))

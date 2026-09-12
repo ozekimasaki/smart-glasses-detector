@@ -5,9 +5,11 @@ object ScanResumePolicy {
         wasScanning: Boolean,
         backgroundEnabled: Boolean,
         hasPermissions: Boolean,
-        appInForeground: Boolean = false
+        appInForeground: Boolean = false,
+        bluetoothEnabled: Boolean = true,
+        locationServicesEnabled: Boolean = true
     ): Boolean {
-        if (!wasScanning || !hasPermissions) {
+        if (!wasScanning || !hasPermissions || !bluetoothEnabled || !locationServicesEnabled) {
             return false
         }
         return backgroundEnabled || appInForeground

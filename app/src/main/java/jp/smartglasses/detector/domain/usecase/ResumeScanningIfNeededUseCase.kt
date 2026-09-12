@@ -21,7 +21,9 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
             wasScanning = settingsRepository.isScanning.first(),
             backgroundEnabled = backgroundScanSupported && settingsRepository.backgroundEnabled.first(),
             hasPermissions = bluetoothRepository.hasPermissions(),
-            appInForeground = appInForeground
+            appInForeground = appInForeground,
+            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
         )
         if (!shouldResume) {
             return

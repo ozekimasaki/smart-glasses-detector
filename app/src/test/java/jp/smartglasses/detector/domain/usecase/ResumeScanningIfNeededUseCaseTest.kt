@@ -87,6 +87,40 @@ class ResumeScanningIfNeededUseCaseTest {
         assertEquals(0, controller.startCount)
     }
 
+    @Test
+    fun `does not start when bluetooth is off`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = true),
+            bluetoothRepository = FakeBluetoothRepository(
+                permissions = true,
+                bluetoothEnabled = false
+            ),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(0, controller.startCount)
+    }
+
+    @Test
+    fun `does not start when location services are off`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = true),
+            bluetoothRepository = FakeBluetoothRepository(
+                permissions = true,
+                locationEnabled = false
+            ),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(0, controller.startCount)
+    }
+
     private class RecordingScanServiceController : ScanServiceController {
         var startCount = 0
         var lastFromBackground: Boolean? = null
@@ -122,7 +156,9 @@ class ResumeScanningIfNeededUseCaseTest {
 
     private class FakeBluetoothRepository(
         private val permissions: Boolean,
-        hardwareScanning: Boolean = false
+        hardwareScanning: Boolean = false,
+        private val bluetoothEnabled: Boolean = true,
+        private val locationEnabled: Boolean = true
     ) : BluetoothRepository {
         override val scannedDevices: Flow<SmartGlassesDevice> = emptyFlow()
         override val scanFailures: Flow<BluetoothScanFailure> = emptyFlow()
@@ -135,7 +171,7 @@ class ResumeScanningIfNeededUseCaseTest {
         override fun hasPermissions() = permissions
         override fun hasNotificationPermission() = true
         override fun hasBleHardwareSupport() = true
-        override fun isBluetoothEnabled() = true
-        override fun isLocationServicesEnabled() = true
+        override fun isBluetoothEnabled() = bluetoothEnabled
+        override fun isLocationServicesEnabled() = locationEnabled
     }
 }

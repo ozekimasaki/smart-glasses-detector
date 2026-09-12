@@ -143,6 +143,26 @@ class ScanStartPolicyTest {
                 locationServicesEnabled = false
             )
         )
+        assertEquals(
+            ScanRestorePrompt.Bluetooth,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = true,
+                hasScanPermissions = true,
+                requiresLocationServices = false,
+                locationServicesEnabled = true,
+                bluetoothEnabled = false
+            )
+        )
+        assertEquals(
+            ScanRestorePrompt.ScanPermission,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = true,
+                hasScanPermissions = false,
+                requiresLocationServices = false,
+                locationServicesEnabled = true,
+                bluetoothEnabled = false
+            )
+        )
     }
 
     @Test

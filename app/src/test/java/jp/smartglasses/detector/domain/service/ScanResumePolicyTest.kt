@@ -39,6 +39,35 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `does not resume when bluetooth or location services are unavailable`() {
+        assertFalse(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = true,
+                hasPermissions = true,
+                bluetoothEnabled = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = true,
+                hasPermissions = true,
+                locationServicesEnabled = false
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = true,
+                hasPermissions = true,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true
+            )
+        )
+    }
+
+    @Test
     fun `resumes persisted scanning when app is visible even without background`() {
         assertTrue(
             ScanResumePolicy.shouldResume(

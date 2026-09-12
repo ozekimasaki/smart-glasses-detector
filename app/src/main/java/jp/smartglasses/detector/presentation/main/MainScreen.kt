@@ -531,11 +531,13 @@ private fun ScanRestoreBanner(
 ) {
     val messageRes = when (prompt) {
         ScanRestorePrompt.ScanPermission -> R.string.main_permission_restore_message
+        ScanRestorePrompt.Bluetooth -> R.string.main_bluetooth_restore_message
         ScanRestorePrompt.Location -> R.string.main_location_restore_message
         ScanRestorePrompt.None -> return
     }
     val actionRes = when (prompt) {
         ScanRestorePrompt.ScanPermission -> R.string.main_restore_action
+        ScanRestorePrompt.Bluetooth -> R.string.main_bluetooth_restore_action
         ScanRestorePrompt.Location -> R.string.main_location_restore_action
         ScanRestorePrompt.None -> return
     }

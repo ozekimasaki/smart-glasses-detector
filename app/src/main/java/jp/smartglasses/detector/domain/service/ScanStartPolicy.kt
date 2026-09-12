@@ -47,13 +47,17 @@ object ScanUiStatePolicy {
         persistedIntent: Boolean,
         hasScanPermissions: Boolean,
         requiresLocationServices: Boolean,
-        locationServicesEnabled: Boolean
+        locationServicesEnabled: Boolean,
+        bluetoothEnabled: Boolean = true
     ): ScanRestorePrompt {
         if (!persistedIntent) {
             return ScanRestorePrompt.None
         }
         if (!hasScanPermissions) {
             return ScanRestorePrompt.ScanPermission
+        }
+        if (!bluetoothEnabled) {
+            return ScanRestorePrompt.Bluetooth
         }
         if (requiresLocationServices && !locationServicesEnabled) {
             return ScanRestorePrompt.Location
@@ -65,6 +69,7 @@ object ScanUiStatePolicy {
 enum class ScanRestorePrompt {
     None,
     ScanPermission,
+    Bluetooth,
     Location
 }
 

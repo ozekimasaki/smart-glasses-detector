@@ -88,8 +88,10 @@
     <string name="main_nearby_section">いま近くにいるスマートグラス</string>
     <string name="main_nearby_empty">探索中です。見つかるとここに表示されます</string>
     <string name="main_permission_restore_message">探索を続けるには、Bluetooth の使用を許可してください</string>
+    <string name="main_bluetooth_restore_message">探索を続けるには、Bluetooth をオンにしてください</string>
     <string name="main_location_restore_message">探索を続けるには、端末の位置情報をオンにしてください</string>
     <string name="main_restore_action">許可する</string>
+    <string name="main_bluetooth_restore_action">オンにする</string>
     <string name="main_location_restore_action">設定を開く</string>
     <string name="unknown_device">不明な機器</string>
     <string name="error_ble_unsupported">この端末は Bluetooth Low Energy に対応していません。</string>

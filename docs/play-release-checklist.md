@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- 今回の公開版は `versionCode = 14` / `versionName = 1.1.4`
+- 今回の公開版は `versionCode = 15` / `versionName = 1.1.5`
 - `targetSdk` は 36（Android 16）。2026年8月31日以降の Play 提出要件に合わせる。`compileSdk` は 37 のまま。`targetSdk` を 37 に上げない
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 

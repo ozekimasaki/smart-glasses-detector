@@ -164,6 +164,12 @@ class ScanningForegroundService : Service() {
                     return@launch
                 }
 
+                if (!bluetoothRepository.isBluetoothEnabled()) {
+                    Log.w(TAG, "Bluetooth is disabled. Pause until it is turned on.")
+                    pauseScanningKeepingIntent()
+                    return@launch
+                }
+
                 if (!bluetoothRepository.isLocationServicesEnabled()) {
                     Log.w(TAG, "Location services are disabled. Pause until they are enabled.")
                     pauseScanningKeepingIntent()
@@ -467,9 +473,10 @@ class ScanningForegroundService : Service() {
             while (true) {
                 delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
                 if (!bluetoothRepository.hasPermissions() ||
+                    !bluetoothRepository.isBluetoothEnabled() ||
                     !bluetoothRepository.isLocationServicesEnabled()
                 ) {
-                    Log.w(TAG, "Required scan permission or location services are no longer available.")
+                    Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
                     pauseScanningKeepingIntent()
                     return@launch
                 }
