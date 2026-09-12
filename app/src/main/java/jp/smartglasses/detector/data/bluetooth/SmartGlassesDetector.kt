@@ -102,6 +102,7 @@ class SmartGlassesDetector @Inject constructor(
     private var nearbyPruneJob: Job? = null
     private var retryJob: Job? = null
     private var classicDiscoveryJob: Job? = null
+    private var classicDiscoveryRetryJob: Job? = null
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
@@ -346,7 +347,8 @@ class SmartGlassesDetector @Inject constructor(
             serviceUuids = serviceUuids,
             appearance = appearance,
             deviceClass = deviceClass,
-            deviceName = deviceName
+            deviceName = deviceName,
+            nowMs = System.currentTimeMillis()
         )
     }
 
@@ -580,7 +582,7 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun startClassicDiscovery() {
+    private suspend fun startClassicDiscovery() {
         val adapter = bluetoothAdapter ?: run {
             classicDiscoveryStarted.set(false)
             return
@@ -593,16 +595,37 @@ class SmartGlassesDetector @Inject constructor(
         try {
             if (adapter.isDiscovering) {
                 adapter.cancelDiscovery()
+                delay(ClassicDiscoveryPolicy.cancelToRestartDelayMs())
             }
             if (!adapter.startDiscovery()) {
                 Log.w(TAG, "Bluetooth Classic discovery did not start.")
                 classicDiscoveryStarted.set(false)
+                scheduleClassicDiscoveryRetry()
                 return
             }
             lastClassicDiscoveryStartedAt.set(System.currentTimeMillis())
         } catch (e: SecurityException) {
             Log.w(TAG, "Failed to start Bluetooth Classic discovery", e)
             classicDiscoveryStarted.set(false)
+            scheduleClassicDiscoveryRetry()
+        }
+    }
+
+    private fun scheduleClassicDiscoveryRetry() {
+        if (!userRequestedScanning.get()) {
+            return
+        }
+        classicDiscoveryRetryJob?.cancel()
+        classicDiscoveryRetryJob = diagnosticPersistenceScope.launch {
+            delay(ClassicDiscoveryPolicy.failedStartRetryDelayMs())
+            if (
+                userRequestedScanning.get() &&
+                bluetoothAdapter?.isEnabled == true &&
+                hasRequiredScanPermission() &&
+                isLocationServicesSatisfied()
+            ) {
+                startClassicDiscoveryIfNeeded(immediate = true)
+            }
         }
     }
 
@@ -694,10 +717,12 @@ class SmartGlassesDetector @Inject constructor(
         scanWatchdogJob?.cancel()
         nearbyPruneJob?.cancel()
         classicDiscoveryJob?.cancel()
+        classicDiscoveryRetryJob?.cancel()
         retryJob = null
         scanWatchdogJob = null
         nearbyPruneJob = null
         classicDiscoveryJob = null
+        classicDiscoveryRetryJob = null
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
@@ -832,6 +857,8 @@ class SmartGlassesDetector @Inject constructor(
         }
         classicDiscoveryJob?.cancel()
         classicDiscoveryJob = null
+        classicDiscoveryRetryJob?.cancel()
+        classicDiscoveryRetryJob = null
         classicDiscoveryStarted.set(false)
         stopClassicDiscovery()
     }
@@ -903,9 +930,22 @@ class SmartGlassesDetector @Inject constructor(
             while (isActive) {
                 delay(Constants.NEARBY_DEVICE_PRUNE_INTERVAL_MS)
                 if (userRequestedScanning.get()) {
+                    pruneSeenAdvertisers()
                     _nearbyDevices.value = nearbyDeviceTracker.snapshot()
                 }
             }
+        }
+    }
+
+    private fun pruneSeenAdvertisers(nowMs: Long = System.currentTimeMillis()) {
+        SeenAdvertiserPolicy.expiredAddresses(
+            snapshots = seenAdvertisers,
+            nowMs = nowMs,
+            ttlMs = Constants.NEARBY_DEVICE_TTL_MS
+        ).forEach { address ->
+            seenAdvertisers.remove(address)
+            classicInquiryAddresses.remove(address)
+            classicInquiryRssi.remove(address)
         }
     }
 

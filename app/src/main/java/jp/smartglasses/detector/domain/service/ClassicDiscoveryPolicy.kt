@@ -15,6 +15,14 @@ object ClassicDiscoveryPolicy {
         }
     }
 
+    fun cancelToRestartDelayMs(): Long {
+        return 800L
+    }
+
+    fun failedStartRetryDelayMs(): Long {
+        return 10_000L
+    }
+
     fun shouldStartClassicDiscovery(alreadyStartedThisSession: Boolean): Boolean {
         return !alreadyStartedThisSession
     }

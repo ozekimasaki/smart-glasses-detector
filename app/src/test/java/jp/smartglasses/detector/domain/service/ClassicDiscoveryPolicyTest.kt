@@ -35,6 +35,8 @@ class ClassicDiscoveryPolicyTest {
             ClassicDiscoveryPolicy.startDelayMs(immediate = false)
         )
         assertEquals(0L, ClassicDiscoveryPolicy.startDelayMs(immediate = true))
+        assertEquals(800L, ClassicDiscoveryPolicy.cancelToRestartDelayMs())
+        assertEquals(10_000L, ClassicDiscoveryPolicy.failedStartRetryDelayMs())
     }
 
     @Test

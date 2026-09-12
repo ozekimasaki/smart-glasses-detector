@@ -119,4 +119,48 @@ class SeenAdvertiserPolicyTest {
             )
         )
     }
+
+    @Test
+    fun `stale advertiser snapshots expire so rotating addresses do not grow forever`() {
+        val fresh = SeenAdvertiserPolicy.merge(
+            existing = null,
+            rssi = -50,
+            companyIds = setOf(0x01AB),
+            nowMs = 1_000L
+        )
+        val expired = SeenAdvertiserPolicy.merge(
+            existing = null,
+            rssi = -60,
+            deviceName = "Quest 3",
+            nowMs = 1_000L
+        )
+        val snapshots = mapOf(
+            "AA:01" to fresh.copy(lastSeenAtMs = 119_000L),
+            "AA:02" to expired
+        )
+
+        assertFalse(
+            SeenAdvertiserPolicy.isExpired(
+                lastSeenAtMs = 1_000L,
+                nowMs = 120_999L,
+                ttlMs = 120_000L
+            )
+        )
+        assertTrue(
+            SeenAdvertiserPolicy.isExpired(
+                lastSeenAtMs = 1_000L,
+                nowMs = 121_000L,
+                ttlMs = 120_000L
+            )
+        )
+        assertEquals(
+            listOf("AA:02"),
+            SeenAdvertiserPolicy.expiredAddresses(
+                snapshots = snapshots,
+                nowMs = 121_000L,
+                ttlMs = 120_000L
+            )
+        )
+        assertEquals(1_000L, fresh.lastSeenAtMs)
+    }
 }
