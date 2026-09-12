@@ -189,16 +189,20 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val signal = extractSignal(result)
             scanCallbackHandler.post {
-                handleDetectionSignal(extractSignal(result))
+                handleDetectionSignal(signal)
             }
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            val snapshot = ArrayList(results)
+            val signals = ArrayList<DetectionSignal>(results.size)
+            results.forEach { result ->
+                signals += extractSignal(result)
+            }
             scanCallbackHandler.post {
-                snapshot.forEach { result ->
-                    handleDetectionSignal(extractSignal(result))
+                signals.forEach { signal ->
+                    handleDetectionSignal(signal)
                 }
             }
         }
@@ -259,7 +263,8 @@ class SmartGlassesDetector @Inject constructor(
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
-        val parsedAdvertisement = parseAdvertisement(scanRecord)
+        val advertisementBytes = scanRecord?.bytes?.copyOf() ?: byteArrayOf()
+        val parsedAdvertisement = parseAdvertisement(scanRecord, advertisementBytes)
         return DetectionSignal(
             deviceName = BluetoothAdvertisedNamePolicy.resolve(
                 parsedAdvertisement.completeName,
@@ -276,7 +281,7 @@ class SmartGlassesDetector @Inject constructor(
                 scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
                 parsedAdvertisement.serviceUuids
             ),
-            advertisementBytes = scanRecord?.bytes ?: byteArrayOf(),
+            advertisementBytes = advertisementBytes,
             extraPayloadBytes = scanRecord?.let(::extractManufacturerPayloadBytes) ?: byteArrayOf(),
             parsedAdvertisement = parsedAdvertisement,
             appearance = parsedAdvertisement.appearance,
@@ -284,8 +289,11 @@ class SmartGlassesDetector @Inject constructor(
         )
     }
 
-    private fun parseAdvertisement(scanRecord: ScanRecord?): ParsedAdvertisement {
-        val fromBytes = AdvertisementParser.parse(scanRecord?.bytes)
+    private fun parseAdvertisement(
+        scanRecord: ScanRecord?,
+        advertisementBytes: ByteArray
+    ): ParsedAdvertisement {
+        val fromBytes = AdvertisementParser.parse(advertisementBytes)
         if (scanRecord == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return fromBytes
         }
