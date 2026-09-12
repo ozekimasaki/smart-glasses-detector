@@ -442,6 +442,7 @@ object Constants {
                 "Rokid Glass",
                 "Rokid AR Lite",
                 "Rokid AR Spatial",
+                "Rokid Style",
                 "若琪"
             ),
             // 実機広告名: Glasses_XXXX（UUID 0x9100 が広告に乗らない場合の保険）
@@ -755,7 +756,9 @@ object Constants {
                 // FCC 2BBYK-LCD008 / LCD011 のモデル番号。名前に Lucyd が無い場合の保険。
                 "LCD008",
                 "LCD010",
-                "LCD011"
+                "LCD011",
+                "Nitrous Shift",
+                "Lucyd Reebok"
             ),
             allowCompanyIdOnly = false
         ),
@@ -764,7 +767,10 @@ object Constants {
             namePatterns = listOf(
                 "MemoMind",
                 "Memo Mind",
-                "XGIMI Memo"
+                "XGIMI Memo",
+                "Memo One",
+                "Memo Air Display",
+                "MemoMind Air"
             ),
             allowCompanyIdOnly = false
         ),
@@ -926,6 +932,16 @@ object Constants {
                 "OnePlus Glasses",
                 "一加眼镜",
                 "一加眼鏡"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = ".lumen",
+            // 裸の lumen はスマート電球に当たるため使わない
+            namePatterns = listOf(
+                ".lumen",
+                "lumen Glasses",
+                "lumen Glass"
             ),
             allowCompanyIdOnly = false
         )

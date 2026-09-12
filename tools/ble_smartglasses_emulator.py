@@ -108,6 +108,10 @@ NAME_PATTERN_DEVICES = {
     113: "RETISSA ON",
     114: "字幕眼镜-01",
     115: "OnePlus Glasses",
+    116: "Memo Air Display",
+    117: ".lumen-A1B2",
+    118: "Nitrous Shift",
+    119: "Rokid Style",
 }
 
 UUID_DEVICES = {

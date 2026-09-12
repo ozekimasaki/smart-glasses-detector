@@ -77,6 +77,13 @@ class PlayReleaseConfigTest {
         assertFalse(workflow.contains("LOCKED_BOOT_COMPLETED"))
     }
 
+    @Test
+    fun `ci does not cancel pull request jobs when the same branch is pushed`() {
+        val workflow = locate(".github/workflows/ci.yml").readText()
+        assertTrue(workflow.contains("github.event.pull_request.number || github.ref"))
+        assertFalse(workflow.contains("github.event.pull_request.head.ref || github.ref_name"))
+    }
+
     private fun locate(relativePath: String): File {
         val userDir = System.getProperty("user.dir")
             ?: error("user.dir is missing")

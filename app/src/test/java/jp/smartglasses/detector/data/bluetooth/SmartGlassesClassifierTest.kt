@@ -1139,7 +1139,8 @@ class SmartGlassesClassifierTest {
             "XRAI",
             "Brother",
             "QD Laser",
-            "OnePlus"
+            "OnePlus",
+            ".lumen"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2155,6 +2156,56 @@ class SmartGlassesClassifierTest {
         assertNull(they2)
         assertNull(qinheng)
         assertNull(cosonic)
+    }
+
+    @Test
+    fun `ces 2026 memo air lumen and lucyd names are detected without bulb false positives`() {
+        val memo = classifier.classify(
+            DetectionSignal(
+                deviceName = "Memo Air Display",
+                address = "AA:BB:CC:DD:EE:A1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val lumen = classifier.classify(
+            DetectionSignal(
+                deviceName = ".lumen-A1B2",
+                address = "AA:BB:CC:DD:EE:A2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val nitrous = classifier.classify(
+            DetectionSignal(
+                deviceName = "Nitrous Shift",
+                address = "AA:BB:CC:DD:EE:A3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val rokidStyle = classifier.classify(
+            DetectionSignal(
+                deviceName = "Rokid Style",
+                address = "AA:BB:CC:DD:EE:A4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hue = classifier.classify(
+            DetectionSignal(
+                deviceName = "Philips hue lumen",
+                address = "AA:BB:CC:DD:EE:A5",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("MemoMind", memo?.manufacturer?.name)
+        assertEquals(".lumen", lumen?.manufacturer?.name)
+        assertEquals("Lucyd", nitrous?.manufacturer?.name)
+        assertEquals("Rokid", rokidStyle?.manufacturer?.name)
+        assertNull(hue)
     }
 
     private fun asciiToHex(value: String): String {

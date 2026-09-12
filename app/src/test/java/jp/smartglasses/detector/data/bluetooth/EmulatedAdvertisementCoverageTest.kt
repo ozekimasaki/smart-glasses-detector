@@ -157,7 +157,11 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "AirScouter WD-200B" } &&
                 catalog.nameDevices.any { device -> device.name == "RETISSA ON" } &&
                 catalog.nameDevices.any { device -> device.name == "字幕眼镜-01" } &&
-                catalog.nameDevices.any { device -> device.name == "OnePlus Glasses" }
+                catalog.nameDevices.any { device -> device.name == "OnePlus Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "Memo Air Display" } &&
+                catalog.nameDevices.any { device -> device.name == ".lumen-A1B2" } &&
+                catalog.nameDevices.any { device -> device.name == "Nitrous Shift" } &&
+                catalog.nameDevices.any { device -> device.name == "Rokid Style" }
         )
 
         catalog.nameDevices.forEach { device ->
