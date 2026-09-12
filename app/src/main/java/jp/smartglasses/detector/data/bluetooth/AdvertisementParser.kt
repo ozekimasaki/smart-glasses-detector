@@ -28,6 +28,9 @@ internal object AdvertisementParser {
     const val AD_TYPE_COMPLETE_32BIT_UUIDS = 0x05
     const val AD_TYPE_INCOMPLETE_128BIT_UUIDS = 0x06
     const val AD_TYPE_COMPLETE_128BIT_UUIDS = 0x07
+    const val AD_TYPE_SOLICITATION_16BIT_UUIDS = 0x14
+    const val AD_TYPE_SOLICITATION_128BIT_UUIDS = 0x15
+    const val AD_TYPE_SOLICITATION_32BIT_UUIDS = 0x1F
     const val AD_TYPE_SERVICE_DATA_16BIT = 0x16
     const val AD_TYPE_SERVICE_DATA_32BIT = 0x20
     const val AD_TYPE_SERVICE_DATA_128BIT = 0x21
@@ -268,15 +271,18 @@ internal object AdvertisementParser {
             AD_TYPE_BROADCAST_NAME -> decodeUtf8(data, start, end)?.let(completeName)
             AD_TYPE_SHORT_NAME -> decodeUtf8(data, start, end)?.let(shortName)
             AD_TYPE_INCOMPLETE_16BIT_UUIDS,
-            AD_TYPE_COMPLETE_16BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_16BIT_UUIDS,
+            AD_TYPE_SOLICITATION_16BIT_UUIDS -> {
                 serviceUuids += parseUuid16List(data, start, end)
             }
             AD_TYPE_INCOMPLETE_32BIT_UUIDS,
-            AD_TYPE_COMPLETE_32BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_32BIT_UUIDS,
+            AD_TYPE_SOLICITATION_32BIT_UUIDS -> {
                 serviceUuids += parseUuid32List(data, start, end)
             }
             AD_TYPE_INCOMPLETE_128BIT_UUIDS,
-            AD_TYPE_COMPLETE_128BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_128BIT_UUIDS,
+            AD_TYPE_SOLICITATION_128BIT_UUIDS -> {
                 serviceUuids += parseUuid128List(data, start, end)
             }
             AD_TYPE_SERVICE_DATA_16BIT -> if (end - start >= 2) {

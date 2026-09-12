@@ -106,6 +106,59 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses 16-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x03, 0x14, 0x5F, 0xFD.toByte())
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses 32-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x05, 0x1F, 0x5F, 0xFD.toByte(), 0x00, 0x00)
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses 128-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(
+                0x11, 0x15,
+                0xD0.toByte(), 0x00, 0x2D, 0x12, 0x1E, 0x4B, 0x0F, 0xA4.toByte(),
+                0x99.toByte(), 0x4E, 0xCE.toByte(), 0xB5.toByte(),
+                0xF0.toByte(), 0xFF.toByte(), 0x05, 0x79
+            )
+        )
+
+        assertEquals(
+            listOf("7905FFF0-B5CE-4E99-A40F-4B1E122D00D0"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses solicitation uuids from advertising data map`() {
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(
+            mapOf(AdvertisementParser.AD_TYPE_SOLICITATION_16BIT_UUIDS to byteArrayOf(0x5F, 0xFD.toByte()))
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
     fun `manufacturer tlv encoding copies the payload bytes`() {
         val payload = byteArrayOf(0x11, 0x22, 0x33)
         val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(0x01AB, payload)

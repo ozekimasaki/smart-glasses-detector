@@ -37,6 +37,7 @@ import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
+import jp.smartglasses.detector.domain.service.BleScanFlushPolicy
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
@@ -357,7 +358,10 @@ class SmartGlassesDetector @Inject constructor(
             },
             companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
             manufacturerEntries = manufacturerEntries,
-            serviceUuids = scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+            serviceUuids = BleUuid.merge(
+                scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+                extractServiceSolicitationUuids(scanRecord)
+            ),
             serviceDataUuids = scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
             serviceDataValues = scanRecord?.serviceData?.values?.map { value -> value.copyOf() }.orEmpty(),
             device = result.device
@@ -428,6 +432,17 @@ class SmartGlassesDetector @Inject constructor(
                 (manufacturerSpecificData.valueAt(index) ?: byteArrayOf())
         }
         return AdvertisementCopy.copyManufacturerEntries(entries)
+    }
+
+    private fun extractServiceSolicitationUuids(scanRecord: ScanRecord?): List<String> {
+        if (scanRecord == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return emptyList()
+        }
+        return try {
+            scanRecord.serviceSolicitationUuids?.map { uuid -> uuid.toString() }.orEmpty()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {
@@ -1109,6 +1124,26 @@ class SmartGlassesDetector @Inject constructor(
         startLeAndClassicScanning()
     }
 
+    @SuppressLint("MissingPermission")
+    private fun flushPendingBleScanResults() {
+        if (
+            !BleScanFlushPolicy.shouldFlushPendingResults(
+                scanningRequested = userRequestedScanning.get(),
+                hardwareScanRunning = _hardwareScanRunning.value,
+                bluetoothEnabled = bluetoothAdapter?.isEnabled == true,
+                scanPermissionGranted = hasRequiredScanPermission()
+            )
+        ) {
+            return
+        }
+
+        try {
+            bluetoothAdapter?.bluetoothLeScanner?.flushPendingScanResults(scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to flush pending BLE scan results", e)
+        }
+    }
+
     private fun rejectMatchAllFilter() {
         usingMatchAllFilter = false
         matchAllFilterRejectedThisSession = true
@@ -1163,6 +1198,7 @@ class SmartGlassesDetector @Inject constructor(
             while (isActive) {
                 delay(Constants.NEARBY_DEVICE_PRUNE_INTERVAL_MS)
                 if (userRequestedScanning.get()) {
+                    flushPendingBleScanResults()
                     pruneSeenAdvertisers()
                     _nearbyDevices.value = nearbyDeviceTracker.snapshot()
                 }

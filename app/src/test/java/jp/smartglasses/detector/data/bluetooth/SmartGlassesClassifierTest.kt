@@ -818,6 +818,23 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `meta service solicitation uuid in raw advertisement is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:24",
+                companyIds = emptySet(),
+                rssi = -58,
+                advertisementDataHex = "03145FFD"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `company id encoded in advertisement bytes is detected`() {
         val detected = classifier.classify(
             DetectionSignal(
