@@ -677,7 +677,12 @@ class SmartGlassesDetector @Inject constructor(
 
     @SuppressLint("MissingPermission")
     private fun refreshBleScan() {
-        if (!userRequestedScanning.get() || bluetoothAdapter?.isEnabled != true || !isLocationServicesSatisfied()) {
+        if (
+            !userRequestedScanning.get() ||
+            bluetoothAdapter?.isEnabled != true ||
+            !hasRequiredScanPermission() ||
+            !isLocationServicesSatisfied()
+        ) {
             return
         }
 
@@ -710,7 +715,12 @@ class SmartGlassesDetector @Inject constructor(
         scanWatchdogJob = diagnosticPersistenceScope.launch {
             while (isActive) {
                 delay(BleScanRefreshPolicy.intervalMs(isAppInForeground()))
-                if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
+                if (
+                    userRequestedScanning.get() &&
+                    bluetoothAdapter?.isEnabled == true &&
+                    hasRequiredScanPermission() &&
+                    isLocationServicesSatisfied()
+                ) {
                     refreshBleScan()
                     refreshClassicDiscoveryIfNeeded()
                 }

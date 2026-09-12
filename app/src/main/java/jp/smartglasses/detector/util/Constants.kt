@@ -360,6 +360,10 @@ object Constants {
                 "Rokid AR Lite",
                 "Rokid AR Spatial"
             ),
+            // 実機広告名: Glasses_XXXX（UUID 0x9100 が広告に乗らない場合の保険）
+            nameRegexes = listOf(
+                Regex("""(?i)^Glasses_[0-9A-Fa-z]+$""")
+            ),
             serviceUuids = setOf("00009100-0000-1000-8000-00805F9B34FB"),
             allowCompanyIdOnly = false
         ),

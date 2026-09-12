@@ -13,6 +13,7 @@ class BootReceiverManifestTest {
         assertTrue(manifest.contains(".receiver.BootReceiver"))
         assertTrue(manifest.contains("android.intent.action.BOOT_COMPLETED"))
         assertTrue(manifest.contains("android.intent.action.MY_PACKAGE_REPLACED"))
+        assertTrue(manifest.contains("android.intent.action.USER_UNLOCKED"))
         assertTrue(manifest.contains("android.bluetooth.adapter.action.STATE_CHANGED"))
         assertTrue(manifest.contains("android.location.MODE_CHANGED"))
     }

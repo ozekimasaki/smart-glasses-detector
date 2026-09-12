@@ -284,7 +284,34 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
-    fun `apple vision pro is detected by name`() {
+    fun `rokid glasses coded advertisement names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Glasses_A1B2",
+                address = "AA:BB:CC:DD:EE:06G",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Rokid", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `sunglasses names are not treated as rokid glasses codes`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Sunglasses_Pro",
+                address = "AA:BB:CC:DD:EE:06H",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertNull(detected)
+    }
         val detected = classifier.classify(
             DetectionSignal(
                 deviceName = "Apple Vision Pro",

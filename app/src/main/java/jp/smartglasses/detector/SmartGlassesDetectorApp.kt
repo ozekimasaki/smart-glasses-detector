@@ -113,6 +113,7 @@ class SmartGlassesDetectorApp : Application() {
     private fun resumeIntentFilter(): IntentFilter {
         return IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(Intent.ACTION_USER_UNLOCKED)
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 addAction(LocationManager.MODE_CHANGED_ACTION)
             }

@@ -76,6 +76,10 @@ class EmulatedAdvertisementCoverageTest {
             "Halliday G2 name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Halliday G2" }
         )
+        assertTrue(
+            "Rokid Glasses coded name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Glasses_A1B2" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(
