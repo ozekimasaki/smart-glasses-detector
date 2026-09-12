@@ -65,6 +65,7 @@ NAME_PATTERN_DEVICES = {
     48: "Mentra Display",
     49: "Halo 4F",
     50: "G2_12_L",
+    54: "Xy_A",
 }
 
 UUID_DEVICES = {

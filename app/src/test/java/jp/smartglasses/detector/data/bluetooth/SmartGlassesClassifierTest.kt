@@ -1055,6 +1055,21 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `mentra live standard xy_a advertisement names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Xy_A",
+                address = "AA:BB:CC:DD:EE:44A",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("Mentra", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `xingyi sibling project identifiers are not treated as ar99`() {
         val detected = classifier.classify(
             DetectionSignal(

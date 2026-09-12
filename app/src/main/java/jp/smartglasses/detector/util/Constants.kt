@@ -483,6 +483,7 @@ object Constants {
                 "MENTRA_LIVE_BT",
                 "XyBLE_",
                 "XyBLE",
+                "Xy_A",
                 "NIMO"
             ),
             allowCompanyIdOnly = false

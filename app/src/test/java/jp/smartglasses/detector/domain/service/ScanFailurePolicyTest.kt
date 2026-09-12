@@ -108,4 +108,29 @@ class ScanFailurePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `stale permission denied failures do not pause after permission returns`() {
+        assertFalse(
+            ScanFailurePolicy.shouldKeepScanning(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_PERMISSION_DENIED
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(
+                errorCode = ScanFailurePolicy.SCAN_ENVIRONMENT_PERMISSION_DENIED,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true,
+                scanPermissionGranted = true
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldPauseScanning(
+                errorCode = ScanFailurePolicy.SCAN_ENVIRONMENT_PERMISSION_DENIED,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true,
+                scanPermissionGranted = false
+            )
+        )
+    }
 }

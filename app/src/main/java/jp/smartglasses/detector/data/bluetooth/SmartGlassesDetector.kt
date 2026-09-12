@@ -2,6 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AppOpsManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
@@ -80,6 +81,7 @@ class SmartGlassesDetector @Inject constructor(
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
     private val isLocationModeReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
+    private var scanPermissionOpWatcher: AppOpsManager.OnOpChangedListener? = null
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var usingExtendedAdvertising = true
     private var usingMatchAllFilter = true
@@ -374,16 +376,18 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun hasRequiredScanPermission(): Boolean {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Manifest.permission.BLUETOOTH_SCAN
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED &&
+                hasBluetoothConnectPermission()
         } else {
-            Manifest.permission.ACCESS_FINE_LOCATION
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
         }
-
-        return ContextCompat.checkSelfPermission(
-            context,
-            permission
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun ensureClassicDiscoveryReceiverRegistered() {
@@ -489,6 +493,7 @@ class SmartGlassesDetector @Inject constructor(
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
         ensureLocationModeReceiverRegistered()
+        ensureScanPermissionWatch()
         startScanWatchdog()
         startNearbyPrune()
 
@@ -525,6 +530,7 @@ class SmartGlassesDetector @Inject constructor(
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
         unregisterLocationModeReceiver()
+        stopScanPermissionWatch()
         detectionCooldownGate.clear()
         diagnosticWriteGate.clear()
         classicDiscoveryStarted.set(false)
@@ -607,12 +613,13 @@ class SmartGlassesDetector @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun pauseHardwareScan(
         bluetoothEnabled: Boolean? = null,
-        locationServicesSatisfied: Boolean? = null
+        locationServicesSatisfied: Boolean? = null,
+        scanPermissionGranted: Boolean? = null
     ) {
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = userRequestedScanning.get(),
             bluetoothEnabled = bluetoothEnabled ?: (bluetoothAdapter?.isEnabled == true),
-            scanPermissionGranted = hasRequiredScanPermission(),
+            scanPermissionGranted = scanPermissionGranted ?: hasRequiredScanPermission(),
             locationServicesSatisfied = locationServicesSatisfied ?: isLocationServicesSatisfied()
         )
         try {
@@ -737,6 +744,64 @@ class SmartGlassesDetector @Inject constructor(
 
         val locationManager = context.getSystemService(LocationManager::class.java) ?: return false
         return LocationManagerCompat.isLocationEnabled(locationManager)
+    }
+
+    private fun ensureScanPermissionWatch() {
+        if (scanPermissionOpWatcher != null) {
+            return
+        }
+
+        val appOps = context.getSystemService(AppOpsManager::class.java) ?: return
+        val listener = AppOpsManager.OnOpChangedListener { _, packageName ->
+            if (packageName != null && packageName != context.packageName) {
+                return@OnOpChangedListener
+            }
+            if (!userRequestedScanning.get()) {
+                return@OnOpChangedListener
+            }
+            if (!hasRequiredScanPermission()) {
+                pauseHardwareScan(scanPermissionGranted = false)
+                _scanFailures.trySend(
+                    BluetoothScanFailure(ScanFailurePolicy.SCAN_ENVIRONMENT_PERMISSION_DENIED)
+                )
+            } else if (!_isScanning.value) {
+                startLeAndClassicScanning()
+            }
+        }
+        scanPermissionOpWatcher = listener
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                appOps.startWatchingMode(
+                    AppOpsManager.OPSTR_BLUETOOTH_SCAN,
+                    context.packageName,
+                    listener
+                )
+                appOps.startWatchingMode(
+                    AppOpsManager.OPSTR_BLUETOOTH_CONNECT,
+                    context.packageName,
+                    listener
+                )
+            } else {
+                appOps.startWatchingMode(
+                    AppOpsManager.OPSTR_FINE_LOCATION,
+                    context.packageName,
+                    listener
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to watch scan permission changes", e)
+            scanPermissionOpWatcher = null
+        }
+    }
+
+    private fun stopScanPermissionWatch() {
+        val listener = scanPermissionOpWatcher ?: return
+        scanPermissionOpWatcher = null
+        try {
+            context.getSystemService(AppOpsManager::class.java)?.stopWatchingMode(listener)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop watching scan permission changes", e)
+        }
     }
     
     fun hasBleHardwareSupport(): Boolean {

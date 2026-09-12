@@ -155,7 +155,8 @@ class ScanningForegroundService : Service() {
                         ScanFailurePolicy.shouldPauseScanning(
                             errorCode = failure.errorCode,
                             bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
-                            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+                            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled(),
+                            scanPermissionGranted = bluetoothRepository.hasPermissions()
                         )
                     ) {
                         pauseScanningKeepingIntent()
