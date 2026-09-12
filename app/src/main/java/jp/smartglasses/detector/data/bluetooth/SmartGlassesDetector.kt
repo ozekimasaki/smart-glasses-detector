@@ -180,7 +180,7 @@ class SmartGlassesDetector @Inject constructor(
             }
 
             if (
-                ScanFailurePolicy.shouldFallbackToLegacy(errorCode) &&
+                ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
                 userRequestedScanning.get()
             ) {
                 when (
@@ -715,7 +715,12 @@ class SmartGlassesDetector @Inject constructor(
         val delayMs = ScanFailurePolicy.retryDelayMs(retryAttempt)
         retryJob = diagnosticPersistenceScope.launch {
             delay(delayMs)
-            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
+            if (
+                userRequestedScanning.get() &&
+                bluetoothAdapter?.isEnabled == true &&
+                hasRequiredScanPermission() &&
+                isLocationServicesSatisfied()
+            ) {
                 startLeAndClassicScanning()
             }
         }

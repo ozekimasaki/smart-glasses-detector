@@ -133,4 +133,28 @@ class ScanFailurePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `internal errors try compatibility fallback before retrying`() {
+        assertTrue(
+            ScanFailurePolicy.shouldTryCompatibilityFallback(
+                ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldTryCompatibilityFallback(
+                ScanFailurePolicy.SCAN_FAILED_INTERNAL_ERROR
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldTryCompatibilityFallback(
+                ScanFailurePolicy.SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldTryCompatibilityFallback(
+                ScanFailurePolicy.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED
+            )
+        )
+    }
 }

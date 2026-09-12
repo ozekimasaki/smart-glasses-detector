@@ -193,4 +193,36 @@ class ScanResumePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `os recreation of the service resumes while visible even without background`() {
+        assertTrue(
+            ScanResumePolicy.shouldRestartAfterRecreation(
+                persistedIntent = true,
+                backgroundEnabled = false,
+                appInForeground = true
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldRestartAfterRecreation(
+                persistedIntent = true,
+                backgroundEnabled = true,
+                appInForeground = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartAfterRecreation(
+                persistedIntent = true,
+                backgroundEnabled = false,
+                appInForeground = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartAfterRecreation(
+                persistedIntent = false,
+                backgroundEnabled = true,
+                appInForeground = true
+            )
+        )
+    }
 }

@@ -115,7 +115,7 @@ scripts\gradlew-safe.cmd assembleRelease
 ### 最終チェック項目
 
 - アップロード対象が `app/build/outputs/bundle/release/app-release.aab` である
-- Git の release tag が `v1.1.5` で push 済みである
+- Git の release tag が `v1.1.8` で push 済みである
 - Store listing の説明文がアプリ内プライバシー説明と矛盾しない
 - Data safety で「自動送信なし」と「ユーザー操作による共有のみ」が両立している
 - 新規個人 developer account の場合、closed testing 要件を満たしてから production に進む

@@ -402,11 +402,15 @@ class ScanningForegroundService : Service() {
     }
 
     private fun shouldResumeScanningAfterRestart(): Boolean {
-        return persistedScanningState && backgroundScanningEnabled
+        return ScanResumePolicy.shouldRestartAfterRecreation(
+            persistedIntent = persistedScanningState,
+            backgroundEnabled = backgroundScanningEnabled,
+            appInForeground = isAppInForeground()
+        )
     }
 
     private fun resolveRestartMode(): Int {
-        return if (shouldKeepScanningInBackground()) START_STICKY else START_NOT_STICKY
+        return if (persistedScanningState) START_STICKY else START_NOT_STICKY
     }
 
     private fun shouldKeepScanningInBackground(): Boolean {

@@ -26,6 +26,11 @@ object ScanFailurePolicy {
         return errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED
     }
 
+    fun shouldTryCompatibilityFallback(errorCode: Int): Boolean {
+        return errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED ||
+            errorCode == SCAN_FAILED_INTERNAL_ERROR
+    }
+
     fun shouldKeepScanning(errorCode: Int): Boolean {
         if (
             errorCode == SCAN_ENVIRONMENT_BLUETOOTH_DISABLED ||
