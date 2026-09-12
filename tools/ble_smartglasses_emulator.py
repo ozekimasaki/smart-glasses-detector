@@ -133,6 +133,9 @@ NAME_PATTERN_DEVICES = {
     138: "Meta Orion",
     139: "ウェアラブルグラス",
     140: "智能太阳镜",
+    145: "Oakley Airwave",
+    146: "星纪AR",
+    147: "HUDグラス",
 }
 
 UUID_DEVICES = {

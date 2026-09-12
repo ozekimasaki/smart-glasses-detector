@@ -107,6 +107,7 @@ object Constants {
         Regex("""翻訳眼鏡"""),
         Regex("""通訳眼鏡"""),
         Regex("""ロービジョングラス"""),
+        Regex("""HUDグラス"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
         Regex("""MRグラス"""),
@@ -318,8 +319,10 @@ object Constants {
                 "MYVU Explorer",
                 "StarV",
                 "StarV View",
+                "StarV Air",
                 "Meizu Glass",
-                "星纪眼镜"
+                "星纪眼镜",
+                "星纪AR"
             )
         ),
         DetectionRule(
@@ -373,7 +376,8 @@ object Constants {
                 "Oakley HSTN",
                 "Oakley Vanguard",
                 "Ray-Ban Stories",
-                "Essilor"
+                "Essilor",
+                "Oakley Airwave"
             )
         ),
         DetectionRule(
@@ -681,7 +685,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "JINS",
-            namePatterns = listOf("JINS MEME", "JINS-MEME", "MEME ES"),
+            namePatterns = listOf("JINS MEME", "JINS-MEME", "MEME ES", "MEME ES_R", "JINS MEME Core"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

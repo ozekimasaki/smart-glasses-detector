@@ -2413,6 +2413,30 @@ class SmartGlassesClassifierTest {
                 advertisementDataHex = broadcastHex
             )
         )
+        val airwave = classifier.classify(
+            DetectionSignal(
+                deviceName = "Oakley Airwave",
+                address = "AA:BB:CC:DD:EE:CE",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val starvAr = classifier.classify(
+            DetectionSignal(
+                deviceName = "星纪AR",
+                address = "AA:BB:CC:DD:EE:CF",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hud = classifier.classify(
+            DetectionSignal(
+                deviceName = "HUDグラス",
+                address = "AA:BB:CC:DD:EE:D0",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
 
         assertEquals("Loomos", loomos?.manufacturer?.name)
         assertEquals("Westunitis", infoLinker?.manufacturer?.name)
@@ -2428,6 +2452,10 @@ class SmartGlassesClassifierTest {
         assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, wearable?.manufacturer?.name)
         assertNull(vrx)
         assertEquals("Loomos", fromBroadcast?.manufacturer?.name)
+        assertEquals("Luxottica", airwave?.manufacturer?.name)
+        assertEquals("Meizu", starvAr?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, hud?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, hud?.manufacturer?.detectionMethod)
     }
 
     private fun asciiToHex(value: String): String {
