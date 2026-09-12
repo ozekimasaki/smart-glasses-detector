@@ -439,7 +439,7 @@ class SmartGlassesDetector @Inject constructor(
             return emptyList()
         }
         return try {
-            scanRecord.serviceSolicitationUuids?.map { uuid -> uuid.toString() }.orEmpty()
+            scanRecord.serviceSolicitationUuids.map { uuid -> uuid.toString() }
         } catch (_: Exception) {
             emptyList()
         }
