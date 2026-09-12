@@ -28,6 +28,7 @@ import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.domain.service.BackgroundScanRuntimePolicy
+import jp.smartglasses.detector.domain.service.DetectionNotificationPolicy
 import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.domain.service.ScanResumePolicy
@@ -341,6 +342,7 @@ class ScanningForegroundService : Service() {
             .setSmallIcon(R.drawable.ic_notification_alert)
             .setContentIntent(openAppPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setGroup(DetectionNotificationPolicy.GROUP_KEY)
             .setAutoCancel(true)
             .apply {
                 if (playSound) {
@@ -349,9 +351,15 @@ class ScanningForegroundService : Service() {
                 }
             }
             .build()
-        
+
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(Constants.NOTIFICATION_ID_DETECTION, notification)
+        notificationManager.notify(
+            DetectionNotificationPolicy.notificationId(
+                address = device.address,
+                name = device.name
+            ),
+            notification
+        )
     }
 
     private fun vibrate() {

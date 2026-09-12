@@ -43,7 +43,8 @@ class ConnectedDevicePolicyTest {
         assertEquals(
             listOf(
                 ConnectedDevicePolicy.PROFILE_HEADSET,
-                ConnectedDevicePolicy.PROFILE_A2DP
+                ConnectedDevicePolicy.PROFILE_A2DP,
+                ConnectedDevicePolicy.PROFILE_HID_HOST
             ),
             ConnectedDevicePolicy.proxyProfiles(sdkInt = 30)
         )
@@ -51,6 +52,7 @@ class ConnectedDevicePolicyTest {
             listOf(
                 ConnectedDevicePolicy.PROFILE_HEADSET,
                 ConnectedDevicePolicy.PROFILE_A2DP,
+                ConnectedDevicePolicy.PROFILE_HID_HOST,
                 ConnectedDevicePolicy.PROFILE_LE_AUDIO
             ),
             ConnectedDevicePolicy.proxyProfiles(sdkInt = 31)
@@ -60,7 +62,7 @@ class ConnectedDevicePolicyTest {
     }
 
     @Test
-    fun `gatt manager profiles are included without hid or hearing aid`() {
+    fun `gatt manager profiles exclude hearing aids`() {
         assertEquals(
             listOf(
                 ConnectedDevicePolicy.PROFILE_GATT,
@@ -68,11 +70,13 @@ class ConnectedDevicePolicyTest {
             ),
             ConnectedDevicePolicy.managerProfiles()
         )
-        assertFalse(
-            ConnectedDevicePolicy.proxyProfiles(sdkInt = 35).contains(21)
+        assertTrue(
+            ConnectedDevicePolicy.proxyProfiles(sdkInt = 26).contains(
+                ConnectedDevicePolicy.PROFILE_HID_HOST
+            )
         )
         assertFalse(
-            ConnectedDevicePolicy.proxyProfiles(sdkInt = 35).contains(4)
+            ConnectedDevicePolicy.proxyProfiles(sdkInt = 35).contains(21)
         )
     }
 

@@ -9,6 +9,7 @@ package jp.smartglasses.detector.domain.service
 object ConnectedDevicePolicy {
     const val PROFILE_HEADSET = 1
     const val PROFILE_A2DP = 2
+    const val PROFILE_HID_HOST = 4
     const val PROFILE_GATT = 7
     const val PROFILE_GATT_SERVER = 8
     const val PROFILE_LE_AUDIO = 22
@@ -24,7 +25,7 @@ object ConnectedDevicePolicy {
     }
 
     fun proxyProfiles(sdkInt: Int): List<Int> {
-        val profiles = mutableListOf(PROFILE_HEADSET, PROFILE_A2DP)
+        val profiles = mutableListOf(PROFILE_HEADSET, PROFILE_A2DP, PROFILE_HID_HOST)
         if (sdkInt >= SDK_LE_AUDIO) {
             profiles += PROFILE_LE_AUDIO
         }
