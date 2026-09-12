@@ -771,16 +771,8 @@ class SmartGlassesDetector @Inject constructor(
         scanPermissionOpWatcher = listener
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                appOps.startWatchingMode(
-                    AppOpsManager.OPSTR_BLUETOOTH_SCAN,
-                    context.packageName,
-                    listener
-                )
-                appOps.startWatchingMode(
-                    AppOpsManager.OPSTR_BLUETOOTH_CONNECT,
-                    context.packageName,
-                    listener
-                )
+                watchAppOp(appOps, Manifest.permission.BLUETOOTH_SCAN, listener)
+                watchAppOp(appOps, Manifest.permission.BLUETOOTH_CONNECT, listener)
             } else {
                 appOps.startWatchingMode(
                     AppOpsManager.OPSTR_FINE_LOCATION,
@@ -792,6 +784,15 @@ class SmartGlassesDetector @Inject constructor(
             Log.w(TAG, "Failed to watch scan permission changes", e)
             scanPermissionOpWatcher = null
         }
+    }
+
+    private fun watchAppOp(
+        appOps: AppOpsManager,
+        permission: String,
+        listener: AppOpsManager.OnOpChangedListener
+    ) {
+        val op = AppOpsManager.permissionToOp(permission) ?: return
+        appOps.startWatchingMode(op, context.packageName, listener)
     }
 
     private fun stopScanPermissionWatch() {
