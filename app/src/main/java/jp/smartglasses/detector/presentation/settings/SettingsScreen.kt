@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.BatterySaver
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material3.Card
@@ -26,15 +27,23 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
+import jp.smartglasses.detector.presentation.components.ClearStoredDataDialog
 import jp.smartglasses.detector.presentation.navigation.Screen
 import jp.smartglasses.detector.presentation.settings.components.SensitivitySelector
 import jp.smartglasses.detector.util.BackgroundScanSupport
@@ -58,6 +68,29 @@ fun SettingsScreen(
     val sensitivity by viewModel.sensitivity.collectAsStateWithLifecycle()
     val backgroundSupported = BackgroundScanSupport.isSupported()
     val context = LocalContext.current
+    val resources = LocalResources.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    var confirmClearData by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.event.collect { event ->
+            when (event) {
+                is SettingsEvent.ShowMessage -> snackbarHostState.showSnackbar(
+                    resources.getString(event.messageResId)
+                )
+            }
+        }
+    }
+
+    if (confirmClearData) {
+        ClearStoredDataDialog(
+            onConfirm = {
+                confirmClearData = false
+                viewModel.clearStoredDetectionData()
+            },
+            onDismiss = { confirmClearData = false }
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -65,6 +98,11 @@ fun SettingsScreen(
                 currentRoute = Screen.Settings.route,
                 onNavigate = onNavigate
             )
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(snackbarData = data)
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
@@ -133,6 +171,12 @@ fun SettingsScreen(
             }
 
             SettingsGroup(label = stringResource(R.string.settings_group_other)) {
+                SettingNavRow(
+                    icon = Icons.Outlined.Delete,
+                    title = stringResource(R.string.settings_clear_data),
+                    onClick = { confirmClearData = true }
+                )
+                SettingDivider()
                 SettingNavRow(
                     icon = Icons.Outlined.Info,
                     title = stringResource(R.string.settings_about),

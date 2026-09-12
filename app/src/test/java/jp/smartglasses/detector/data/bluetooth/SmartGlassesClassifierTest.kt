@@ -710,6 +710,22 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `unknown rssi still detects catalog glasses names for connected devices`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Ray-Ban Meta",
+                address = "AA:BB:CC:DD:EE:17E2",
+                companyIds = emptySet(),
+                rssi = Constants.UNKNOWN_RSSI_DBM
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `lucyd fcc model numbers without brand name are detected`() {
         val detected = classifier.classify(
             DetectionSignal(

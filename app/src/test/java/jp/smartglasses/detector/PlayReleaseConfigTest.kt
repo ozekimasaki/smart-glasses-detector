@@ -32,6 +32,12 @@ class PlayReleaseConfigTest {
                 ">https://smart-glasses-detector-policy.maigo999.workers.dev<"
             )
         )
+        assertTrue(privacy.contains("設定画面または記録画面から、検出記録と調査ログを削除"))
+        assertTrue(
+            locate("privacy-site/public/index.html").readText().contains(
+                "設定画面または記録画面から、検出記録と調査ログを削除"
+            )
+        )
     }
 
     @Test

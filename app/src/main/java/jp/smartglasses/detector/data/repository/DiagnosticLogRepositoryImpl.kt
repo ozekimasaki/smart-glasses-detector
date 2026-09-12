@@ -20,6 +20,10 @@ class DiagnosticLogRepositoryImpl @Inject constructor(
         return dao.getLatestLogs(limit).map { it.toDomain() }
     }
 
+    override suspend fun deleteAllLogs() {
+        dao.deleteAllLogs()
+    }
+
     private fun DiagnosticLogEntity.toDomain() = DiagnosticLog(
         id = id,
         advertisedName = advertisedName,

@@ -15,6 +15,7 @@
     <string name="history_empty_title">まだ見つかっていません</string>
     <string name="history_empty_message">「さがす」ボタンを押してみましょう！</string>
     <string name="history_share_diagnostic">調査ログを共有</string>
+    <string name="history_clear_data">検出記録を削除</string>
 
     <string name="distance_very_close">とても近い</string>
     <string name="distance_close">近い</string>
@@ -38,6 +39,13 @@
     <string name="settings_sensitivity_high_desc">より広い範囲を検出します。バッテリーを多く使います</string>
     <string name="settings_sensitivity_foreground_note">このアプリを開いているあいだは、より見つけやすい方法で自動的に探します</string>
     <string name="settings_battery_optimization">バッテリー最適化設定を開く</string>
+    <string name="settings_clear_data">検出記録を削除</string>
+    <string name="settings_clear_data_confirm_title">記録を削除しますか？</string>
+    <string name="settings_clear_data_confirm_message">見つけた記録と調査ログをこの端末から削除します。この操作は取り消せません。</string>
+    <string name="settings_clear_data_confirm">削除する</string>
+    <string name="settings_clear_data_cancel">やめる</string>
+    <string name="settings_clear_data_done">検出記録と調査ログを削除しました</string>
+    <string name="settings_clear_data_failed">記録を削除できませんでした。もう一度お試しください。</string>
     <string name="settings_about">このアプリについて</string>
     <string name="settings_privacy">プライバシーポリシー</string>
 
@@ -118,7 +126,7 @@
 
     <string name="privacy_title">プライバシーポリシー</string>
     <string name="privacy_close">閉じる</string>
-    <string name="privacy_body">【端末内に保存する情報】\n\n・検出記録（機器名、機器アドレス、メーカー名、信号強度、推定距離、検出日時）\n・設定情報\n・調査ログ（広告名、ハッシュ化した機器アドレス、メーカー識別子、Service UUID、広告データ、信号強度、検出日時）\n\n【情報の取り扱い】\n\nこれらの情報は通常、お使いの端末内だけに保存されます。アプリが自動で外部サーバーへ送信することはありません。\n\n【共有について】\n\n「調査ログを共有」を選んだ場合のみ、選択した外部アプリに JSON 形式で渡ります。\n\n【位置情報について】\n\nAndroid 12 以降では位置情報の許可は使いません。Bluetooth の探索結果から位置を推定しない設定にしています。Android 11 以前では Bluetooth 探索のため位置情報権限と端末の位置情報設定が必要です。GPS による位置情報の取得・記録は行いません。\n\n【データの削除】\n\nバックアップは無効です。アプリをアンインストールすると、端末内の記録は削除されます。</string>
+    <string name="privacy_body">【端末内に保存する情報】\n\n・検出記録（機器名、機器アドレス、メーカー名、信号強度、推定距離、検出日時）\n・設定情報\n・調査ログ（広告名、ハッシュ化した機器アドレス、メーカー識別子、Service UUID、広告データ、信号強度、検出日時）\n\n【情報の取り扱い】\n\nこれらの情報は通常、お使いの端末内だけに保存されます。アプリが自動で外部サーバーへ送信することはありません。\n\n【共有について】\n\n「調査ログを共有」を選んだ場合のみ、選択した外部アプリに JSON 形式で渡ります。\n\n【位置情報について】\n\nAndroid 12 以降では位置情報の許可は使いません。Bluetooth の探索結果から位置を推定しない設定にしています。Android 11 以前では Bluetooth 探索のため位置情報権限と端末の位置情報設定が必要です。GPS による位置情報の取得・記録は行いません。\n\n【データの削除】\n\n設定画面または記録画面から、検出記録と調査ログを削除できます。バックアップは無効です。アプリをアンインストールすると、端末内の記録は削除されます。</string>
     <string name="privacy_open_full_policy">公開ポリシーを開く</string>
     <string name="privacy_contact">お問い合わせ</string>
 </resources>

@@ -14,6 +14,9 @@ interface DiagnosticLogDao {
     @Query("SELECT * FROM diagnostic_logs ORDER BY detectedAt DESC LIMIT :limit")
     suspend fun getLatestLogs(limit: Int): List<DiagnosticLogEntity>
 
+    @Query("DELETE FROM diagnostic_logs")
+    suspend fun deleteAllLogs()
+
     @Query("SELECT COUNT(*) FROM diagnostic_logs")
     suspend fun count(): Int
 

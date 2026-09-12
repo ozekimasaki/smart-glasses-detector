@@ -7,6 +7,7 @@ import jp.smartglasses.detector.R
 import jp.smartglasses.detector.data.export.DiagnosticLogExporter
 import jp.smartglasses.detector.domain.model.DetectionHistoryGrouping
 import jp.smartglasses.detector.domain.model.DetectionLog
+import jp.smartglasses.detector.domain.usecase.ClearStoredDetectionDataUseCase
 import jp.smartglasses.detector.domain.usecase.GetDetectionHistoryUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,7 +34,8 @@ sealed interface HistoryEvent {
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     getDetectionHistoryUseCase: GetDetectionHistoryUseCase,
-    private val diagnosticLogExporter: DiagnosticLogExporter
+    private val diagnosticLogExporter: DiagnosticLogExporter,
+    private val clearStoredDetectionDataUseCase: ClearStoredDetectionDataUseCase
 ) : ViewModel() {
     private val _event = Channel<HistoryEvent>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
@@ -62,6 +64,17 @@ class HistoryViewModel @Inject constructor(
                 _event.send(HistoryEvent.ShowMessage(R.string.error_diagnostic_create))
             } catch (_: IllegalArgumentException) {
                 _event.send(HistoryEvent.ShowMessage(R.string.error_diagnostic_prepare))
+            }
+        }
+    }
+
+    fun clearStoredDetectionData() {
+        viewModelScope.launch {
+            try {
+                clearStoredDetectionDataUseCase()
+                _event.send(HistoryEvent.ShowMessage(R.string.settings_clear_data_done))
+            } catch (_: Exception) {
+                _event.send(HistoryEvent.ShowMessage(R.string.settings_clear_data_failed))
             }
         }
     }

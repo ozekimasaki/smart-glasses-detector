@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -37,6 +39,7 @@ import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
+import jp.smartglasses.detector.domain.service.ConnectedDevicePolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
 import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
@@ -72,9 +75,9 @@ class SmartGlassesDetector @Inject constructor(
     private val diagnosticLogRepository: DiagnosticLogRepository,
     private val scanEnvironmentSignals: ScanEnvironmentSignals
 ) {
-    private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.BUFFERED)
+    private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.UNLIMITED)
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
-    private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.BUFFERED)
+    private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.UNLIMITED)
     val scanFailures: Flow<BluetoothScanFailure> = _scanFailures.receiveAsFlow()
 
     private val _isScanning = MutableStateFlow(false)
@@ -107,6 +110,10 @@ class SmartGlassesDetector @Inject constructor(
     private var retryJob: Job? = null
     private var classicDiscoveryJob: Job? = null
     private var classicDiscoveryRetryJob: Job? = null
+    private var connectedDeviceJob: Job? = null
+    private val connectedProfileLock = Any()
+    private val connectedProfileProxies = HashMap<Int, BluetoothProfile>()
+    private val requestedConnectedProfiles = HashSet<Int>()
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
@@ -114,6 +121,20 @@ class SmartGlassesDetector @Inject constructor(
     )
     private val scanCallbackThread = HandlerThread("ble-scan-callback").apply { start() }
     private val scanCallbackHandler = Handler(scanCallbackThread.looper)
+    private val connectedProfileListener = object : BluetoothProfile.ServiceListener {
+        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+            synchronized(connectedProfileLock) {
+                connectedProfileProxies[profile] = proxy
+            }
+        }
+
+        override fun onServiceDisconnected(profile: Int) {
+            synchronized(connectedProfileLock) {
+                connectedProfileProxies.remove(profile)
+                requestedConnectedProfiles.remove(profile)
+            }
+        }
+    }
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -289,10 +310,12 @@ class SmartGlassesDetector @Inject constructor(
             address = resolveDeviceAddress(result),
             companyIds = (scanRecord?.let(::extractCompanyIds).orEmpty()) + parsedAdvertisement.companyIds,
             rssi = result.rssi,
-            serviceUuids = BleUuid.merge(
-                scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
-                scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
-                parsedAdvertisement.serviceUuids
+            serviceUuids = ArrayList(
+                BleUuid.merge(
+                    scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+                    scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
+                    parsedAdvertisement.serviceUuids
+                )
             ),
             advertisementBytes = advertisementBytes,
             extraPayloadBytes = scanRecord?.let(::extractManufacturerPayloadBytes) ?: byteArrayOf(),
@@ -740,6 +763,7 @@ class SmartGlassesDetector @Inject constructor(
         ensureScanPermissionWatch()
         startScanWatchdog()
         startNearbyPrune()
+        ensureConnectedDeviceWatch()
 
         val permissionGranted = hasRequiredScanPermission()
         val bluetoothEnabled = bluetoothAdapter.isEnabled
@@ -803,11 +827,14 @@ class SmartGlassesDetector @Inject constructor(
         nearbyPruneJob?.cancel()
         classicDiscoveryJob?.cancel()
         classicDiscoveryRetryJob?.cancel()
+        connectedDeviceJob?.cancel()
         retryJob = null
         scanWatchdogJob = null
         nearbyPruneJob = null
         classicDiscoveryJob = null
         classicDiscoveryRetryJob = null
+        connectedDeviceJob = null
+        closeConnectedProfileProxies()
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
@@ -1041,6 +1068,133 @@ class SmartGlassesDetector @Inject constructor(
                     pruneSeenAdvertisers()
                     _nearbyDevices.value = nearbyDeviceTracker.snapshot()
                 }
+            }
+        }
+    }
+
+    private fun ensureConnectedDeviceWatch() {
+        requestConnectedProfileProxies()
+        if (connectedDeviceJob?.isActive == true) {
+            return
+        }
+        connectedDeviceJob = diagnosticPersistenceScope.launch {
+            while (isActive) {
+                pollConnectedDevices()
+                delay(ConnectedDevicePolicy.POLL_INTERVAL_MS)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestConnectedProfileProxies() {
+        val adapter = bluetoothAdapter ?: return
+        if (!hasBluetoothConnectPermission()) {
+            return
+        }
+        for (profile in ConnectedDevicePolicy.proxyProfiles(Build.VERSION.SDK_INT)) {
+            val alreadyRequested = synchronized(connectedProfileLock) {
+                !requestedConnectedProfiles.add(profile)
+            }
+            if (alreadyRequested) {
+                continue
+            }
+            try {
+                if (!adapter.getProfileProxy(context, connectedProfileListener, profile)) {
+                    synchronized(connectedProfileLock) {
+                        requestedConnectedProfiles.remove(profile)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to request Bluetooth profile $profile", e)
+                synchronized(connectedProfileLock) {
+                    requestedConnectedProfiles.remove(profile)
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun pollConnectedDevices() {
+        if (
+            !ConnectedDevicePolicy.shouldPoll(
+                scanningRequested = userRequestedScanning.get(),
+                bluetoothEnabled = bluetoothAdapter?.isEnabled == true,
+                connectPermissionGranted = hasBluetoothConnectPermission()
+            )
+        ) {
+            return
+        }
+
+        requestConnectedProfileProxies()
+        val devices = LinkedHashMap<String, BluetoothDevice>()
+        val proxies = synchronized(connectedProfileLock) {
+            ArrayList(connectedProfileProxies.values)
+        }
+        proxies.forEach { proxy ->
+            try {
+                rememberConnectedDevices(devices, proxy.connectedDevices)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to read connected Bluetooth profile devices", e)
+            }
+        }
+        val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
+        if (bluetoothManager != null) {
+            for (profile in ConnectedDevicePolicy.managerProfiles()) {
+                try {
+                    rememberConnectedDevices(devices, bluetoothManager.getConnectedDevices(profile))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to read connected GATT devices for profile $profile", e)
+                }
+            }
+        }
+        if (devices.isEmpty()) {
+            return
+        }
+
+        val signals = devices.values.map { device ->
+            extractClassicSignal(
+                bluetoothDevice = device,
+                extraName = null,
+                extraRssi = Constants.UNKNOWN_RSSI_DBM,
+                deviceClass = resolveDeviceClass(device)
+            )
+        }
+        scanCallbackHandler.post {
+            signals.forEach { signal ->
+                handleDetectionSignal(signal)
+            }
+        }
+    }
+
+    private fun rememberConnectedDevices(
+        devices: MutableMap<String, BluetoothDevice>,
+        connected: List<BluetoothDevice>?
+    ) {
+        connected.orEmpty().forEach { device ->
+            val address = resolveDeviceAddress(device)
+            if (ConnectedDevicePolicy.shouldKeepAddress(address)) {
+                devices[address] = device
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun closeConnectedProfileProxies() {
+        val adapter = bluetoothAdapter
+        val proxies = synchronized(connectedProfileLock) {
+            val snapshot = ArrayList(connectedProfileProxies.entries)
+            connectedProfileProxies.clear()
+            requestedConnectedProfiles.clear()
+            snapshot
+        }
+        if (adapter == null) {
+            return
+        }
+        proxies.forEach { (profile, proxy) ->
+            try {
+                adapter.closeProfileProxy(profile, proxy)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to close Bluetooth profile $profile", e)
             }
         }
     }

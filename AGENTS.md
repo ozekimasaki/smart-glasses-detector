@@ -7,8 +7,8 @@
 - **アプリ名 / 表示名**: スマートグラス検出
 - **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
 - **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
-- **`minSdk`**: 26 (Android 8.0) / **`targetSdk`**: 35 (Android 15) / **`compileSdk`**: 37
-- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 12 / 1.1.2）
+- **`minSdk`**: 26 (Android 8.0) / **`targetSdk`** / **`compileSdk`**: 36 / 37（Android 16 / API 37）
+- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 35 / 1.1.25）
 - 単一モジュール構成（`:app`）
 
 ## アーキテクチャ
@@ -40,10 +40,11 @@ domain/
                # DiagnosticLog, DiagnosticLogDeduplication, BluetoothScanFailure
   repository/  # BluetoothRepository, DetectionLogRepository,
                # DiagnosticLogRepository, SettingsRepository (interface)
-  service/     # ScanServiceController, ScanResumePolicy, ScanFailurePolicy
+  service/     # ScanServiceController, ScanResumePolicy, ScanFailurePolicy,
+               # ConnectedDevicePolicy
   usecase/     # StartScanningUseCase, StopScanningUseCase,
                # GetDetectionHistoryUseCase, UpdateSettingsUseCase,
-               # ResumeScanningIfNeededUseCase
+               # ResumeScanningIfNeededUseCase, ClearStoredDetectionDataUseCase
 data/
   bluetooth/   # SmartGlassesDetector, SmartGlassesClassifier,
                # AdvertisementParser, BleUuid, DetectionCooldownGate,
@@ -67,9 +68,8 @@ MainActivity.kt, SmartGlassesDetectorApp.kt
 ## セットアップ
 
 - JDK 17 以上（ビルドは `compileOptions` / JVM 11）
-- Android SDK Platform 37（`compileSdk = 37`）。`targetSdk` は 35
+- Android SDK Platform 37（`compileSdk = 37`）。`targetSdk` は 36
 - Gradle Wrapper（Gradle 9.7.1、AGP 9.4.0）。built-in Kotlin を使用
-- 依存バージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) のバージョンカタログで一元管理。
 - 依存バージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) のバージョンカタログで一元管理。
 
 ## ビルド / テスト / Lint / 型チェック（実在コマンド）
@@ -118,8 +118,9 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 3. **release の署名**: `app/build.gradle.kts` はルートの `keystore.properties` があれば release 署名を設定する。存在しない場合 release は未署名になる。`keystore.properties` と keystore は**コミットしない**（テンプレートは `keystore.properties.example`）。
 4. **リリースビルドの縮小**: release は `isMinifyEnabled = true` / `isShrinkResources = true`。ProGuard/R8 ルールは `app/proguard-rules.pro` を編集する。難読化で壊れやすいクラス（リフレクション利用箇所等）に注意する。
 5. **起動・Bluetooth 復帰**: `BootReceiver` が `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` / `USER_UNLOCKED` / Bluetooth ON を受け、探索中かつバックグラウンド許可時にフォアグラウンドサービスを再開する。Play の制約のため、ロック中の起動完了インテントは使わない。Android 8+ の暗黙ブロードキャスト制限対策として `SmartGlassesDetectorApp` でも Bluetooth 状態を動的登録する。探索中に権限や Bluetooth が落ちてもサービスは維持し、ハードウェア探索だけ止めて復帰を待つ。
-6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。
-7. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
+6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。検出記録と調査ログは設定画面 / 記録画面から削除できる。
+7. **接続中機器**: 広告を止めたグラスを拾うため、A2DP / Headset / LE Audio / GATT の接続中デバイスも分類する。ヘッドホン Class だけでは検出しない。
+8. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
 
 ## ドキュメント
 
