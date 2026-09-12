@@ -152,7 +152,9 @@ object Constants {
             ),
             excludedNamePatterns = listOf(
                 "Quest",
-                "Oculus"
+                "Oculus",
+                "Neural Band",
+                "Meta Band"
             ),
             serviceUuids = setOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
             payloadPatterns = listOf("META_RB_GLASS")
@@ -230,6 +232,8 @@ object Constants {
                 "RayNeo Air 2",
                 "RayNeo Air 3",
                 "RayNeo Air 3s",
+                "RayNeo Air 4",
+                "RayNeo Air 4 Pro",
                 "NXTWEAR S",
                 "NXTWEAR AIR"
             )

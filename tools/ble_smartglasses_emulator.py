@@ -74,6 +74,7 @@ NAME_PATTERN_DEVICES = {
     60: "Glasses_A1B2",
     62: "Solos AirGo3 1234",
     63: "Solos AirGo 3 1234",
+    64: "RayNeo Air 4 Pro",
 }
 
 UUID_DEVICES = {
@@ -104,6 +105,7 @@ NON_GLASSES_NAME_DEVICES = {
     93: "Echo Dot",
     94: "AirPods Pro",
     95: "Galaxy Buds2",
+    96: "Meta Band 00JT",
 }
 
 

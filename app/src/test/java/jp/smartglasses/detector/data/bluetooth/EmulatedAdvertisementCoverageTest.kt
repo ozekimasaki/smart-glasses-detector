@@ -88,6 +88,10 @@ class EmulatedAdvertisementCoverageTest {
             "Solos AirGo 3 spaced pairing name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Solos AirGo 3 1234" }
         )
+        assertTrue(
+            "RayNeo Air 4 Pro name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "RayNeo Air 4 Pro" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

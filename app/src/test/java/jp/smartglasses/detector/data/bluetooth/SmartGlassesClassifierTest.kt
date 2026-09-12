@@ -1307,6 +1307,44 @@ class SmartGlassesClassifierTest {
         assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
     }
 
+    @Test
+    fun `meta neural band names are not treated as glasses from company id`() {
+        val band = classifier.classify(
+            DetectionSignal(
+                deviceName = "Meta Band 00JT",
+                address = "AA:BB:CC:DD:EE:50",
+                companyIds = setOf(0x058E),
+                rssi = -50
+            )
+        )
+        val neural = classifier.classify(
+            DetectionSignal(
+                deviceName = "Neural Band",
+                address = "AA:BB:CC:DD:EE:51",
+                companyIds = setOf(0x01AB),
+                rssi = -50
+            )
+        )
+
+        assertNull(band)
+        assertNull(neural)
+    }
+
+    @Test
+    fun `rayneo air 4 pro names are detected as tcl`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "RayNeo Air 4 Pro",
+                address = "AA:BB:CC:DD:EE:52",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("TCL", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')
