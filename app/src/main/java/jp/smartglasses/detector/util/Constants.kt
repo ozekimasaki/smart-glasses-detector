@@ -435,12 +435,21 @@ object Constants {
                 "Mentra",
                 "Mentra Live",
                 "Mentra Mach",
+                "Mentra Mach1",
+                "Mentra Display",
+                "Mentra Nex",
                 "MENTRA_LIVE_BLE",
                 "MENTRA_LIVE_BT",
                 "XyBLE_",
                 "XyBLE",
                 "NIMO"
             ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Xingyi",
+            namePatterns = listOf("AR99", "Xingyi"),
+            payloadPatterns = listOf("AR99"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

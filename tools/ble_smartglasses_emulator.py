@@ -61,10 +61,17 @@ NAME_PATTERN_DEVICES = {
     44: "HALLIDAYGP101",
     45: "Even G3_12_L",
     46: "智能眼镜-A1",
+    47: "AR99",
+    48: "Mentra Display",
 }
 
 UUID_DEVICES = {
     51: ("Rokid Glasses (Service UUID 0x9100)", 0x9100),
+}
+
+# メーカーデータ先頭の ASCII プロジェクト ID（MentraOS AR99 など）
+PAYLOAD_DEVICES = {
+    61: ("Xingyi AR99 (payload AR99)", "AR99"),
 }
 
 
@@ -136,6 +143,34 @@ def start_advertise_name_only(device_name):
     print(f"  -> 送信中: デバイス名 = {device_name}")
 
 
+def start_advertise_ascii_manufacturer_payload(label, ascii_id):
+    stop_advertise()
+    time.sleep(0.5)
+
+    run("sudo hciconfig hci0 up")
+    run('sudo hciconfig hci0 name "BLE Device"')
+
+    ident = ascii_id.encode("ascii")[:4].ljust(4, b"\x00")
+    # MentraOS は manufacturer data が 20 バイト以上のとき project name を読む
+    payload = ident + bytes(16)
+    rec_len = 1 + len(payload)
+    total = 3 + 1 + rec_len
+    payload_hex = " ".join(f"{b:02X}" for b in payload)
+    pad_len = max(0, 31 - total)
+    pad = " ".join(["00"] * pad_len) if pad_len else ""
+
+    adv_data = (
+        f"sudo hcitool -i hci0 cmd 0x08 0x0008 "
+        f"{total:02X} "
+        f"02 01 06 "
+        f"{rec_len:02X} FF {payload_hex} "
+        f"{pad}"
+    )
+    run(adv_data)
+    run("sudo hciconfig hci0 leadv 3")
+    print(f"  -> 送信中: {label} (Manufacturer payload: {ascii_id}, デバイス名なし)")
+
+
 def start_advertise_service_uuid(name, uuid16):
     stop_advertise()
     time.sleep(0.5)
@@ -174,6 +209,9 @@ def print_menu():
     print("\n--- Service UUID 検出テスト ---")
     for num, (name, uuid16) in UUID_DEVICES.items():
         print(f"  {num:2d}) {name}")
+    print("\n--- 広告ペイロード検出テスト ---")
+    for num, (name, payload) in PAYLOAD_DEVICES.items():
+        print(f"  {num:2d}) {name} ({payload})")
     print("\n--- コントロール ---")
     print("  88) 全メーカー順番にテスト (各20秒)")
     print("  99) アドバタイズ停止")
@@ -240,6 +278,9 @@ def main():
         elif num in UUID_DEVICES:
             name, uuid16 = UUID_DEVICES[num]
             start_advertise_service_uuid(name, uuid16)
+        elif num in PAYLOAD_DEVICES:
+            name, payload = PAYLOAD_DEVICES[num]
+            start_advertise_ascii_manufacturer_payload(name, payload)
         elif num in NAME_PATTERN_DEVICES:
             dev_name = NAME_PATTERN_DEVICES[num]
             start_advertise_name_only(dev_name)

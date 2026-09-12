@@ -178,6 +178,7 @@ class SmartGlassesDetector @Inject constructor(
                 parsedAdvertisement.serviceUuids
             ),
             advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
+            extraPayloadHex = scanRecord?.let(::extractManufacturerPayloadHex).orEmpty(),
             appearance = parsedAdvertisement.appearance
         )
     }
@@ -201,6 +202,25 @@ class SmartGlassesDetector @Inject constructor(
         }
         return companyIds
     }
+
+    private fun extractManufacturerPayloadHex(scanRecord: ScanRecord): String {
+        val manufacturerSpecificData = scanRecord.manufacturerSpecificData
+        if (manufacturerSpecificData.size == 0) {
+            return ""
+        }
+
+        return buildString {
+            for (index in 0 until manufacturerSpecificData.size) {
+                append(
+                    AdvertisementParser.encodeManufacturerSpecificTlv(
+                        companyId = manufacturerSpecificData.keyAt(index),
+                        payload = manufacturerSpecificData.valueAt(index) ?: byteArrayOf()
+                    )
+                )
+            }
+        }
+    }
+
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {
         return detectionCooldownGate.shouldEmitDetection(
             deviceKey = buildDeviceKey(device),
@@ -697,7 +717,8 @@ internal fun DetectionSignal.hasDiagnosticPayload(): Boolean {
         deviceName?.isNotBlank() == true ||
         companyIds.isNotEmpty() ||
         serviceUuids.isNotEmpty() ||
-        advertisementDataHex.isNotBlank()
+        advertisementDataHex.isNotBlank() ||
+        extraPayloadHex.isNotBlank()
 }
 
 internal fun DetectionSignal.toDiagnosticLog(
@@ -710,7 +731,7 @@ internal fun DetectionSignal.toDiagnosticLog(
             .sorted()
             .joinToString(",") { companyId -> "0x${companyId.toString(16).uppercase().padStart(4, '0')}" },
         serviceUuids = serviceUuids.sorted().joinToString(","),
-        advertisementDataHex = advertisementDataHex,
+        advertisementDataHex = payloadHex(),
         rssi = rssi,
         detectedAt = detectedAt
     )

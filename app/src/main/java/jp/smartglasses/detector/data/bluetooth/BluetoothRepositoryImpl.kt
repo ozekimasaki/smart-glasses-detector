@@ -7,11 +7,14 @@ import android.location.LocationManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.data.preferences.AppPreferences
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
+import jp.smartglasses.detector.domain.service.ForegroundScanBoostPolicy
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -38,7 +41,10 @@ class BluetoothRepositoryImpl @Inject constructor(
         get() = smartGlassesDetector.nearbyDevices
     
     override suspend fun startScanning() {
-        val sensitivity = preferences.sensitivity.first()
+        val sensitivity = ForegroundScanBoostPolicy.effectiveSensitivity(
+            userSensitivity = preferences.sensitivity.first(),
+            appInForeground = isAppInForeground()
+        )
         smartGlassesDetector.startScanning(sensitivity)
     }
     
@@ -47,7 +53,12 @@ class BluetoothRepositoryImpl @Inject constructor(
     }
 
     override fun updateScanSensitivity(sensitivity: ScanSensitivity) {
-        smartGlassesDetector.updateSensitivity(sensitivity)
+        smartGlassesDetector.updateSensitivity(
+            ForegroundScanBoostPolicy.effectiveSensitivity(
+                userSensitivity = sensitivity,
+                appInForeground = isAppInForeground()
+            )
+        )
     }
     
     override fun hasPermissions(): Boolean {
@@ -86,5 +97,9 @@ class BluetoothRepositoryImpl @Inject constructor(
 
     private fun hasPermission(permission: String): Boolean {
         return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun isAppInForeground(): Boolean {
+        return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 }

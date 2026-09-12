@@ -135,6 +135,18 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `reconstructs manufacturer specific tlv from scan record fields`() {
+        val hex = AdvertisementParser.encodeManufacturerSpecificTlv(
+            companyId = 0x5241,
+            payload = byteArrayOf(0x39, 0x39)
+        )
+
+        assertEquals("05FF41523939", hex)
+        assertEquals(setOf(0x5241), AdvertisementParser.parseHex(hex).companyIds)
+        assertTrue(AdvertisementParser.asciiFromHex(hex).contains("AR99"))
+    }
+
+    @Test
     fun `merges advertisement fields from truncated packets`() {
         val merged = AdvertisementParser.parseHex("030345FE").merge(
             AdvertisementParser.parseAdvertisingDataMap(

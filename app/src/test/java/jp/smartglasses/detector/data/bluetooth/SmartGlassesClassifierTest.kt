@@ -682,7 +682,8 @@ class SmartGlassesClassifierTest {
             "Lucyd",
             "Tooz",
             "Engo",
-            "Mentra"
+            "Mentra",
+            "Xingyi"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -818,6 +819,87 @@ class SmartGlassesClassifierTest {
         )
 
         assertNull(detected)
+    }
+
+    @Test
+    fun `xingyi ar99 manufacturer payload is detected without a name`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:41",
+                companyIds = emptySet(),
+                rssi = -58,
+                advertisementDataHex = "05FF41523939"
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Xingyi", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.PAYLOAD, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `xingyi ar99 reconstructed scan record payload is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:43",
+                companyIds = setOf(0x5241),
+                rssi = -58,
+                extraPayloadHex = AdvertisementParser.encodeManufacturerSpecificTlv(
+                    companyId = 0x5241,
+                    payload = byteArrayOf(0x39, 0x39)
+                )
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Xingyi", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.PAYLOAD, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `mentra display names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Mentra Display",
+                address = "AA:BB:CC:DD:EE:44",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Mentra", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `xingyi sibling project identifiers are not treated as ar99`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:45",
+                companyIds = emptySet(),
+                rssi = -58,
+                advertisementDataHex = "05FF41463938"
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `nimo classic names stay attributed to mentra`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Nimo-A1B2",
+                address = "AA:BB:CC:DD:EE:42",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+
+        assertEquals("Mentra", detected?.manufacturer?.name)
     }
 
     private fun asciiToHex(value: String): String {

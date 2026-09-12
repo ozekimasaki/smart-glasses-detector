@@ -16,6 +16,7 @@ internal data class DetectionSignal(
     val rssi: Int,
     val serviceUuids: List<String> = emptyList(),
     val advertisementDataHex: String = "",
+    val extraPayloadHex: String = "",
     val appearance: Int? = null
 )
 
@@ -147,12 +148,13 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByPayload(signal: DetectionSignal): SmartGlassesDevice? {
-        if (signal.advertisementDataHex.isBlank()) {
+        val payloadHex = signal.payloadHex()
+        if (payloadHex.isBlank()) {
             return null
         }
 
-        val asciiPayload = AdvertisementParser.asciiFromHex(signal.advertisementDataHex)
-        val compactHex = signal.advertisementDataHex.replace(" ", "").uppercase()
+        val asciiPayload = AdvertisementParser.asciiFromHex(payloadHex)
+        val compactHex = payloadHex.replace(" ", "").uppercase()
 
         for (rule in detectionRules) {
             if (rule.payloadPatterns.isEmpty()) {
@@ -184,7 +186,8 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByManufacturerSuffix(signal: DetectionSignal): SmartGlassesDevice? {
-        if (signal.advertisementDataHex.isBlank()) {
+        val payloadHex = signal.payloadHex()
+        if (payloadHex.isBlank()) {
             return null
         }
 
@@ -194,7 +197,7 @@ internal class SmartGlassesClassifier(
             }
 
             val matched = rule.manufacturerDataSuffixes.any { suffix ->
-                AdvertisementParser.hasManufacturerDataSuffix(signal.advertisementDataHex, suffix)
+                AdvertisementParser.hasManufacturerDataSuffix(payloadHex, suffix)
             }
             if (!matched) {
                 continue
@@ -300,4 +303,8 @@ internal class SmartGlassesClassifier(
             rssi = signal.rssi
         )
     }
+}
+
+internal fun DetectionSignal.payloadHex(): String {
+    return advertisementDataHex + extraPayloadHex
 }

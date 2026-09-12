@@ -56,6 +56,20 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
+    fun `reconstructed manufacturer payload counts as diagnostic payload`() {
+        val signal = DetectionSignal(
+            deviceName = null,
+            address = "",
+            companyIds = emptySet(),
+            rssi = -60,
+            extraPayloadHex = "05FF41523939"
+        )
+
+        assertTrue(signal.hasDiagnosticPayload())
+        assertEquals("05FF41523939", signal.toDiagnosticLog().advertisementDataHex)
+    }
+
+    @Test
     fun `deduplication key uses advertisement data when address is unavailable`() {
         val first = DiagnosticLog(
             advertisedName = "",

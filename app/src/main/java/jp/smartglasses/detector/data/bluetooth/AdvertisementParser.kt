@@ -177,6 +177,20 @@ internal object AdvertisementParser {
         }
     }
 
+    fun encodeManufacturerSpecificTlv(companyId: Int, payload: ByteArray = byteArrayOf()): String {
+        val payloadSize = minOf(payload.size, 253)
+        val length = 1 + 2 + payloadSize
+        return buildString(length * 2) {
+            append(length.toHexByte())
+            append("FF")
+            append((companyId and 0xFF).toHexByte())
+            append(((companyId shr 8) and 0xFF).toHexByte())
+            for (index in 0 until payloadSize) {
+                append((payload[index].toInt() and 0xFF).toHexByte())
+            }
+        }
+    }
+
     fun hexToBytes(hex: String): ByteArray? {
         val normalized = hex.replace(" ", "").replace("_", "")
         if (normalized.isEmpty() || normalized.length % 2 != 0) {
@@ -290,4 +304,8 @@ internal object AdvertisementParser {
         }
         return decoded.ifBlank { null }
     }
+}
+
+private fun Int.toHexByte(): String {
+    return (this and 0xFF).toString(16).uppercase().padStart(2, '0')
 }

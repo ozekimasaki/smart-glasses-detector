@@ -73,9 +73,15 @@ class ScanningForegroundService : Service() {
     private var backgroundScanningEnabled = false
     private var persistedScanningState = false
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            applyEffectiveScanSensitivity()
+        }
+
         override fun onStop(owner: LifecycleOwner) {
             if (!shouldKeepScanningInBackground()) {
                 pauseScanningForBackground()
+            } else {
+                applyEffectiveScanSensitivity()
             }
         }
     }
@@ -234,6 +240,16 @@ class ScanningForegroundService : Service() {
 
         if (!shouldKeepScanningInBackground()) {
             pauseScanningForBackground()
+        }
+    }
+
+    private fun applyEffectiveScanSensitivity() {
+        if (isStopping.get()) {
+            return
+        }
+
+        scope.launch {
+            bluetoothRepository.updateScanSensitivity(settingsRepository.sensitivity.first())
         }
     }
 
