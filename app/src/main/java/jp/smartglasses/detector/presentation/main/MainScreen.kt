@@ -1,8 +1,14 @@
 package jp.smartglasses.detector.presentation.main
 
+import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -47,6 +53,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -59,10 +66,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
+import jp.smartglasses.detector.domain.model.DetectionLog
+import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.service.ScanRestorePrompt
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
+import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
 import jp.smartglasses.detector.ui.theme.BrandOrange
 
@@ -73,14 +88,42 @@ fun MainScreen(
 ) {
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val todayCount by viewModel.todayCount.collectAsStateWithLifecycle()
+    val recentDetections by viewModel.recentDetections.collectAsStateWithLifecycle()
+    val nearbyDevices by viewModel.nearbyDevices.collectAsStateWithLifecycle()
     val backgroundScanningEnabled by viewModel.backgroundScanningEnabled.collectAsStateWithLifecycle()
+    val restorePrompt by viewModel.restorePrompt.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val resources = LocalResources.current
+    val enableBluetoothLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            viewModel.onBluetoothEnabled()
+        }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.onNotificationPermissionResolved()
+    }
+    val scanPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        viewModel.onScanPermissionsResolved(permissions.values.all { granted -> granted })
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshScanBlockers()
+        onPauseOrDispose { }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
-                is MainEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is MainEvent.ShowMessage -> snackbarHostState.showSnackbar(
+                    resources.getString(event.messageResId)
+                )
                 MainEvent.OpenAppSettings -> {
                     val intent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -92,6 +135,27 @@ fun MainScreen(
                     val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
+                }
+                MainEvent.RequestEnableBluetooth -> {
+                    enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                }
+                MainEvent.RequestScanPermissions -> {
+                    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        arrayOf(
+                            Manifest.permission.BLUETOOTH_SCAN,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        )
+                    } else {
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                    scanPermissionLauncher.launch(permissions)
+                }
+                MainEvent.RequestNotificationPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        viewModel.onNotificationPermissionResolved()
+                    }
                 }
             }
         }
@@ -146,6 +210,14 @@ fun MainScreen(
 
             if (isScanning) Spacer(modifier = Modifier.height(20.dp))
 
+            if (restorePrompt != ScanRestorePrompt.None) {
+                ScanRestoreBanner(
+                    prompt = restorePrompt,
+                    onClick = { viewModel.restoreScanningEnvironment() }
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
             // ─── アクションボタン ───
             ScanActionButton(
                 isScanning = isScanning,
@@ -156,6 +228,17 @@ fun MainScreen(
             if (!isScanning) {
                 Spacer(modifier = Modifier.height(28.dp))
                 HowItWorks()
+            }
+
+            if (isScanning) {
+                Spacer(modifier = Modifier.height(28.dp))
+                NearbyDetections(devices = nearbyDevices)
+            } else if (recentDetections.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(28.dp))
+                RecentDetections(
+                    logs = recentDetections,
+                    onOpenHistory = { onNavigate(Screen.History.route) }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -310,6 +393,11 @@ private fun ScanActionButton(
         transitionSpec = { fadeIn(tween(350)) togetherWith fadeOut(tween(350)) },
         label = "action_btn"
     ) { scanning ->
+        val actionDescription = if (scanning) {
+            "${stringResource(R.string.main_stop_button)}。${stringResource(R.string.main_stop_description)}"
+        } else {
+            "${stringResource(R.string.main_start_button)}。${stringResource(R.string.main_start_description)}"
+        }
         if (scanning) {
             val infiniteTransition = rememberInfiniteTransition(label = "ripple")
             val ripple1Scale by infiniteTransition.animateFloat(
@@ -346,7 +434,8 @@ private fun ScanActionButton(
                         color = MaterialTheme.colorScheme.outline,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    .clickable { onClick() }
+                    .semantics { contentDescription = actionDescription }
+                    .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -397,7 +486,8 @@ private fun ScanActionButton(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(BrandOrange)
-                    .clickable { onClick() }
+                    .semantics { contentDescription = actionDescription }
+                    .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -434,6 +524,50 @@ private fun ScanActionButton(
     }
 }
 
+@Composable
+private fun ScanRestoreBanner(
+    prompt: ScanRestorePrompt,
+    onClick: () -> Unit
+) {
+    val messageRes = when (prompt) {
+        ScanRestorePrompt.ScanPermission -> R.string.main_permission_restore_message
+        ScanRestorePrompt.Bluetooth -> R.string.main_bluetooth_restore_message
+        ScanRestorePrompt.Location -> R.string.main_location_restore_message
+        ScanRestorePrompt.Hardware -> R.string.main_hardware_restore_message
+        ScanRestorePrompt.None -> return
+    }
+    val actionRes = when (prompt) {
+        ScanRestorePrompt.ScanPermission -> R.string.main_restore_action
+        ScanRestorePrompt.Bluetooth -> R.string.main_bluetooth_restore_action
+        ScanRestorePrompt.Location -> R.string.main_location_restore_action
+        ScanRestorePrompt.Hardware -> R.string.main_hardware_restore_action
+        ScanRestorePrompt.None -> return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = stringResource(messageRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            lineHeight = 22.sp
+        )
+        Text(
+            text = stringResource(actionRes),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = BrandOrange
+        )
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // 仕組みの説明（3行）
 // ─────────────────────────────────────────────────────────────────
@@ -460,6 +594,53 @@ private fun HowItWorks() {
 }
 
 @Composable
+private fun NearbyDetections(devices: List<SmartGlassesDevice>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.main_nearby_section),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (devices.isEmpty()) {
+            Text(
+                text = stringResource(R.string.main_nearby_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            devices.forEach { device ->
+                LogItem(log = device.toDetectionLog())
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentDetections(
+    logs: List<DetectionLog>,
+    onOpenHistory: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.main_recent_section),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        logs.forEach { log ->
+            LogItem(log = log)
+        }
+        Text(
+            text = stringResource(R.string.main_recent_open_history),
+            style = MaterialTheme.typography.labelLarge,
+            color = BrandOrange,
+            modifier = Modifier.clickable(onClick = onOpenHistory)
+        )
+    }
+}
+
+@Composable
 private fun HintRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.Top) {
         Icon(
@@ -476,4 +657,15 @@ private fun HintRow(icon: ImageVector, text: String) {
             lineHeight = 18.sp
         )
     }
+}
+
+private fun SmartGlassesDevice.toDetectionLog(): DetectionLog {
+    return DetectionLog(
+        deviceName = name.ifBlank { manufacturer.name },
+        deviceAddress = address,
+        manufacturerName = manufacturer.name,
+        rssi = rssi,
+        distance = distance.name,
+        detectedAt = detectedAt
+    )
 }

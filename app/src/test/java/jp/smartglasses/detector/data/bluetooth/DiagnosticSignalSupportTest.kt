@@ -1,7 +1,9 @@
 package jp.smartglasses.detector.data.bluetooth
 
+import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.deduplicationKey
+import jp.smartglasses.detector.domain.model.hasPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -36,7 +38,7 @@ class DiagnosticSignalSupportTest {
         )
 
         assertTrue(signal.hasDiagnosticPayload())
-        assertEquals("AA:BB:CC:DD:EE:FF", signal.toDiagnosticLog()?.deviceAddress)
+        assertEquals("AA:BB:CC:DD:EE:FF", signal.toDiagnosticLog().deviceAddress)
     }
 
     @Test
@@ -51,6 +53,21 @@ class DiagnosticSignalSupportTest {
         )
 
         assertFalse(signal.hasDiagnosticPayload())
+        assertFalse(signal.toDiagnosticLog().hasPayload())
+    }
+
+    @Test
+    fun `reconstructed manufacturer payload counts as diagnostic payload`() {
+        val signal = DetectionSignal(
+            deviceName = null,
+            address = "",
+            companyIds = emptySet(),
+            rssi = -60,
+            extraPayloadHex = "05FF41523939"
+        )
+
+        assertTrue(signal.hasDiagnosticPayload())
+        assertEquals("05FF41523939", signal.toDiagnosticLog().advertisementDataHex)
     }
 
     @Test
@@ -95,6 +112,32 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
+    fun `classic inquiry extra name is used when cached name is blank`() {
+        val signal = ClassicDiscoverySignal(
+            deviceName = null,
+            extraName = "Nimo-A1B2",
+            address = "11:22:33:44:55:77",
+            rssi = -52,
+            deviceClass = 0x0714
+        ).toDetectionSignal()
+
+        assertEquals("Nimo-A1B2", signal.deviceName)
+        assertEquals(0x0714, signal.deviceClass)
+    }
+
+    @Test
+    fun `classic advertised name wins over a stale cached name`() {
+        val signal = ClassicDiscoverySignal(
+            deviceName = "Unknown",
+            extraName = "Solos AirGo3 1234",
+            address = "11:22:33:44:55:78",
+            rssi = -50
+        ).toDetectionSignal()
+
+        assertEquals("Solos AirGo3 1234", signal.deviceName)
+    }
+
+    @Test
     fun `classified smart glasses still produce a diagnostic log`() {
         val processed = ScanSignalProcessor().process(
             DetectionSignal(
@@ -107,8 +150,23 @@ class DiagnosticSignalSupportTest {
         )
 
         assertNotNull(processed.detectedDevice)
-        assertNotNull(processed.diagnosticLog)
-        assertEquals("Ray-Ban Meta", processed.diagnosticLog?.advertisedName)
+        assertEquals("Ray-Ban Meta", processed.diagnosticLog.advertisedName)
+    }
+
+    @Test
+    fun `classic delayed extra name classifies mentra nimo`() {
+        val processed = ScanSignalProcessor().process(
+            ClassicDiscoverySignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:99",
+                rssi = -55,
+                extraName = "NIMO-1234"
+            ).toDetectionSignal()
+        )
+
+        assertEquals("Mentra", processed.detectedDevice?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, processed.detectedDevice?.manufacturer?.detectionMethod)
+        assertEquals("NIMO-1234", processed.diagnosticLog.advertisedName)
     }
 
     @Test

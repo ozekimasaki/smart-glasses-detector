@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.DetectionLog
+import jp.smartglasses.detector.domain.model.Distance
 import jp.smartglasses.detector.ui.theme.DistanceClose
 import jp.smartglasses.detector.ui.theme.DistanceFar
 import jp.smartglasses.detector.ui.theme.DistanceMedium
@@ -77,7 +78,9 @@ fun LogItem(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = log.manufacturerName.ifEmpty { log.deviceName.ifEmpty { "不明な機器" } },
+                    text = log.deviceName.ifEmpty {
+                        log.manufacturerName.ifEmpty { stringResource(R.string.unknown_device) }
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -106,14 +109,14 @@ fun LogItem(
 
 @Composable
 private fun resolveDistance(distance: String): Pair<Color, String> {
-    return when {
-        distance.contains("とても近") ->
+    return when (Distance.fromStored(distance)) {
+        Distance.VERY_CLOSE ->
             DistanceVeryClose to stringResource(R.string.distance_very_close)
-        distance.contains("近") ->
+        Distance.CLOSE ->
             DistanceClose to stringResource(R.string.distance_close)
-        distance.contains("少し") ->
+        Distance.MODERATE ->
             DistanceMedium to stringResource(R.string.distance_medium)
-        else ->
+        Distance.FAR ->
             DistanceFar to stringResource(R.string.distance_far)
     }
 }

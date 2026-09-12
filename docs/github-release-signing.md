@@ -75,19 +75,26 @@ apksigner verify --print-certs app\build\outputs\apk\release\app-release.apk
 
 ## 5. GitHub Release に公開する
 
-既存 tag に APK を追加する例:
+`versionName` と同じ tag（例: `1.1.18` なら `v1.1.18`）を push すると、[`.github/workflows/release.yml`](../.github/workflows/release.yml) が署名済み APK / AAB を GitHub Release に添付します。
+
+```powershell
+git tag v1.1.18
+git push origin v1.1.18
+```
+
+Play 用の本番鍵を使う場合は、GitHub Actions secrets に次を設定します。
+
+- `RELEASE_KEYSTORE_BASE64`
+- `RELEASE_STORE_PASSWORD`
+- `RELEASE_KEY_ALIAS`
+- `RELEASE_KEY_PASSWORD`
+
+secrets が無い run では、GitHub 配布専用の署名鍵をその場で作ります（Play 提出用ではありません）。
+
+ローカルで作った APK を既存 tag に足す例:
 
 ```powershell
 gh release upload v1.0 app\build\outputs\apk\release\app-release.apk --clobber
-```
-
-新しい tag を作る例:
-
-```powershell
-gh release create v1.0.1 `
-  app\build\outputs\apk\release\app-release.apk `
-  --title "v1.0.1" `
-  --notes "Signed APK release."
 ```
 
 ## 6. 注意点

@@ -14,23 +14,31 @@ class DetectionCooldownGateTest {
 
     @Test
     fun `same device is suppressed until cooldown expires`() {
-        assertTrue(gate.shouldEmitDetection("device:a", "manufacturer:meta"))
+        assertTrue(gate.shouldEmitDetection("address:AA:01", "manufacturer:meta"))
 
         now += 29_999L
-        assertFalse(gate.shouldEmitDetection("device:a", "manufacturer:meta"))
+        assertFalse(gate.shouldEmitDetection("address:AA:01", "manufacturer:meta"))
 
         now += 1L
-        assertTrue(gate.shouldEmitDetection("device:a", "manufacturer:meta"))
+        assertTrue(gate.shouldEmitDetection("address:AA:01", "manufacturer:meta"))
     }
 
     @Test
-    fun `different devices from same manufacturer are throttled briefly`() {
-        assertTrue(gate.shouldEmitDetection("device:a", "manufacturer:meta"))
+    fun `different addressed devices from the same manufacturer are not throttled`() {
+        assertTrue(gate.shouldEmitDetection("address:AA:01", "manufacturer:meta"))
 
         now += 10_000L
-        assertFalse(gate.shouldEmitDetection("device:b", "manufacturer:meta"))
+        assertTrue(gate.shouldEmitDetection("address:AA:02", "manufacturer:meta"))
+    }
+
+    @Test
+    fun `indistinguishable devices from the same manufacturer stay throttled`() {
+        assertTrue(gate.shouldEmitDetection("fallback:meta:ray-ban", "manufacturer:meta"))
+
+        now += 10_000L
+        assertFalse(gate.shouldEmitDetection("fallback:meta:oakley", "manufacturer:meta"))
 
         now += 5_000L
-        assertTrue(gate.shouldEmitDetection("device:b", "manufacturer:meta"))
+        assertTrue(gate.shouldEmitDetection("fallback:meta:oakley", "manufacturer:meta"))
     }
 }

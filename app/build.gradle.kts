@@ -3,7 +3,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
@@ -27,7 +26,7 @@ val hasReleaseSigning = if (releaseSigningPropertiesFile.isFile) {
 
 android {
     namespace = "jp.smartglasses.detector"
-    compileSdk = 35
+    compileSdk = 37
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -49,9 +48,9 @@ android {
     defaultConfig {
         applicationId = "jp.smartglasses.detector"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.8"
+        targetSdk = 36
+        versionCode = 28
+        versionName = "1.1.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -73,11 +72,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 
@@ -95,6 +96,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
     
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

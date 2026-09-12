@@ -28,7 +28,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "smart_glasses_detector_db"
         ).addMigrations(MIGRATION_1_2)
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
     
@@ -43,8 +43,8 @@ object DatabaseModule {
     }
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
-        override fun migrate(database: SupportSQLiteDatabase) {
-            database.execSQL(
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS diagnostic_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

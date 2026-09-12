@@ -8,5 +8,9 @@ data class Manufacturer(
 
 enum class DetectionMethod {
     COMPANY_ID,
-    DEVICE_NAME
+    DEVICE_NAME,
+    SERVICE_UUID,
+    PAYLOAD,
+    APPEARANCE,
+    HEURISTIC
 }

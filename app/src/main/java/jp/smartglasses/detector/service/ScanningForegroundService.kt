@@ -16,15 +16,20 @@ import android.os.Vibrator
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
 import jp.smartglasses.detector.MainActivity
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.model.Distance
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
+import jp.smartglasses.detector.domain.service.BackgroundScanRuntimePolicy
+import jp.smartglasses.detector.domain.service.ScanFailurePolicy
+import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.CoroutineScope
@@ -35,11 +40,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -57,17 +64,25 @@ class ScanningForegroundService : Service() {
     
     private val binder = LocalBinder()
     private var scanJob: Job? = null
+    private var healthCheckJob: Job? = null
     private var backgroundSettingsJob: Job? = null
     private var scanningStateJob: Job? = null
+    private var sensitivityJob: Job? = null
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + supervisorJob)
     private val isStopping = AtomicBoolean(false)
     private var backgroundScanningEnabled = false
     private var persistedScanningState = false
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            applyEffectiveScanSensitivity()
+        }
+
         override fun onStop(owner: LifecycleOwner) {
             if (!shouldKeepScanningInBackground()) {
-                stopScanningAndStopSelf()
+                pauseScanningKeepingIntent()
+            } else {
+                applyEffectiveScanSensitivity()
             }
         }
     }
@@ -107,6 +122,9 @@ class ScanningForegroundService : Service() {
         }
 
         if (scanJob?.isActive == true) {
+            if (ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = true)) {
+                bluetoothRepository.ensureHardwareScanning()
+            }
             return
         }
 
@@ -136,41 +154,65 @@ class ScanningForegroundService : Service() {
             val scanFailureCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.scanFailures.collect { failure ->
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
-                    stopScanningAndStopSelf()
+                    if (
+                        ScanFailurePolicy.shouldPauseScanning(
+                            errorCode = failure.errorCode,
+                            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+                            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled(),
+                            scanPermissionGranted = bluetoothRepository.hasPermissions()
+                        )
+                    ) {
+                        pauseScanningKeepingIntent()
+                    }
                 }
             }
 
             try {
                 if (!bluetoothRepository.hasPermissions()) {
-                    Log.w(TAG, "Missing Bluetooth permission. Stop foreground service.")
-                    stopScanningAndStopSelf()
+                    Log.w(TAG, "Missing Bluetooth permission. Pause until permission returns.")
+                    pauseScanningKeepingIntent()
+                    return@launch
+                }
+
+                if (!bluetoothRepository.isBluetoothEnabled()) {
+                    Log.w(TAG, "Bluetooth is disabled. Pause until it is turned on.")
+                    pauseScanningKeepingIntent()
                     return@launch
                 }
 
                 if (!bluetoothRepository.isLocationServicesEnabled()) {
-                    Log.w(TAG, "Location services are disabled. Stop foreground service.")
-                    stopScanningAndStopSelf()
+                    Log.w(TAG, "Location services are disabled. Pause until they are enabled.")
+                    pauseScanningKeepingIntent()
                     return@launch
                 }
 
-                bluetoothRepository.startScanning()
                 persistScanningState(true)
+                bluetoothRepository.startScanning()
+                startHealthCheck()
 
                 try {
                     awaitCancellation()
                 } finally {
                     deviceCollectionJob.cancel()
                     scanFailureCollectionJob.cancel()
+                    healthCheckJob?.cancel()
+                    healthCheckJob = null
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start Bluetooth scanning", e)
-                stopScanningAndStopSelf()
+                pauseScanningKeepingIntent()
             } finally {
                 scanJob = null
                 stopBluetoothScanSafely()
-                persistScanningState(false)
+                if (
+                    !ScanResumePolicy.shouldKeepScanningIntent(
+                        userOrPolicyStop = isStopping.get()
+                    )
+                ) {
+                    persistScanningState(false)
+                }
             }
         }
     }
@@ -192,11 +234,39 @@ class ScanningForegroundService : Service() {
         }
     }
 
+    private fun pauseScanningKeepingIntent() {
+        if (isStopping.get()) {
+            return
+        }
+
+        scope.launch {
+            val activeJob = scanJob
+            scanJob = null
+            if (activeJob != null) {
+                activeJob.cancelAndJoin()
+            } else {
+                stopBluetoothScanSafely()
+            }
+
+            stopForegroundAndSelf()
+        }
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
 
         if (!shouldKeepScanningInBackground()) {
-            stopScanningAndStopSelf()
+            pauseScanningKeepingIntent()
+        }
+    }
+
+    private fun applyEffectiveScanSensitivity() {
+        if (isStopping.get()) {
+            return
+        }
+
+        scope.launch {
+            bluetoothRepository.updateScanSensitivity(settingsRepository.sensitivity.first())
         }
     }
 
@@ -211,7 +281,7 @@ class ScanningForegroundService : Service() {
                 deviceAddress = device.address,
                 manufacturerName = device.manufacturer.name,
                 rssi = device.rssi,
-                distance = device.distance.label,
+                distance = device.distance.name,
                 detectedAt = device.detectedAt
             )
         )
@@ -261,7 +331,7 @@ class ScanningForegroundService : Service() {
         
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_DETECTION)
             .setContentTitle(getString(R.string.notification_detection_title))
-            .setContentText("${device.name} - ${device.distance.label}")
+            .setContentText("${device.name} - ${getString(distanceLabelRes(device.distance))}")
             .setSmallIcon(R.drawable.ic_notification_alert)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -304,12 +374,15 @@ class ScanningForegroundService : Service() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         backgroundSettingsJob?.cancel()
         scanningStateJob?.cancel()
+        sensitivityJob?.cancel()
+        healthCheckJob?.cancel()
 
         if (!isStopping.get()) {
             runBlocking {
-                scanJob?.cancelAndJoin()
-                stopBluetoothScanSafely()
-                persistScanningState(false)
+                withTimeoutOrNull(SERVICE_DESTROY_TIMEOUT_MS) {
+                    scanJob?.cancelAndJoin()
+                    stopBluetoothScanSafely()
+                }
             }
         }
 
@@ -321,6 +394,7 @@ class ScanningForegroundService : Service() {
         private const val TAG = "ScanningFgService"
         const val ACTION_START = "jp.smartglasses.detector.action.START"
         const val ACTION_STOP = "jp.smartglasses.detector.action.STOP"
+        private const val SERVICE_DESTROY_TIMEOUT_MS = 1_500L
     }
 
     private suspend fun stopForegroundAndSelf() {
@@ -331,11 +405,15 @@ class ScanningForegroundService : Service() {
     }
 
     private fun shouldResumeScanningAfterRestart(): Boolean {
-        return persistedScanningState && backgroundScanningEnabled
+        return ScanResumePolicy.shouldRestartAfterRecreation(
+            persistedIntent = persistedScanningState,
+            backgroundEnabled = backgroundScanningEnabled,
+            appInForeground = isAppInForeground()
+        )
     }
 
     private fun resolveRestartMode(): Int {
-        return if (shouldKeepScanningInBackground()) START_STICKY else START_NOT_STICKY
+        return if (persistedScanningState) START_STICKY else START_NOT_STICKY
     }
 
     private fun shouldKeepScanningInBackground(): Boolean {
@@ -378,6 +456,15 @@ class ScanningForegroundService : Service() {
         backgroundSettingsJob = scope.launch {
             settingsRepository.backgroundEnabled.collect { enabled ->
                 backgroundScanningEnabled = BackgroundScanSupport.isEnabled(enabled)
+                refreshScanningNotification()
+                if (
+                    BackgroundScanRuntimePolicy.shouldStopService(
+                        backgroundEnabled = backgroundScanningEnabled,
+                        appInForeground = isAppInForeground()
+                    )
+                ) {
+                    pauseScanningKeepingIntent()
+                }
             }
         }
 
@@ -385,6 +472,80 @@ class ScanningForegroundService : Service() {
             settingsRepository.isScanning.collect { scanning ->
                 persistedScanningState = scanning
             }
+        }
+
+        sensitivityJob = scope.launch {
+            settingsRepository.sensitivity.collect { sensitivity ->
+                bluetoothRepository.updateScanSensitivity(sensitivity)
+            }
+        }
+    }
+
+    private fun startHealthCheck() {
+        healthCheckJob?.cancel()
+        healthCheckJob = scope.launch {
+            while (true) {
+                delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
+                val hasPermissions = bluetoothRepository.hasPermissions()
+                val bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
+                val locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+                if (
+                    ScanResumePolicy.shouldPauseForLostEnvironment(
+                        hasPermissions = hasPermissions,
+                        bluetoothEnabled = bluetoothEnabled,
+                        locationServicesEnabled = locationServicesEnabled
+                    )
+                ) {
+                    Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
+                    pauseScanningKeepingIntent()
+                    return@launch
+                }
+                if (
+                    ScanResumePolicy.shouldRestartHardwareScan(
+                        hasPermissions = hasPermissions,
+                        bluetoothEnabled = bluetoothEnabled,
+                        locationServicesEnabled = locationServicesEnabled,
+                        hardwareScanning = bluetoothRepository.isHardwareScanRunning.first()
+                    )
+                ) {
+                    Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")
+                    try {
+                        bluetoothRepository.ensureHardwareScanning()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to restart Bluetooth scanning", e)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun refreshScanningNotification() {
+        if (isStopping.get() || scanJob?.isActive != true) {
+            return
+        }
+
+        val notification = createScanningNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                Constants.NOTIFICATION_ID_SCANNING,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            )
+        } else {
+            startForeground(Constants.NOTIFICATION_ID_SCANNING, notification)
+        }
+    }
+
+    private fun isAppInForeground(): Boolean {
+        return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+    }
+
+    private fun distanceLabelRes(distance: Distance): Int {
+        return when (distance) {
+            Distance.VERY_CLOSE -> R.string.distance_very_close
+            Distance.CLOSE -> R.string.distance_close
+            Distance.MODERATE -> R.string.distance_medium
+            Distance.FAR -> R.string.distance_far
         }
     }
 }

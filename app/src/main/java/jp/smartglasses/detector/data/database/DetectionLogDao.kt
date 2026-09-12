@@ -28,4 +28,13 @@ interface DetectionLogDao {
     
     @Query("SELECT COUNT(*) FROM detection_logs WHERE detectedAt >= :startOfDay")
     suspend fun getTodayCount(startOfDay: Long): Int
+
+    @Query("SELECT COUNT(*) FROM detection_logs")
+    suspend fun count(): Int
+
+    @Query(
+        "DELETE FROM detection_logs WHERE id IN " +
+            "(SELECT id FROM detection_logs ORDER BY detectedAt ASC LIMIT :count)"
+    )
+    suspend fun deleteOldest(count: Int)
 }

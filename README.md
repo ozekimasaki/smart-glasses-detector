@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ozekimasaki/smart-glasses-detector?display_name=tag)](https://github.com/ozekimasaki/smart-glasses-detector/releases)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Privacy Policy](https://img.shields.io/badge/Privacy-Policy-F47C20)](https://smart-glasses-detector-policy.maigo999.workers.dev)
 
 近くのスマートグラスを Bluetooth Low Energy (BLE) で検出し、通知と履歴で確認できる Android アプリです。ボタン 1 つで探索を開始でき、技術用語を使わない画面設計で一般ユーザーでも扱えることを目指しています。
@@ -13,22 +13,23 @@
 - **表示名**: スマートグラス検出
 - **アーキテクチャ**: MVVM + Clean Architecture（`presentation` → `domain` → `data`）
 - **UI**: Jetpack Compose + Material Design 3
-- BLE 広告（アドバタイズ）を監視し、Company ID とデバイス名パターンの 2 段階でスマートグラス候補を判定します。
+- BLE 広告（アドバタイズ）を監視し、Company ID / Service UUID / 広告ペイロード / デバイス名 / Appearance / ヒューリスティックでスマートグラス候補を判定します。
 
 ## 主な機能
 
-- BLE 広告データからスマートグラス候補を検出（Company ID / デバイス名パターン）
+- BLE 広告データからスマートグラス候補を検出（Company ID / Service UUID / ペイロード / デバイス名 / Appearance / ヒューリスティック）
 - 検出時に通知、バイブレーション、音で案内（設定で個別に切り替え可能）
 - 検出履歴を端末内（Room）に保存し、履歴画面で確認
 - スキャン感度（省電力 / 標準 / 高精度）の切り替え
 - 調査用の診断ログを JSON 形式でエクスポート・共有
 - フォアグラウンドサービスによるバックグラウンド探索の継続
+- 再起動・Bluetooth 再オン時の探索復帰
 - 初回起動時のオンボーディングと権限説明
 
 ## 対応環境
 
 - `minSdk`: 26 (Android 8.0)
-- `targetSdk` / `compileSdk`: 35 (Android 15)
+- `targetSdk`: 35 (Android 15) / `compileSdk`: 37
 - Android 12 以上: `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`
 - Android 11 以前: BLE 探索のため位置情報権限（`ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`、`maxSdkVersion=30`）が必要
 - `android.hardware.bluetooth_le` を必須機能として要求
@@ -37,14 +38,14 @@
 
 | カテゴリ | ライブラリ | バージョン |
 |---------|-----------|-----------|
-| 言語 | Kotlin | 2.0.21 |
-| UI | Jetpack Compose (BOM) | 2024.12.01 |
-| DI | Hilt | 2.53.1 |
-| DB | Room | 2.6.1 |
-| 設定永続化 | DataStore Preferences | 1.1.1 |
-| ナビゲーション | Navigation Compose | 2.8.5 |
-| ビルドシステム | Gradle KTS + `libs.versions.toml` (AGP 8.7.3) | Gradle 9.3.1 |
-| コード生成 | KSP | 2.0.21-1.0.28 |
+| 言語 | Kotlin | 2.4.20 |
+| UI | Jetpack Compose (BOM) | 2026.09.00 |
+| DI | Hilt | 2.60.1 |
+| DB | Room | 2.8.5 |
+| 設定永続化 | DataStore Preferences | 1.2.1 |
+| ナビゲーション | Navigation Compose | 2.10.1 |
+| ビルドシステム | Gradle KTS + `libs.versions.toml` (AGP 9.4.0) | Gradle 9.7.1 |
+| コード生成 | KSP | 2.3.12 |
 
 依存関係のバージョンは [`gradle/libs.versions.toml`](gradle/libs.versions.toml) で集中管理しています。
 
@@ -52,7 +53,7 @@
 
 1. Android Studio（AGP 8.7.3 に対応するバージョン）で本リポジトリを開くか、コマンドラインで Gradle Wrapper を利用します。
 2. JDK 17 以上を用意します（ビルドは `sourceCompatibility` / `jvmTarget = 11` を使用）。
-3. Android SDK Platform 35 をインストールします。
+3. Android SDK Platform 37 をインストールします（`compileSdk = 37`）。
 4. 依存関係は初回ビルド時に自動で解決されます。
 
 ## ビルド
@@ -117,6 +118,7 @@ Kotlin コンパイル（型チェックを兼ねる）は `assembleDebug` な�
 │   │   ├── data/            # bluetooth / database(Room) / preferences / repository / export
 │   │   ├── presentation/    # Compose 画面と ViewModel（main/history/settings/onboarding/about/privacy）
 │   │   ├── service/         # ScanningForegroundService
+│   │   ├── receiver/        # BootReceiver
 │   │   ├── ui/theme/        # Compose テーマ
 │   │   ├── util/            # Constants など
 │   │   ├── MainActivity.kt
@@ -146,7 +148,7 @@ Kotlin コンパイル（型チェックを兼ねる）は `assembleDebug` な�
 
 ## GitHub Release について
 
-このリポジトリの Release は公開配布にも使えますが、署名鍵は GitHub や repo に保存しません。署名済み APK / AAB を公開する場合は、ローカルの `keystore.properties` と keystore を使って生成してから Release に添付します。
+`versionName` と同じ tag（例: `v1.1.18`）を push すると、GitHub Actions が署名済み `app-release.apk` を [Releases](https://github.com/ozekimasaki/smart-glasses-detector/releases) に添付します。
 
 - 署名手順: [`docs/github-release-signing.md`](docs/github-release-signing.md)
 - Play 公開チェック: [`docs/play-release-checklist.md`](docs/play-release-checklist.md)

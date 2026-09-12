@@ -37,12 +37,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
+import jp.smartglasses.detector.domain.model.DetectionHistoryGrouping
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
 import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
@@ -55,12 +57,15 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
-                is HistoryEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is HistoryEvent.ShowMessage -> snackbarHostState.showSnackbar(
+                    resources.getString(event.messageResId)
+                )
                 is HistoryEvent.ShareDiagnosticLogs -> {
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "application/json"
@@ -71,7 +76,7 @@ fun HistoryScreen(
                     context.startActivity(
                         Intent.createChooser(
                             shareIntent,
-                            "調査ログを共有"
+                            resources.getString(R.string.history_share_diagnostic)
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }
@@ -178,8 +183,13 @@ fun HistoryScreen(
 
 @Composable
 private fun DateHeader(label: String) {
+    val text = when (label) {
+        DetectionHistoryGrouping.TODAY_LABEL -> stringResource(R.string.history_today)
+        DetectionHistoryGrouping.YESTERDAY_LABEL -> stringResource(R.string.history_yesterday)
+        else -> label
+    }
     Text(
-        text = label,
+        text = text,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

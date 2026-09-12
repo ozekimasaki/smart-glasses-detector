@@ -1,5 +1,13 @@
 package jp.smartglasses.detector.domain.model
 
+internal fun DiagnosticLog.hasPayload(): Boolean {
+    return deviceAddress.isNotBlank() ||
+        advertisedName.isNotBlank() ||
+        companyIds.isNotBlank() ||
+        serviceUuids.isNotBlank() ||
+        advertisementDataHex.isNotBlank()
+}
+
 internal fun DiagnosticLog.deduplicationKey(): String {
     val normalizedAddress = deviceAddress.trim().uppercase()
     if (normalizedAddress.isNotEmpty()) {

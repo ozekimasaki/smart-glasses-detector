@@ -1,6 +1,6 @@
 package jp.smartglasses.detector.domain.service
 
 interface ScanServiceController {
-    fun startScanService()
+    fun startScanService(fromBackground: Boolean = false)
     fun stopScanService()
 }

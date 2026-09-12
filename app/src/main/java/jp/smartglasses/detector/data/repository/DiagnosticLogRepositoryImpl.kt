@@ -4,6 +4,7 @@ import jp.smartglasses.detector.data.database.DiagnosticLogDao
 import jp.smartglasses.detector.data.database.DiagnosticLogEntity
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.util.Constants
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,6 +14,10 @@ class DiagnosticLogRepositoryImpl @Inject constructor(
 ) : DiagnosticLogRepository {
     override suspend fun insertLog(log: DiagnosticLog) {
         dao.insertLog(log.toEntity())
+        val overflow = dao.count() - Constants.DIAGNOSTIC_LOG_KEEP_COUNT
+        if (overflow > 0) {
+            dao.deleteOldest(overflow)
+        }
     }
 
     override suspend fun getLatestLogs(limit: Int): List<DiagnosticLog> {

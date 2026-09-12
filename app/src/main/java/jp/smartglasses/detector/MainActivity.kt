@@ -1,6 +1,7 @@
 package jp.smartglasses.detector
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,13 +13,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import jp.smartglasses.detector.domain.usecase.ResumeScanningIfNeededUseCase
 import jp.smartglasses.detector.presentation.about.AboutScreen
 import jp.smartglasses.detector.presentation.history.HistoryScreen
 import jp.smartglasses.detector.presentation.main.MainScreen
@@ -27,18 +30,39 @@ import jp.smartglasses.detector.presentation.onboarding.OnboardingScreen
 import jp.smartglasses.detector.presentation.onboarding.OnboardingViewModel
 import jp.smartglasses.detector.presentation.privacy.PrivacyScreen
 import jp.smartglasses.detector.presentation.settings.SettingsScreen
-import jp.smartglasses.detector.ui.theme.スマートグラス検出Theme
+import jp.smartglasses.detector.ui.theme.AppTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var resumeScanningIfNeeded: ResumeScanningIfNeededUseCase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            スマートグラス検出Theme {
+            AppTheme {
                 AppNavigation()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                resumeScanningIfNeeded(appInForeground = true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to resume scanning when activity started", e)
+            }
+        }
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
     }
 }
 

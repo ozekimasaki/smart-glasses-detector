@@ -20,13 +20,18 @@ internal class DetectionCooldownGate(
             return false
         }
 
-        val lastManufacturerDetection = lastManufacturerDetections[manufacturerKey]
-        if (lastManufacturerDetection != null && now - lastManufacturerDetection < sameManufacturerCooldownMs) {
-            return false
+        val distinguishableDevice = deviceKey.startsWith("address:")
+        if (!distinguishableDevice) {
+            val lastManufacturerDetection = lastManufacturerDetections[manufacturerKey]
+            if (lastManufacturerDetection != null &&
+                now - lastManufacturerDetection < sameManufacturerCooldownMs
+            ) {
+                return false
+            }
+            lastManufacturerDetections[manufacturerKey] = now
         }
 
         lastDeviceDetections[deviceKey] = now
-        lastManufacturerDetections[manufacturerKey] = now
         true
     }
 
