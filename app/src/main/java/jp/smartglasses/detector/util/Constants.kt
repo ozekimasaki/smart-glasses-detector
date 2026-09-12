@@ -37,7 +37,8 @@ object Constants {
     internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
     // 未知メーカーでも Smart Glasses / スマートグラスと名乗る広告はカタログ距離で拾う
-    internal val GENERIC_STRONG_GLASSES_NAME_REGEXES = listOf(
+    internal val GENERIC_STRONG_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+        listOf(
         Regex("""(?i)smart[\s-]?eye[\s-]?glass"""),
         Regex("""(?i)smart[\s-]?glass"""),
         Regex("""(?i)\b(?:ai|ar|xr|mr)[\s-]?eye[\s-]?glass"""),
@@ -163,10 +164,12 @@ object Constants {
         Regex("""스마트글래스"""),
         Regex("""스마트글라스"""),
         Regex("""스마트안경""")
-    )
+        )
+    }
 
     // glasses / HUD / アイウェアはファッション眼鏡や汎用HUDに当たるため近い距離だけ
-    internal val GENERIC_WEAK_GLASSES_NAME_REGEXES = listOf(
+    internal val GENERIC_WEAK_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+        listOf(
         Regex("""(?i)eye-?wear"""),
         Regex("""(?i)\beyewear\b"""),
         Regex("""(?i)spectacles"""),
@@ -174,12 +177,15 @@ object Constants {
         Regex("""(?i)\bglasses\b"""),
         Regex("""(?i)\bhud\b"""),
         Regex("""アイウェア""")
-    )
+        )
+    }
 
-    internal val GENERIC_GLASSES_NAME_REGEXES =
+    internal val GENERIC_GLASSES_NAME_REGEXES: List<Regex> by lazy {
         GENERIC_STRONG_GLASSES_NAME_REGEXES + GENERIC_WEAK_GLASSES_NAME_REGEXES
+    }
 
-    internal val GENERIC_NON_GLASSES_NAME_REGEXES = listOf(
+    internal val GENERIC_NON_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+        listOf(
         Regex("""(?i)airpods"""),
         Regex("""(?i)pixel\s*buds"""),
         Regex("""(?i)galaxy\s*buds"""),
@@ -200,17 +206,21 @@ object Constants {
         Regex("""(?i)galaxy\s*xr"""),
         Regex("""(?i)project\s*moohan"""),
         Regex("""(?i)thinkreality\s*vrx""")
-    )
+        )
+    }
 
     // メーカーデータの ASCII に GLASS / EYEWEAR が載っている無名広告（未知メーカー）
     // HOURGLASS / SUNGLASS は単語境界や区切りが無いので当てない
-    internal val GENERIC_STRONG_PAYLOAD_REGEXES = listOf(
+    internal val GENERIC_STRONG_PAYLOAD_REGEXES: List<Regex> by lazy {
+        listOf(
         Regex("""(?i)(?:^|[\s_\-./])glass(?:es)?(?:$|[\s_\-./0-9])"""),
         Regex("""(?i)(?:^|[\s_\-./])eyewear(?:$|[\s_\-./0-9])"""),
         Regex("""(?i)smart[\s-_]?glass""")
-    )
+        )
+    }
 
-    internal val SMART_GLASSES_DETECTION_RULES = listOf(
+    internal val SMART_GLASSES_DETECTION_RULES: List<DetectionRule> by lazy {
+        listOf(
         DetectionRule(
             manufacturerName = "Seiko Epson",
             companyIds = setOf(0x0040),
@@ -1674,7 +1684,8 @@ object Constants {
             namePatterns = listOf("Cinemizer", "ZEISS Cinemizer"),
             allowCompanyIdOnly = false
         )
-    )
+        )
+    }
 }
 
 enum class ScanSensitivity {

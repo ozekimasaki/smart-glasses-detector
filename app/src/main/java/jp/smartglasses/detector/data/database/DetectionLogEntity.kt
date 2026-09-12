@@ -1,9 +1,13 @@
 package jp.smartglasses.detector.data.database
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "detection_logs")
+@Entity(
+    tableName = "detection_logs",
+    indices = [Index(value = ["detectedAt"])]
+)
 data class DetectionLogEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

@@ -27,7 +27,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "smart_glasses_detector_db"
-        ).addMigrations(MIGRATION_1_2)
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
@@ -57,6 +57,17 @@ object DatabaseModule {
                     detectedAt INTEGER NOT NULL
                 )
                 """.trimIndent()
+            )
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_detection_logs_detectedAt` ON `detection_logs` (`detectedAt`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_diagnostic_logs_detectedAt` ON `diagnostic_logs` (`detectedAt`)"
             )
         }
     }

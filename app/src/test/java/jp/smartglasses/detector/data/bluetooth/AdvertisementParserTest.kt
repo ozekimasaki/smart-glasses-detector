@@ -170,6 +170,23 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `encodeHex round trips little endian advertisements`() {
+        val bytes = byteArrayOf(0x05, 0xFF.toByte(), 0xAB.toByte(), 0x01, 0x00, 0x00)
+
+        assertEquals("05FFAB010000", AdvertisementParser.encodeHex(bytes))
+        assertTrue(bytes.contentEquals(AdvertisementParser.hexToBytes("05FFAB010000")!!))
+        assertEquals(setOf(0x01AB), AdvertisementParser.parse(bytes).companyIds)
+    }
+
+    @Test
+    fun `detects activelook manufacturer data suffix from bytes`() {
+        val bytes = AdvertisementParser.hexToBytes("05FFFADA08F2")
+
+        assertTrue(AdvertisementParser.hasManufacturerDataSuffix(bytes, 0x08F2))
+        assertFalse(AdvertisementParser.hasManufacturerDataSuffix(byteArrayOf(0x05, 0x16, 0x45, 0xFE.toByte(), 0x08, 0xF2.toByte()), 0x08F2))
+    }
+
+    @Test
     fun `merges advertisement fields from truncated packets`() {
         val merged = AdvertisementParser.parseHex("030345FE").merge(
             AdvertisementParser.parseAdvertisingDataMap(

@@ -68,6 +68,30 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `bytes-only advertisement still detects meta company id`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:B1",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementBytes = byteArrayOf(
+                    0x05,
+                    0xFF.toByte(),
+                    0xAB.toByte(),
+                    0x01,
+                    0x00,
+                    0x00
+                )
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `unnamed meta company id remains detectable`() {
         val detected = classifier.classify(
             DetectionSignal(

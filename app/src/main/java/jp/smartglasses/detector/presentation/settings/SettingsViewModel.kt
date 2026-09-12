@@ -18,19 +18,19 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
     
     val backgroundEnabled = settingsRepository.backgroundEnabled
-        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     
     val notificationEnabled = settingsRepository.notificationEnabled
-        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     
     val vibrationEnabled = settingsRepository.vibrationEnabled
-        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     
     val soundEnabled = settingsRepository.soundEnabled
-        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     
     val sensitivity = settingsRepository.sensitivity
-        .stateIn(viewModelScope, SharingStarted.Lazily, ScanSensitivity.BALANCED)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScanSensitivity.BALANCED)
     
     fun setBackgroundEnabled(enabled: Boolean) {
         viewModelScope.launch {

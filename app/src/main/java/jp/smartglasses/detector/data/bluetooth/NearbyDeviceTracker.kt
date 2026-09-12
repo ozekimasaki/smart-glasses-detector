@@ -9,6 +9,8 @@ internal class NearbyDeviceTracker(
 ) {
     private val lock = Any()
     private val devices = LinkedHashMap<String, NearbyEntry>()
+    private var cachedFingerprint: String? = null
+    private var cachedSnapshot: List<SmartGlassesDevice> = emptyList()
 
     fun record(device: SmartGlassesDevice): List<SmartGlassesDevice> = synchronized(lock) {
         val now = clock()
@@ -22,6 +24,8 @@ internal class NearbyDeviceTracker(
 
     fun clear(): List<SmartGlassesDevice> = synchronized(lock) {
         devices.clear()
+        cachedFingerprint = null
+        cachedSnapshot = emptyList()
         emptyList()
     }
 
@@ -35,9 +39,31 @@ internal class NearbyDeviceTracker(
 
     private fun snapshotLocked(now: Long): List<SmartGlassesDevice> {
         pruneExpiredEntries(now)
-        return devices.values
+        val fingerprint = buildFingerprint()
+        cachedFingerprint?.let { previous ->
+            if (previous == fingerprint) {
+                return cachedSnapshot
+            }
+        }
+        val snapshot = devices.values
             .sortedByDescending { entry -> entry.device.rssi }
             .map { entry -> entry.device }
+        cachedFingerprint = fingerprint
+        cachedSnapshot = snapshot
+        return snapshot
+    }
+
+    private fun buildFingerprint(): String {
+        return buildString(devices.size * 24) {
+            devices.forEach { (key, entry) ->
+                append(key)
+                append('\u0001')
+                append(entry.device.rssi)
+                append('\u0001')
+                append(entry.device.name)
+                append('\u0002')
+            }
+        }
     }
 
     private fun pruneExpiredEntries(now: Long) {

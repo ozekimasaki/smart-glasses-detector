@@ -11,6 +11,8 @@ data class SeenAdvertiserSnapshot(
     val deviceName: String? = null,
     val advertisementDataHex: String = "",
     val extraPayloadHex: String = "",
+    val advertisementBytes: ByteArray = byteArrayOf(),
+    val extraPayloadBytes: ByteArray = byteArrayOf(),
     val lastSeenAtMs: Long = 0L
 )
 
@@ -27,6 +29,8 @@ object SeenAdvertiserPolicy {
         deviceName: String? = null,
         advertisementDataHex: String = "",
         extraPayloadHex: String = "",
+        advertisementBytes: ByteArray = byteArrayOf(),
+        extraPayloadBytes: ByteArray = byteArrayOf(),
         nowMs: Long = 0L
     ): SeenAdvertiserSnapshot {
         return SeenAdvertiserSnapshot(
@@ -51,6 +55,14 @@ object SeenAdvertiserPolicy {
                 existing?.extraPayloadHex.orEmpty(),
                 extraPayloadHex
             ),
+            advertisementBytes = mergeAdvertisementBytes(
+                existing?.advertisementBytes ?: byteArrayOf(),
+                advertisementBytes
+            ),
+            extraPayloadBytes = mergeAdvertisementBytes(
+                existing?.extraPayloadBytes ?: byteArrayOf(),
+                extraPayloadBytes
+            ),
             lastSeenAtMs = if (nowMs > 0L) {
                 nowMs
             } else {
@@ -73,6 +85,41 @@ object SeenAdvertiserPolicy {
             else -> existing + incoming
         }
         return if (kept.length <= maxChars) kept else kept.take(maxChars)
+    }
+
+    fun mergeAdvertisementBytes(
+        existing: ByteArray,
+        incoming: ByteArray,
+        maxBytes: Int = MAX_ADVERTISEMENT_HEX_CHARS / 2
+    ): ByteArray {
+        val kept = when {
+            incoming.isEmpty() -> existing
+            existing.isEmpty() -> incoming
+            containsBytes(existing, incoming) || containsBytes(incoming, existing) -> {
+                if (incoming.size >= existing.size) incoming else existing
+            }
+            else -> existing + incoming
+        }
+        return if (kept.size <= maxBytes) kept else kept.copyOf(maxBytes)
+    }
+
+    private fun containsBytes(haystack: ByteArray, needle: ByteArray): Boolean {
+        if (needle.isEmpty()) {
+            return true
+        }
+        if (needle.size > haystack.size) {
+            return false
+        }
+        val lastStart = haystack.size - needle.size
+        outer@ for (start in 0..lastStart) {
+            for (index in needle.indices) {
+                if (haystack[start + index] != needle[index]) {
+                    continue@outer
+                }
+            }
+            return true
+        }
+        return false
     }
 
     fun isExpired(lastSeenAtMs: Long, nowMs: Long, ttlMs: Long): Boolean {

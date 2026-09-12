@@ -13,11 +13,7 @@ class DiagnosticLogRepositoryImpl @Inject constructor(
     private val dao: DiagnosticLogDao
 ) : DiagnosticLogRepository {
     override suspend fun insertLog(log: DiagnosticLog) {
-        dao.insertLog(log.toEntity())
-        val overflow = dao.count() - Constants.DIAGNOSTIC_LOG_KEEP_COUNT
-        if (overflow > 0) {
-            dao.deleteOldest(overflow)
-        }
+        dao.insertAndTrim(log.toEntity(), Constants.DIAGNOSTIC_LOG_KEEP_COUNT)
     }
 
     override suspend fun getLatestLogs(limit: Int): List<DiagnosticLog> {

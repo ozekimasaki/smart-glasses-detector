@@ -18,6 +18,9 @@ internal data class DetectionSignal(
     val serviceUuids: List<String> = emptyList(),
     val advertisementDataHex: String = "",
     val extraPayloadHex: String = "",
+    val advertisementBytes: ByteArray = byteArrayOf(),
+    val extraPayloadBytes: ByteArray = byteArrayOf(),
+    val parsedAdvertisement: ParsedAdvertisement? = null,
     val appearance: Int? = null,
     val deviceClass: Int? = null
 )
@@ -29,11 +32,14 @@ internal class SmartGlassesClassifier(
     private val genericNonGlassesNameRegexes: List<Regex> = Constants.GENERIC_NON_GLASSES_NAME_REGEXES,
     private val genericStrongPayloadRegexes: List<Regex> = Constants.GENERIC_STRONG_PAYLOAD_REGEXES
 ) {
+    private val ruleIndex = DetectionRuleIndex(detectionRules)
+
     fun classify(
         signal: DetectionSignal,
         sensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     ): SmartGlassesDevice? {
-        val parsedAdvertisement = AdvertisementParser.parseHex(signal.advertisementDataHex)
+        val parsedAdvertisement = signal.parsedAdvertisement
+            ?: AdvertisementParser.parse(signal.advertisementBytesOrHex())
         val resolvedName = signal.deviceName
             ?: parsedAdvertisement.completeName
             ?: parsedAdvertisement.shortName
@@ -41,8 +47,9 @@ internal class SmartGlassesClassifier(
         val resolved = signal.copy(
             deviceName = resolvedName,
             appearance = resolvedAppearance,
-            serviceUuids = (signal.serviceUuids + parsedAdvertisement.serviceUuids).distinct(),
-            companyIds = signal.companyIds + parsedAdvertisement.companyIds
+            serviceUuids = BleUuid.merge(signal.serviceUuids, parsedAdvertisement.serviceUuids),
+            companyIds = signal.companyIds + parsedAdvertisement.companyIds,
+            parsedAdvertisement = parsedAdvertisement
         )
 
         return withEligibleRssi(
@@ -111,11 +118,11 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByCompanyId(signal: DetectionSignal): SmartGlassesDevice? {
-        for (rule in detectionRules) {
-            if (!rule.allowCompanyIdOnly) {
-                continue
-            }
+        if (signal.companyIds.isEmpty()) {
+            return null
+        }
 
+        for (rule in ruleIndex.companyIdOnlyRules(signal.companyIds)) {
             val matchedCompanyId = signal.companyIds.firstOrNull { companyId ->
                 companyId in rule.companyIds
             } ?: continue
@@ -140,11 +147,7 @@ internal class SmartGlassesClassifier(
             return null
         }
 
-        for (rule in detectionRules) {
-            if (rule.serviceUuids.isEmpty()) {
-                continue
-            }
-
+        for (rule in ruleIndex.uuidRules(signal.serviceUuids)) {
             val matched = signal.serviceUuids.any { signalUuid ->
                 rule.serviceUuids.any { ruleUuid -> BleUuid.matches(signalUuid, ruleUuid) }
             }
@@ -166,25 +169,27 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByPayload(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadHex = signal.payloadHex()
-        if (payloadHex.isBlank()) {
+        val payloadBytes = signal.payloadBytes()
+        if (payloadBytes.isEmpty()) {
             return null
         }
 
-        val asciiPayload = AdvertisementParser.asciiFromHex(payloadHex)
-        val compactHex = payloadHex.replace(" ", "").uppercase()
-
-        for (rule in detectionRules) {
-            if (rule.payloadPatterns.isEmpty()) {
-                continue
+        val asciiPayload = AdvertisementParser.asciiFromBytes(payloadBytes)
+        var compactHex: String? = null
+        val compactHexProvider = {
+            compactHex ?: AdvertisementParser.encodeHex(payloadBytes).also { encoded ->
+                compactHex = encoded
             }
+        }
 
+        for (rule in ruleIndex.payloadRules()) {
             val matched = rule.payloadPatterns.any { pattern ->
-                asciiPayload.contains(pattern, ignoreCase = true) ||
-                    compactHex.contains(
-                        pattern.replace("_", "").replace(" ", "").uppercase(),
-                        ignoreCase = false
-                    )
+                AdvertisementParser.matchesPayloadPattern(
+                    asciiPayload = asciiPayload,
+                    payloadBytes = payloadBytes,
+                    pattern = pattern,
+                    compactHex = compactHexProvider
+                )
             }
             if (!matched || rule.excludesName(signal.deviceName)) {
                 continue
@@ -204,18 +209,14 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByManufacturerSuffix(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadHex = signal.payloadHex()
-        if (payloadHex.isBlank()) {
+        val payloadBytes = signal.payloadBytes()
+        if (payloadBytes.isEmpty()) {
             return null
         }
 
-        for (rule in detectionRules) {
-            if (rule.manufacturerDataSuffixes.isEmpty()) {
-                continue
-            }
-
+        for (rule in ruleIndex.suffixRules()) {
             val matched = rule.manufacturerDataSuffixes.any { suffix ->
-                AdvertisementParser.hasManufacturerDataSuffix(payloadHex, suffix)
+                AdvertisementParser.hasManufacturerDataSuffix(payloadBytes, suffix)
             }
             if (!matched || rule.excludesName(signal.deviceName)) {
                 continue
@@ -237,7 +238,7 @@ internal class SmartGlassesClassifier(
     private fun detectByDeviceName(signal: DetectionSignal): SmartGlassesDevice? {
         val deviceName = signal.deviceName ?: return null
 
-        for (rule in detectionRules) {
+        for (rule in ruleIndex.nameRules()) {
             if (rule.excludesName(deviceName) || !rule.matchesDeviceName(deviceName)) {
                 continue
             }
@@ -262,9 +263,7 @@ internal class SmartGlassesClassifier(
             return null
         }
 
-        val matchingRules = detectionRules.filter { rule ->
-            signal.companyIds.any { companyId -> companyId in rule.companyIds }
-        }
+        val matchingRules = ruleIndex.companyIdRules(signal.companyIds)
         if (matchingRules.isNotEmpty() && matchingRules.all { rule -> rule.excludesName(signal.deviceName) }) {
             return null
         }
@@ -289,15 +288,15 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByHeuristicPayload(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadHex = signal.payloadHex()
-        if (payloadHex.isBlank()) {
+        val payloadBytes = signal.payloadBytes()
+        if (payloadBytes.isEmpty()) {
             return null
         }
         if (isExcludedHeuristic(signal)) {
             return null
         }
 
-        val asciiPayload = AdvertisementParser.asciiFromHex(payloadHex)
+        val asciiPayload = AdvertisementParser.asciiFromBytes(payloadBytes)
         if (genericStrongPayloadRegexes.none { regex -> regex.containsMatchIn(asciiPayload) }) {
             return null
         }
@@ -346,9 +345,7 @@ internal class SmartGlassesClassifier(
             return true
         }
 
-        val matchingRules = detectionRules.filter { rule ->
-            signal.companyIds.any { companyId -> companyId in rule.companyIds }
-        }
+        val matchingRules = ruleIndex.companyIdRules(signal.companyIds)
         return matchingRules.isNotEmpty() && matchingRules.all { rule ->
             rule.excludesName(signal.deviceName)
         }
@@ -399,5 +396,29 @@ internal class SmartGlassesClassifier(
 }
 
 internal fun DetectionSignal.payloadHex(): String {
-    return advertisementDataHex + extraPayloadHex
+    if (advertisementDataHex.isNotEmpty() || extraPayloadHex.isNotEmpty()) {
+        return advertisementDataHex + extraPayloadHex
+    }
+    return AdvertisementParser.encodeHex(advertisementBytes) +
+        AdvertisementParser.encodeHex(extraPayloadBytes)
+}
+
+internal fun DetectionSignal.payloadBytes(): ByteArray {
+    if (advertisementBytes.isNotEmpty() || extraPayloadBytes.isNotEmpty()) {
+        if (extraPayloadBytes.isEmpty()) {
+            return advertisementBytes
+        }
+        if (advertisementBytes.isEmpty()) {
+            return extraPayloadBytes
+        }
+        return advertisementBytes + extraPayloadBytes
+    }
+    return AdvertisementParser.hexToBytes(payloadHex()) ?: byteArrayOf()
+}
+
+internal fun DetectionSignal.advertisementBytesOrHex(): ByteArray? {
+    if (advertisementBytes.isNotEmpty()) {
+        return advertisementBytes
+    }
+    return AdvertisementParser.hexToBytes(advertisementDataHex)
 }

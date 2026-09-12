@@ -139,34 +139,46 @@ class DiagnosticSignalSupportTest {
 
     @Test
     fun `classified smart glasses still produce a diagnostic log`() {
-        val processed = ScanSignalProcessor().process(
-            DetectionSignal(
-                deviceName = "Ray-Ban Meta",
-                address = "AA:BB:CC:DD:EE:10",
-                companyIds = setOf(0x01AB),
-                rssi = -60,
-                advertisementDataHex = "020106"
-            )
+        val signal = DetectionSignal(
+            deviceName = "Ray-Ban Meta",
+            address = "AA:BB:CC:DD:EE:10",
+            companyIds = setOf(0x01AB),
+            rssi = -60,
+            advertisementDataHex = "020106"
         )
+        val processed = ScanSignalProcessor().process(signal)
 
         assertNotNull(processed.detectedDevice)
-        assertEquals("Ray-Ban Meta", processed.diagnosticLog.advertisedName)
+        assertEquals("Ray-Ban Meta", signal.toDiagnosticLog().advertisedName)
     }
 
     @Test
     fun `classic delayed extra name classifies mentra nimo`() {
-        val processed = ScanSignalProcessor().process(
-            ClassicDiscoverySignal(
-                deviceName = null,
-                address = "AA:BB:CC:DD:EE:99",
-                rssi = -55,
-                extraName = "NIMO-1234"
-            ).toDetectionSignal()
-        )
+        val signal = ClassicDiscoverySignal(
+            deviceName = null,
+            address = "AA:BB:CC:DD:EE:99",
+            rssi = -55,
+            extraName = "NIMO-1234"
+        ).toDetectionSignal()
+        val processed = ScanSignalProcessor().process(signal)
 
         assertEquals("Mentra", processed.detectedDevice?.manufacturer?.name)
         assertEquals(DetectionMethod.DEVICE_NAME, processed.detectedDevice?.manufacturer?.detectionMethod)
-        assertEquals("NIMO-1234", processed.diagnosticLog.advertisedName)
+        assertEquals("NIMO-1234", signal.toDiagnosticLog().advertisedName)
+    }
+
+    @Test
+    fun `address-based diagnostic key does not require advertisement hex`() {
+        val signal = DetectionSignal(
+            deviceName = null,
+            address = "aa:bb:cc:dd:ee:ff",
+            companyIds = emptySet(),
+            rssi = -60,
+            advertisementBytes = byteArrayOf(0x02, 0x01, 0x06)
+        )
+
+        assertEquals("address:AA:BB:CC:DD:EE:FF", signal.diagnosticDeduplicationKey())
+        assertEquals("020106", signal.toDiagnosticLog().advertisementDataHex)
     }
 
     @Test

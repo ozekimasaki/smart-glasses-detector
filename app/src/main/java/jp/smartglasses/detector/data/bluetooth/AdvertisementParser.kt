@@ -37,6 +37,10 @@ internal object AdvertisementParser {
     const val APPEARANCE_EYEGLASSES_MIN = 0x01C0
     const val APPEARANCE_EYEGLASSES_MAX = 0x01FF
 
+    private val HEX_DIGITS = charArrayOf(
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    )
+
     fun isEyeglassesAppearance(appearance: Int?): Boolean {
         val value = appearance ?: return false
         return value in APPEARANCE_EYEGLASSES_MIN..APPEARANCE_EYEGLASSES_MAX
@@ -53,37 +57,18 @@ internal object AdvertisementParser {
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
 
-        forEachRecord(bytes) { type, data ->
-            when (type) {
-                AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
-                AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
-                AD_TYPE_BROADCAST_NAME -> completeName = completeName ?: decodeUtf8(data)
-                AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
-                AD_TYPE_INCOMPLETE_16BIT_UUIDS,
-                AD_TYPE_COMPLETE_16BIT_UUIDS -> {
-                    serviceUuids += parseUuid16List(data)
-                }
-                AD_TYPE_INCOMPLETE_32BIT_UUIDS,
-                AD_TYPE_COMPLETE_32BIT_UUIDS -> {
-                    serviceUuids += parseUuid32List(data)
-                }
-                AD_TYPE_INCOMPLETE_128BIT_UUIDS,
-                AD_TYPE_COMPLETE_128BIT_UUIDS -> {
-                    serviceUuids += parseUuid128List(data)
-                }
-                AD_TYPE_SERVICE_DATA_16BIT -> if (data.size >= 2) {
-                    serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, 0)))
-                }
-                AD_TYPE_SERVICE_DATA_32BIT -> if (data.size >= 4) {
-                    serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, 0)))
-                }
-                AD_TYPE_SERVICE_DATA_128BIT -> parseUuid128(data, 0)?.let { uuid ->
-                    serviceUuids += uuid
-                }
-                AD_TYPE_MANUFACTURER_SPECIFIC -> if (data.size >= 2) {
-                    companyIds += unsignedLe16(data, 0)
-                }
-            }
+        bytes.forEachRecord { type, start, end ->
+            consumeRecord(
+                type = type,
+                data = bytes,
+                start = start,
+                end = end,
+                appearance = { value -> appearance = appearance ?: value },
+                completeName = { value -> completeName = completeName ?: value },
+                shortName = { value -> shortName = shortName ?: value },
+                serviceUuids = serviceUuids,
+                companyIds = companyIds
+            )
         }
 
         return ParsedAdvertisement(
@@ -103,36 +88,17 @@ internal object AdvertisementParser {
         val companyIds = mutableSetOf<Int>()
 
         for ((type, data) in entries) {
-            when (type) {
-                AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
-                AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
-                AD_TYPE_BROADCAST_NAME -> completeName = completeName ?: decodeUtf8(data)
-                AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
-                AD_TYPE_INCOMPLETE_16BIT_UUIDS,
-                AD_TYPE_COMPLETE_16BIT_UUIDS -> {
-                    serviceUuids += parseUuid16List(data)
-                }
-                AD_TYPE_INCOMPLETE_32BIT_UUIDS,
-                AD_TYPE_COMPLETE_32BIT_UUIDS -> {
-                    serviceUuids += parseUuid32List(data)
-                }
-                AD_TYPE_INCOMPLETE_128BIT_UUIDS,
-                AD_TYPE_COMPLETE_128BIT_UUIDS -> {
-                    serviceUuids += parseUuid128List(data)
-                }
-                AD_TYPE_SERVICE_DATA_16BIT -> if (data.size >= 2) {
-                    serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, 0)))
-                }
-                AD_TYPE_SERVICE_DATA_32BIT -> if (data.size >= 4) {
-                    serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, 0)))
-                }
-                AD_TYPE_SERVICE_DATA_128BIT -> parseUuid128(data, 0)?.let { uuid ->
-                    serviceUuids += uuid
-                }
-                AD_TYPE_MANUFACTURER_SPECIFIC -> if (data.size >= 2) {
-                    companyIds += unsignedLe16(data, 0)
-                }
-            }
+            consumeRecord(
+                type = type,
+                data = data,
+                start = 0,
+                end = data.size,
+                appearance = { value -> appearance = appearance ?: value },
+                completeName = { value -> completeName = completeName ?: value },
+                shortName = { value -> shortName = shortName ?: value },
+                serviceUuids = serviceUuids,
+                companyIds = companyIds
+            )
         }
 
         return ParsedAdvertisement(
@@ -149,15 +115,20 @@ internal object AdvertisementParser {
     }
 
     fun hasManufacturerDataSuffix(hex: String, suffix: Int): Boolean {
-        val bytes = hexToBytes(hex) ?: return false
+        return hasManufacturerDataSuffix(hexToBytes(hex), suffix)
+    }
+
+    fun hasManufacturerDataSuffix(bytes: ByteArray?, suffix: Int): Boolean {
+        if (bytes == null || bytes.isEmpty()) {
+            return false
+        }
         val high = (suffix shr 8) and 0xFF
         val low = suffix and 0xFF
         var matched = false
-        forEachRecord(bytes) { type, data ->
-            if (type == AD_TYPE_MANUFACTURER_SPECIFIC && data.size >= 4) {
-                val last = data.size - 1
-                if ((data[last - 1].toInt() and 0xFF) == high &&
-                    (data[last].toInt() and 0xFF) == low
+        bytes.forEachRecord { type, start, end ->
+            if (type == AD_TYPE_MANUFACTURER_SPECIFIC && end - start >= 4) {
+                if ((bytes[end - 2].toInt() and 0xFF) == high &&
+                    (bytes[end - 1].toInt() and 0xFF) == low
                 ) {
                     matched = true
                 }
@@ -167,8 +138,11 @@ internal object AdvertisementParser {
     }
 
     fun asciiFromHex(hex: String): String {
-        val bytes = hexToBytes(hex) ?: return ""
-        return buildString {
+        return asciiFromBytes(hexToBytes(hex) ?: return "")
+    }
+
+    fun asciiFromBytes(bytes: ByteArray): String {
+        return buildString(bytes.size) {
             for (byte in bytes) {
                 val code = byte.toInt() and 0xFF
                 if (code in 0x20..0x7E) {
@@ -180,109 +154,216 @@ internal object AdvertisementParser {
         }
     }
 
+    fun encodeHex(bytes: ByteArray): String {
+        if (bytes.isEmpty()) {
+            return ""
+        }
+        val chars = CharArray(bytes.size * 2)
+        var index = 0
+        for (byte in bytes) {
+            val value = byte.toInt() and 0xFF
+            chars[index++] = HEX_DIGITS[value ushr 4]
+            chars[index++] = HEX_DIGITS[value and 0x0F]
+        }
+        return String(chars)
+    }
+
     fun encodeManufacturerSpecificTlv(companyId: Int, payload: ByteArray = byteArrayOf()): String {
+        return encodeHex(encodeManufacturerSpecificTlvBytes(companyId, payload))
+    }
+
+    fun encodeManufacturerSpecificTlvBytes(
+        companyId: Int,
+        payload: ByteArray = byteArrayOf()
+    ): ByteArray {
         val payloadSize = minOf(payload.size, 253)
         val length = 1 + 2 + payloadSize
-        return buildString(length * 2) {
-            append(length.toHexByte())
-            append("FF")
-            append((companyId and 0xFF).toHexByte())
-            append(((companyId shr 8) and 0xFF).toHexByte())
-            for (index in 0 until payloadSize) {
-                append((payload[index].toInt() and 0xFF).toHexByte())
-            }
+        val encoded = ByteArray(1 + length)
+        encoded[0] = length.toByte()
+        encoded[1] = AD_TYPE_MANUFACTURER_SPECIFIC.toByte()
+        encoded[2] = (companyId and 0xFF).toByte()
+        encoded[3] = ((companyId shr 8) and 0xFF).toByte()
+        if (payloadSize > 0) {
+            System.arraycopy(payload, 0, encoded, 4, payloadSize)
         }
+        return encoded
     }
 
     fun hexToBytes(hex: String): ByteArray? {
         val normalized = hex.replace(" ", "").replace("_", "")
-        if (normalized.isEmpty() || normalized.length % 2 != 0) {
-            return null
-        }
-        if (!normalized.all { char ->
-                char.isDigit() || char in 'a'..'f' || char in 'A'..'F'
-            }
-        ) {
+        val length = normalized.length
+        if (length == 0 || length % 2 != 0) {
             return null
         }
 
-        return ByteArray(normalized.length / 2) { index ->
-            normalized.substring(index * 2, index * 2 + 2).toInt(16).toByte()
+        val bytes = ByteArray(length / 2)
+        var index = 0
+        while (index < length) {
+            val high = hexNibble(normalized[index])
+            val low = hexNibble(normalized[index + 1])
+            if (high < 0 || low < 0) {
+                return null
+            }
+            bytes[index / 2] = ((high shl 4) or low).toByte()
+            index += 2
+        }
+        return bytes
+    }
+
+    fun containsBytes(haystack: ByteArray, needle: ByteArray): Boolean {
+        if (needle.isEmpty()) {
+            return true
+        }
+        if (needle.size > haystack.size) {
+            return false
+        }
+        val lastStart = haystack.size - needle.size
+        outer@ for (start in 0..lastStart) {
+            for (index in needle.indices) {
+                if (haystack[start + index] != needle[index]) {
+                    continue@outer
+                }
+            }
+            return true
+        }
+        return false
+    }
+
+    fun matchesPayloadPattern(
+        asciiPayload: String,
+        payloadBytes: ByteArray,
+        pattern: String,
+        compactHex: () -> String
+    ): Boolean {
+        if (asciiPayload.contains(pattern, ignoreCase = true)) {
+            return true
+        }
+        val compactPattern = pattern.replace("_", "").replace(" ", "").uppercase()
+        if (compactPattern.isEmpty()) {
+            return false
+        }
+        if (compactPattern.length % 2 == 0 && compactPattern.all(::isHexChar)) {
+            val needle = hexToBytes(compactPattern)
+            if (needle != null && containsBytes(payloadBytes, needle)) {
+                return true
+            }
+        }
+        return compactHex().contains(compactPattern)
+    }
+
+    private fun consumeRecord(
+        type: Int,
+        data: ByteArray,
+        start: Int,
+        end: Int,
+        appearance: (Int) -> Unit,
+        completeName: (String) -> Unit,
+        shortName: (String) -> Unit,
+        serviceUuids: MutableSet<String>,
+        companyIds: MutableSet<Int>
+    ) {
+        when (type) {
+            AD_TYPE_APPEARANCE -> parseAppearance(data, start, end)?.let(appearance)
+            AD_TYPE_COMPLETE_NAME,
+            AD_TYPE_BROADCAST_NAME -> decodeUtf8(data, start, end)?.let(completeName)
+            AD_TYPE_SHORT_NAME -> decodeUtf8(data, start, end)?.let(shortName)
+            AD_TYPE_INCOMPLETE_16BIT_UUIDS,
+            AD_TYPE_COMPLETE_16BIT_UUIDS -> {
+                serviceUuids += parseUuid16List(data, start, end)
+            }
+            AD_TYPE_INCOMPLETE_32BIT_UUIDS,
+            AD_TYPE_COMPLETE_32BIT_UUIDS -> {
+                serviceUuids += parseUuid32List(data, start, end)
+            }
+            AD_TYPE_INCOMPLETE_128BIT_UUIDS,
+            AD_TYPE_COMPLETE_128BIT_UUIDS -> {
+                serviceUuids += parseUuid128List(data, start, end)
+            }
+            AD_TYPE_SERVICE_DATA_16BIT -> if (end - start >= 2) {
+                serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, start)))
+            }
+            AD_TYPE_SERVICE_DATA_32BIT -> if (end - start >= 4) {
+                serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, start)))
+            }
+            AD_TYPE_SERVICE_DATA_128BIT -> parseUuid128(data, start, end)?.let { uuid ->
+                serviceUuids += uuid
+            }
+            AD_TYPE_MANUFACTURER_SPECIFIC -> if (end - start >= 2) {
+                companyIds += unsignedLe16(data, start)
+            }
         }
     }
 
-    private fun forEachRecord(bytes: ByteArray, consume: (type: Int, data: ByteArray) -> Unit) {
+    private inline fun ByteArray.forEachRecord(
+        consume: (type: Int, start: Int, end: Int) -> Unit
+    ) {
         var offset = 0
-        while (offset < bytes.size) {
-            val length = bytes[offset].toInt() and 0xFF
+        while (offset < size) {
+            val length = this[offset].toInt() and 0xFF
             if (length == 0) {
                 break
             }
 
             val recordEnd = offset + 1 + length
-            if (recordEnd > bytes.size) {
+            if (recordEnd > size) {
                 break
             }
 
-            val type = bytes[offset + 1].toInt() and 0xFF
-            val data = bytes.copyOfRange(offset + 2, recordEnd)
-            consume(type, data)
+            val type = this[offset + 1].toInt() and 0xFF
+            consume(type, offset + 2, recordEnd)
             offset = recordEnd
         }
     }
 
-    private fun parseAppearance(data: ByteArray): Int? {
-        if (data.size < 2) {
+    private fun parseAppearance(data: ByteArray, start: Int, end: Int): Int? {
+        if (end - start < 2) {
             return null
         }
-        return unsignedLe16(data, 0)
+        return unsignedLe16(data, start)
     }
 
-    private fun parseUuid16List(data: ByteArray): List<String> {
+    private fun parseUuid16List(data: ByteArray, start: Int, end: Int): List<String> {
         val uuids = mutableListOf<String>()
-        var offset = 0
-        while (offset + 2 <= data.size) {
+        var offset = start
+        while (offset + 2 <= end) {
             uuids += BleUuid.normalize("%04X".format(unsignedLe16(data, offset)))
             offset += 2
         }
         return uuids
     }
 
-    private fun parseUuid32List(data: ByteArray): List<String> {
+    private fun parseUuid32List(data: ByteArray, start: Int, end: Int): List<String> {
         val uuids = mutableListOf<String>()
-        var offset = 0
-        while (offset + 4 <= data.size) {
+        var offset = start
+        while (offset + 4 <= end) {
             uuids += BleUuid.normalize(hex8(unsignedLe32(data, offset)))
             offset += 4
         }
         return uuids
     }
 
-    private fun parseUuid128List(data: ByteArray): List<String> {
+    private fun parseUuid128List(data: ByteArray, start: Int, end: Int): List<String> {
         val uuids = mutableListOf<String>()
-        var offset = 0
-        while (offset + 16 <= data.size) {
-            parseUuid128(data, offset)?.let { uuid -> uuids += uuid }
+        var offset = start
+        while (offset + 16 <= end) {
+            parseUuid128(data, offset, offset + 16)?.let { uuid -> uuids += uuid }
             offset += 16
         }
         return uuids
     }
 
-    private fun parseUuid128(data: ByteArray, offset: Int): String? {
-        if (offset + 16 > data.size) {
+    private fun parseUuid128(data: ByteArray, start: Int, end: Int = data.size): String? {
+        if (start + 16 > end) {
             return null
         }
-        val bigEndianHex = buildString(32) {
-            for (index in 15 downTo 0) {
-                append(
-                    (data[offset + index].toInt() and 0xFF)
-                        .toString(16)
-                        .uppercase()
-                        .padStart(2, '0')
-                )
-            }
+        val chars = CharArray(32)
+        var index = 0
+        for (byteIndex in 15 downTo 0) {
+            val value = data[start + byteIndex].toInt() and 0xFF
+            chars[index++] = HEX_DIGITS[value ushr 4]
+            chars[index++] = HEX_DIGITS[value and 0x0F]
         }
-        return BleUuid.normalize(bigEndianHex)
+        return BleUuid.normalize(String(chars))
     }
 
     private fun unsignedLe16(data: ByteArray, offset: Int): Int {
@@ -301,14 +382,26 @@ internal object AdvertisementParser {
             ((data[offset + 3].toLong() and 0xFFL) shl 24)
     }
 
-    private fun decodeUtf8(data: ByteArray): String? {
-        val decoded = data.toString(Charsets.UTF_8).trim { char ->
+    private fun decodeUtf8(data: ByteArray, start: Int, end: Int): String? {
+        if (end <= start) {
+            return null
+        }
+        val decoded = data.decodeToString(startIndex = start, endIndex = end).trim { char ->
             char <= ' ' || char == '\u0000'
         }
         return decoded.ifBlank { null }
     }
-}
 
-private fun Int.toHexByte(): String {
-    return (this and 0xFF).toString(16).uppercase().padStart(2, '0')
+    private fun hexNibble(char: Char): Int {
+        return when (char) {
+            in '0'..'9' -> char - '0'
+            in 'A'..'F' -> char - 'A' + 10
+            in 'a'..'f' -> char - 'a' + 10
+            else -> -1
+        }
+    }
+
+    private fun isHexChar(char: Char): Boolean {
+        return hexNibble(char) >= 0
+    }
 }

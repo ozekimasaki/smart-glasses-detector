@@ -47,7 +47,7 @@ class HistoryViewModel @Inject constructor(
             }
         }
         .catch { emit(HistoryUiState.Empty) }
-        .stateIn(viewModelScope, SharingStarted.Lazily, HistoryUiState.Loading)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState.Loading)
 
     fun shareDiagnosticLogs() {
         viewModelScope.launch {

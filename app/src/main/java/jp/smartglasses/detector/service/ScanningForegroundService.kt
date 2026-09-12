@@ -42,6 +42,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -68,11 +69,15 @@ class ScanningForegroundService : Service() {
     private var backgroundSettingsJob: Job? = null
     private var scanningStateJob: Job? = null
     private var sensitivityJob: Job? = null
+    private var alertSettingsJob: Job? = null
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + supervisorJob)
     private val isStopping = AtomicBoolean(false)
     private var backgroundScanningEnabled = false
     private var persistedScanningState = false
+    @Volatile private var notificationEnabled = true
+    @Volatile private var vibrationEnabled = true
+    @Volatile private var soundEnabled = true
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
         override fun onStart(owner: LifecycleOwner) {
             applyEffectiveScanSensitivity()
@@ -271,10 +276,6 @@ class ScanningForegroundService : Service() {
     }
 
     private suspend fun onDeviceDetected(device: SmartGlassesDevice) {
-        val notificationEnabled = settingsRepository.notificationEnabled.first()
-        val vibrationEnabled = settingsRepository.vibrationEnabled.first()
-        val soundEnabled = settingsRepository.soundEnabled.first()
-        
         detectionLogRepository.insertLog(
             jp.smartglasses.detector.domain.model.DetectionLog(
                 deviceName = device.name,
@@ -285,24 +286,26 @@ class ScanningForegroundService : Service() {
                 detectedAt = device.detectedAt
             )
         )
-        
+
         if (notificationEnabled) {
             showDetectionNotification(device, soundEnabled)
         }
-        
+
         if (vibrationEnabled) {
             vibrate()
         }
     }
-    
-    private fun createScanningNotification(): Notification {
-        val pendingIntent = PendingIntent.getActivity(
+
+    private val openAppPendingIntent: PendingIntent by lazy {
+        PendingIntent.getActivity(
             this,
             0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
-        
+    }
+
+    private fun createScanningNotification(): Notification {
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_SCANNING)
             .setContentTitle(getString(R.string.notification_scanning_title))
             .setContentText(
@@ -315,25 +318,18 @@ class ScanningForegroundService : Service() {
                 )
             )
             .setSmallIcon(R.drawable.ic_notification_scan)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
-    
+
     private fun showDetectionNotification(device: SmartGlassesDevice, playSound: Boolean) {
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_DETECTION)
             .setContentTitle(getString(R.string.notification_detection_title))
             .setContentText("${device.name} - ${getString(distanceLabelRes(device.distance))}")
             .setSmallIcon(R.drawable.ic_notification_alert)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(openAppPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .apply {
@@ -375,6 +371,7 @@ class ScanningForegroundService : Service() {
         backgroundSettingsJob?.cancel()
         scanningStateJob?.cancel()
         sensitivityJob?.cancel()
+        alertSettingsJob?.cancel()
         healthCheckJob?.cancel()
 
         if (!isStopping.get()) {
@@ -444,6 +441,9 @@ class ScanningForegroundService : Service() {
                     settingsRepository.backgroundEnabled.first()
                 )
                 persistedScanningState = settingsRepository.isScanning.first()
+                notificationEnabled = settingsRepository.notificationEnabled.first()
+                vibrationEnabled = settingsRepository.vibrationEnabled.first()
+                soundEnabled = settingsRepository.soundEnabled.first()
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to initialize cached scanning settings", e)
@@ -477,6 +477,20 @@ class ScanningForegroundService : Service() {
         sensitivityJob = scope.launch {
             settingsRepository.sensitivity.collect { sensitivity ->
                 bluetoothRepository.updateScanSensitivity(sensitivity)
+            }
+        }
+
+        alertSettingsJob = scope.launch {
+            combine(
+                settingsRepository.notificationEnabled,
+                settingsRepository.vibrationEnabled,
+                settingsRepository.soundEnabled
+            ) { notifications, vibration, sound ->
+                Triple(notifications, vibration, sound)
+            }.collect { (notifications, vibration, sound) ->
+                notificationEnabled = notifications
+                vibrationEnabled = vibration
+                soundEnabled = sound
             }
         }
     }

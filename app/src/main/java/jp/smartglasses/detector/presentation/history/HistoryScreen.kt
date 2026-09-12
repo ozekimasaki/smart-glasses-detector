@@ -165,13 +165,16 @@ fun HistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     groupedLogs.forEach { (dateLabel, dateLogs) ->
-                        item {
+                        item(key = "header-$dateLabel") {
                             DateHeader(label = dateLabel)
                         }
-                        items(dateLogs) { log ->
+                        items(
+                            items = dateLogs,
+                            key = { log -> log.id }
+                        ) { log ->
                             LogItem(log = log)
                         }
-                        item {
+                        item(key = "spacer-$dateLabel") {
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }

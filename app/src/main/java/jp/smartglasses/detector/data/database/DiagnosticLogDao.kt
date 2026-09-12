@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 
 @Dao
 interface DiagnosticLogDao {
@@ -21,4 +22,13 @@ interface DiagnosticLogDao {
             "(SELECT id FROM diagnostic_logs ORDER BY detectedAt ASC LIMIT :count)"
     )
     suspend fun deleteOldest(count: Int)
+
+    @Transaction
+    suspend fun insertAndTrim(log: DiagnosticLogEntity, keepCount: Int) {
+        insertLog(log)
+        val overflow = count() - keepCount
+        if (overflow > 0) {
+            deleteOldest(overflow)
+        }
+    }
 }
