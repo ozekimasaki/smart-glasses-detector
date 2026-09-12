@@ -68,6 +68,14 @@ class EmulatedAdvertisementCoverageTest {
             "NIMO classic name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Nimo-A1B2" }
         )
+        assertTrue(
+            "Lucyd FCC model name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "LCD008-10" }
+        )
+        assertTrue(
+            "Halliday G2 name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Halliday G2" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

@@ -432,6 +432,71 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `classic wearable glasses class of device is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:17B",
+                companyIds = emptySet(),
+                rssi = Constants.UNKNOWN_RSSI_DBM,
+                deviceClass = 0x0714
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.APPEARANCE, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `audio video glasses class of device is detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:17C",
+                companyIds = emptySet(),
+                rssi = -60,
+                deviceClass = 0x0450
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.APPEARANCE, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `classic headphone class of device is not treated as glasses`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:17D",
+                companyIds = emptySet(),
+                rssi = -48,
+                deviceClass = 0x0418
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `lucyd fcc model numbers without brand name are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "LCD008-10",
+                address = "AA:BB:CC:DD:EE:17E",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Lucyd", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `generic glasses name is detected by heuristic`() {
         val detected = classifier.classify(
             DetectionSignal(

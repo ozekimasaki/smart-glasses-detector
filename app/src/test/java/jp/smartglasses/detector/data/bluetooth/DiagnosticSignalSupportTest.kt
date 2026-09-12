@@ -111,6 +111,20 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
+    fun `classic inquiry extra name is used when cached name is blank`() {
+        val signal = ClassicDiscoverySignal(
+            deviceName = null,
+            extraName = "Nimo-A1B2",
+            address = "11:22:33:44:55:77",
+            rssi = -52,
+            deviceClass = 0x0714
+        ).toDetectionSignal()
+
+        assertEquals("Nimo-A1B2", signal.deviceName)
+        assertEquals(0x0714, signal.deviceClass)
+    }
+
+    @Test
     fun `classified smart glasses still produce a diagnostic log`() {
         val processed = ScanSignalProcessor().process(
             DetectionSignal(

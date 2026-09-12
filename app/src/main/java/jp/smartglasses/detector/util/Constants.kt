@@ -624,7 +624,15 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Lucyd",
-            namePatterns = listOf("Lucyd", "Lucyd Lyte"),
+            namePatterns = listOf(
+                "Lucyd",
+                "Lucyd Lyte",
+                "Lucyd Glasses",
+                // FCC 2BBYK-LCD008 / LCD011 のモデル番号。名前に Lucyd が無い場合の保険。
+                "LCD008",
+                "LCD010",
+                "LCD011"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

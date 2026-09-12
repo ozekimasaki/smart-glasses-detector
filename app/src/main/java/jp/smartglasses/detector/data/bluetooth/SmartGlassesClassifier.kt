@@ -3,6 +3,7 @@ package jp.smartglasses.detector.data.bluetooth
 import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.Manufacturer
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.service.BluetoothDeviceClassPolicy
 import jp.smartglasses.detector.domain.service.DetectionMatchClass
 import jp.smartglasses.detector.domain.service.DetectionRssiPolicy
 import jp.smartglasses.detector.util.Constants
@@ -17,7 +18,8 @@ internal data class DetectionSignal(
     val serviceUuids: List<String> = emptyList(),
     val advertisementDataHex: String = "",
     val extraPayloadHex: String = "",
-    val appearance: Int? = null
+    val appearance: Int? = null,
+    val deviceClass: Int? = null
 )
 
 internal class SmartGlassesClassifier(
@@ -242,7 +244,9 @@ internal class SmartGlassesClassifier(
     }
 
     private fun detectByAppearance(signal: DetectionSignal): SmartGlassesDevice? {
-        if (!AdvertisementParser.isEyeglassesAppearance(signal.appearance)) {
+        val looksLikeGlasses = AdvertisementParser.isEyeglassesAppearance(signal.appearance) ||
+            BluetoothDeviceClassPolicy.isGlassesDeviceClass(signal.deviceClass)
+        if (!looksLikeGlasses) {
             return null
         }
 

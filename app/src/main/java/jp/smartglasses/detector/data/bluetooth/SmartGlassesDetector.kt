@@ -3,6 +3,7 @@ package jp.smartglasses.detector.data.bluetooth
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -235,7 +236,8 @@ class SmartGlassesDetector @Inject constructor(
             ),
             advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
             extraPayloadHex = scanRecord?.let(::extractManufacturerPayloadHex).orEmpty(),
-            appearance = parsedAdvertisement.appearance
+            appearance = parsedAdvertisement.appearance,
+            deviceClass = resolveDeviceClass(result.device)
         )
     }
 
@@ -302,15 +304,17 @@ class SmartGlassesDetector @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun handleClassicDiscoveryResult(intent: Intent) {
         val bluetoothDevice = intent.extractBluetoothDevice() ?: return
-        val signal = DetectionSignal(
+        val signal = ClassicDiscoverySignal(
             deviceName = resolveDeviceName(bluetoothDevice),
+            extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
             address = resolveDeviceAddress(bluetoothDevice),
-            companyIds = emptySet(),
             rssi = intent.getShortExtra(
                 BluetoothDevice.EXTRA_RSSI,
                 Constants.UNKNOWN_RSSI_DBM.toShort()
-            ).toInt()
-        )
+            ).toInt(),
+            deviceClass = intent.extractBluetoothClass()?.deviceClass
+                ?: resolveDeviceClass(bluetoothDevice)
+        ).toDetectionSignal()
         val processed = scanSignalProcessor.process(signal, lastSensitivity)
         persistDiagnosticLog(processed.diagnosticLog)
 
@@ -340,6 +344,18 @@ class SmartGlassesDetector @Inject constructor(
 
         return try {
             device.name
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+    private fun resolveDeviceClass(device: BluetoothDevice): Int? {
+        if (!hasBluetoothConnectPermission()) {
+            return null
+        }
+
+        return try {
+            device.bluetoothClass?.deviceClass
         } catch (_: SecurityException) {
             null
         }
@@ -933,21 +949,26 @@ internal fun DetectionSignal.toDiagnosticLog(
 internal data class ClassicDiscoverySignal(
     val deviceName: String?,
     val address: String,
-    val rssi: Int
-)
+    val rssi: Int,
+    val extraName: String? = null,
+    val deviceClass: Int? = null
+) {
+    fun toDetectionSignal(): DetectionSignal {
+        return DetectionSignal(
+            deviceName = deviceName?.takeIf { it.isNotBlank() }
+                ?: extraName?.takeIf { it.isNotBlank() },
+            address = address,
+            companyIds = emptySet(),
+            rssi = rssi,
+            deviceClass = deviceClass
+        )
+    }
+}
 
 internal fun ClassicDiscoverySignal.toDiagnosticLog(
     detectedAt: Long = System.currentTimeMillis()
 ): DiagnosticLog {
-    return DiagnosticLog(
-        advertisedName = deviceName.orEmpty(),
-        deviceAddress = address,
-        companyIds = "",
-        serviceUuids = "",
-        advertisementDataHex = "",
-        rssi = rssi,
-        detectedAt = detectedAt
-    )
+    return toDetectionSignal().toDiagnosticLog(detectedAt)
 }
 
 private fun Intent.extractBluetoothDevice(): BluetoothDevice? {
@@ -956,5 +977,14 @@ private fun Intent.extractBluetoothDevice(): BluetoothDevice? {
     } else {
         @Suppress("DEPRECATION")
         getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+    }
+}
+
+private fun Intent.extractBluetoothClass(): BluetoothClass? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableExtra(BluetoothDevice.EXTRA_CLASS, BluetoothClass::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelableExtra(BluetoothDevice.EXTRA_CLASS)
     }
 }
