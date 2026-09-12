@@ -66,6 +66,7 @@ NAME_PATTERN_DEVICES = {
     49: "Halo 4F",
     50: "G2_12_L",
     54: "Xy_A",
+    55: "Nex1-77",
 }
 
 UUID_DEVICES = {

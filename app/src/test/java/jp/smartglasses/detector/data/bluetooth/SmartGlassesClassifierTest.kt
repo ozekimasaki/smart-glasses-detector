@@ -1070,6 +1070,30 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `mentra nex advertised prefixes are detected`() {
+        val nex = classifier.classify(
+            DetectionSignal(
+                deviceName = "Nex1-77",
+                address = "AA:BB:CC:DD:EE:44B",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val display = classifier.classify(
+            DetectionSignal(
+                deviceName = "MENTRA_DISPLAY_02",
+                address = "AA:BB:CC:DD:EE:44C",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("Mentra", nex?.manufacturer?.name)
+        assertEquals("Mentra", display?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, nex?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `xingyi sibling project identifiers are not treated as ar99`() {
         val detected = classifier.classify(
             DetectionSignal(
