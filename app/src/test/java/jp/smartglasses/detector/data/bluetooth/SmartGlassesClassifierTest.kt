@@ -1158,7 +1158,25 @@ class SmartGlassesClassifierTest {
             "IOOIOO",
             "BooaBei",
             "EarlySincere",
-            "Anko"
+            "Anko",
+            "Amazfit",
+            "JBL",
+            "Povec",
+            "Shokz",
+            "TOZO",
+            "Infinix",
+            "Skyworth",
+            "BirdiLens",
+            "BUTTONS",
+            "Cearvol",
+            "Chengmu",
+            "GetD",
+            "Weiguang",
+            "Dreame",
+            "Foxconn",
+            "Innovega",
+            "MetaVu",
+            "Cellid"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2528,6 +2546,229 @@ class SmartGlassesClassifierTest {
         assertEquals("Meta Platforms", starfire?.manufacturer?.name)
         assertEquals("XREAL", xByXreal?.manufacturer?.name)
         assertEquals("Anko", anko?.manufacturer?.name)
+    }
+
+    @Test
+    fun `ces 2026 brands and extra language heuristics are detected`() {
+        val amazfit = classifier.classify(
+            DetectionSignal(
+                deviceName = "Amazfit Helio Glasses",
+                address = "AA:BB:CC:DD:EE:E1",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val helio = classifier.classify(
+            DetectionSignal(
+                deviceName = "Helio Glasses",
+                address = "AA:BB:CC:DD:EE:E2",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val soundgear = classifier.classify(
+            DetectionSignal(
+                deviceName = "JBL Soundgear Frames",
+                address = "AA:BB:CC:DD:EE:E3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val povec = classifier.classify(
+            DetectionSignal(
+                deviceName = "Povec C1",
+                address = "AA:BB:CC:DD:EE:E4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val musicShield = classifier.classify(
+            DetectionSignal(
+                deviceName = "Music Shield Gen 2",
+                address = "AA:BB:CC:DD:EE:E5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val shokz = classifier.classify(
+            DetectionSignal(
+                deviceName = "Shokz AI Glasses",
+                address = "AA:BB:CC:DD:EE:E6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val vizo = classifier.classify(
+            DetectionSignal(
+                deviceName = "VIZO Z1",
+                address = "AA:BB:CC:DD:EE:E7",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val infinix = classifier.classify(
+            DetectionSignal(
+                deviceName = "Infinix AI Glasses",
+                address = "AA:BB:CC:DD:EE:E8",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val skyworth = classifier.classify(
+            DetectionSignal(
+                deviceName = "Skyworth XR A6s",
+                address = "AA:BB:CC:DD:EE:E9",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val birdiLens = classifier.classify(
+            DetectionSignal(
+                deviceName = "BirdiLens",
+                address = "AA:BB:CC:DD:EE:EA",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val buttons = classifier.classify(
+            DetectionSignal(
+                deviceName = "BUTTONS VISION X",
+                address = "AA:BB:CC:DD:EE:EB",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val syncGlasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "SYNCGLASSES X1",
+                address = "AA:BB:CC:DD:EE:EC",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val getD = classifier.classify(
+            DetectionSignal(
+                deviceName = "GetD Glass",
+                address = "AA:BB:CC:DD:EE:ED",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val xuanjing = classifier.classify(
+            DetectionSignal(
+                deviceName = "Xuanjing M6",
+                address = "AA:BB:CC:DD:EE:EE",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val dreame = classifier.classify(
+            DetectionSignal(
+                deviceName = "Dreame Glass",
+                address = "AA:BB:CC:DD:EE:EF",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hj1 = classifier.classify(
+            DetectionSignal(
+                deviceName = "HJ1 AI",
+                address = "AA:BB:CC:DD:EE:F0",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val lenovoAi = classifier.classify(
+            DetectionSignal(
+                deviceName = "Lenovo AI Glasses",
+                address = "AA:BB:CC:DD:EE:F1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val octane = classifier.classify(
+            DetectionSignal(
+                deviceName = "Reebok Octane",
+                address = "AA:BB:CC:DD:EE:F2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hebrew = classifier.classify(
+            DetectionSignal(
+                deviceName = "משקפיים חכמים-01",
+                address = "AA:BB:CC:DD:EE:F3",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val arabic = classifier.classify(
+            DetectionSignal(
+                deviceName = "نظارات ذكية-01",
+                address = "AA:BB:CC:DD:EE:F4",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val hindi = classifier.classify(
+            DetectionSignal(
+                deviceName = "स्मार्ट चश्मा-01",
+                address = "AA:BB:CC:DD:EE:F5",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val amazfitWatch = classifier.classify(
+            DetectionSignal(
+                deviceName = "Amazfit GTR 4",
+                address = "AA:BB:CC:DD:EE:F6",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val shokzHeadphones = classifier.classify(
+            DetectionSignal(
+                deviceName = "Shokz OpenRun",
+                address = "AA:BB:CC:DD:EE:F7",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val tozoEarbuds = classifier.classify(
+            DetectionSignal(
+                deviceName = "TOZO T6",
+                address = "AA:BB:CC:DD:EE:F8",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Amazfit", amazfit?.manufacturer?.name)
+        assertEquals("Amazfit", helio?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, amazfit?.manufacturer?.detectionMethod)
+        assertEquals("JBL", soundgear?.manufacturer?.name)
+        assertEquals("Povec", povec?.manufacturer?.name)
+        assertEquals("Chamelo", musicShield?.manufacturer?.name)
+        assertEquals("Shokz", shokz?.manufacturer?.name)
+        assertEquals("TOZO", vizo?.manufacturer?.name)
+        assertEquals("Infinix", infinix?.manufacturer?.name)
+        assertEquals("Skyworth", skyworth?.manufacturer?.name)
+        assertEquals("BirdiLens", birdiLens?.manufacturer?.name)
+        assertEquals("BUTTONS", buttons?.manufacturer?.name)
+        assertEquals("Chengmu", syncGlasses?.manufacturer?.name)
+        assertEquals("GetD", getD?.manufacturer?.name)
+        assertEquals("Weiguang", xuanjing?.manufacturer?.name)
+        assertEquals("Dreame", dreame?.manufacturer?.name)
+        assertEquals("Foxconn", hj1?.manufacturer?.name)
+        assertEquals("Lenovo", lenovoAi?.manufacturer?.name)
+        assertEquals("Lucyd", octane?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, hebrew?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, hebrew?.manufacturer?.detectionMethod)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, arabic?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, hindi?.manufacturer?.name)
+        assertNull(amazfitWatch)
+        assertNull(shokzHeadphones)
+        assertNull(tozoEarbuds)
     }
 
     private fun asciiToHex(value: String): String {

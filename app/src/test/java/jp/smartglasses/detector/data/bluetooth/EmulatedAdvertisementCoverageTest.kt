@@ -175,7 +175,13 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "Datenbrille-01" } &&
                 catalog.nameDevices.any { device -> device.name == "AirVision M1" } &&
                 catalog.nameDevices.any { device -> device.name == "BleeqUp Ranger" } &&
-                catalog.nameDevices.any { device -> device.name == "Anko Camera Glasses" }
+                catalog.nameDevices.any { device -> device.name == "Anko Camera Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "Amazfit Helio Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "JBL Soundgear Frames" } &&
+                catalog.nameDevices.any { device -> device.name == "Shokz AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "VIZO Z1" } &&
+                catalog.nameDevices.any { device -> device.name == "Infinix AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "GetD Glass" }
         )
 
         catalog.nameDevices.forEach { device ->
@@ -296,7 +302,9 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nonGlassesNames.contains("雷鸟TV") &&
                 catalog.nonGlassesNames.contains("华为手表") &&
                 catalog.nonGlassesNames.contains("Galaxy XR-01") &&
-                catalog.nonGlassesNames.contains("ThinkReality VRX")
+                catalog.nonGlassesNames.contains("ThinkReality VRX") &&
+                catalog.nonGlassesNames.contains("Amazfit GTR 4") &&
+                catalog.nonGlassesNames.contains("Shokz OpenRun")
         )
 
         catalog.nonGlassesNames.forEach { name ->
