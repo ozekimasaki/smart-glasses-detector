@@ -71,7 +71,7 @@ class ClassicDiscoveryPolicyTest {
     }
 
     @Test
-    fun `name and class updates are applied only for devices already found in inquiry`() {
+    fun `name and class updates are applied for devices already seen nearby`() {
         assertTrue(
             ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                 action = ClassicDiscoveryPolicy.ACTION_FOUND,
@@ -159,6 +159,13 @@ class ClassicDiscoveryPolicyTest {
             "android.bluetooth.device.action.CLASS_CHANGED",
             ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED
         )
+    }
+
+    @Test
+    fun `blank addresses are not tracked for delayed name updates`() {
+        assertFalse(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(""))
+        assertFalse(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser("   "))
+        assertTrue(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser("AA:BB:CC:DD:EE:01"))
     }
 }
 

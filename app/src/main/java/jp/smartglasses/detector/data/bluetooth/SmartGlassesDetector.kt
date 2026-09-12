@@ -179,6 +179,7 @@ class SmartGlassesDetector @Inject constructor(
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val signal = extractSignal(result)
+            rememberClassicInquiry(signal.address, signal.rssi)
             val processedSignal = scanSignalProcessor.process(signal, lastSensitivity)
 
             val diagnosticLog = processedSignal.diagnosticLog
@@ -330,7 +331,7 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun rememberClassicInquiry(address: String, rssi: Int) {
-        if (address.isBlank()) {
+        if (!ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(address)) {
             return
         }
         classicInquiryAddresses.add(address)

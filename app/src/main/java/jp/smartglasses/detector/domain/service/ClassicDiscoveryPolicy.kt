@@ -38,6 +38,10 @@ object ClassicDiscoveryPolicy {
         }
     }
 
+    fun shouldRememberSeenAdvertiser(address: String): Boolean {
+        return address.isNotBlank()
+    }
+
     fun shouldApplyInquiryUpdate(
         action: String?,
         scanningRequested: Boolean,
@@ -49,6 +53,7 @@ object ClassicDiscoveryPolicy {
 
         return when (action) {
             ACTION_FOUND -> true
+            // Classic inquiry または BLE 広告で一度見た機器の遅延名前 / Class 更新
             ACTION_NAME_CHANGED,
             ACTION_CLASS_CHANGED -> alreadySeenAddress
             else -> false
