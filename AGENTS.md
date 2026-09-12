@@ -8,7 +8,7 @@
 - **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
 - **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
 - **`minSdk`**: 26 (Android 8.0) / **`targetSdk`** / **`compileSdk`**: 36 / 37（Android 16 / API 37）
-- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 39 / 1.1.29）
+- **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 40 / 1.1.30）
 - 単一モジュール構成（`:app`）
 
 ## アーキテクチャ

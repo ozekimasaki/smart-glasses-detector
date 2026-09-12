@@ -22,6 +22,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
@@ -119,7 +120,10 @@ class SmartGlassesDetector @Inject constructor(
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
         }
     )
-    private val scanCallbackThread = HandlerThread("ble-scan-callback").apply { start() }
+    private val scanCallbackThread = HandlerThread(
+        "ble-scan-callback",
+        Process.THREAD_PRIORITY_FOREGROUND
+    ).apply { start() }
     private val scanCallbackHandler = Handler(scanCallbackThread.looper)
     private val connectedProfileListener = object : BluetoothProfile.ServiceListener {
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
@@ -160,43 +164,48 @@ class SmartGlassesDetector @Inject constructor(
                 ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE,
                 ConnectedDevicePolicy.STATE_DISCONNECTED
             )
+            val bondState = intent.getIntExtra(
+                ConnectedDevicePolicy.EXTRA_BOND_STATE,
+                ConnectedDevicePolicy.BOND_NONE
+            )
             val fromConnection = ConnectedDevicePolicy.shouldClassifyConnectionEvent(
                 action = action,
                 scanningRequested = scanningRequested,
                 connectionState = connectionState,
-                adapterConnectionState = adapterConnectionState
+                adapterConnectionState = adapterConnectionState,
+                bondState = bondState
             )
-            if (
-                (action == BluetoothDevice.ACTION_FOUND && scanningRequested) ||
+            val rememberInquiry = (action == BluetoothDevice.ACTION_FOUND && scanningRequested) ||
                 fromConnection
-            ) {
-                rememberSeenAdvertiser(
-                    address = address,
-                    rssi = extraRssi
-                )
-            }
-            if (fromConnection) {
-                requestUuidRefreshIfNeeded(bluetoothDevice)
-            }
-            if (
-                !fromConnection &&
-                !ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+            val classify = fromConnection ||
+                ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                     action = action,
                     scanningRequested = scanningRequested,
                     alreadySeenAddress = wasSeenInClassicInquiry(address),
                     deviceClass = deviceClass
                 )
-            ) {
+            if (rememberInquiry) {
+                rememberSeenAdvertiser(
+                    address = address,
+                    rssi = extraRssi
+                )
+            }
+            if (!classify) {
                 return
             }
-            val signal = extractClassicSignal(
-                bluetoothDevice = bluetoothDevice,
-                extraName = extraName,
-                extraRssi = extraRssi,
-                deviceClass = deviceClass
-            )
             scanCallbackHandler.post {
-                handleDetectionSignal(signal, action = action)
+                if (fromConnection) {
+                    requestUuidRefreshIfNeeded(bluetoothDevice)
+                }
+                handleDetectionSignal(
+                    extractClassicSignal(
+                        bluetoothDevice = bluetoothDevice,
+                        extraName = extraName,
+                        extraRssi = extraRssi,
+                        deviceClass = deviceClass
+                    ),
+                    action = action
+                )
             }
         }
     }
@@ -247,20 +256,20 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val signal = extractSignal(result)
+            val snapshot = copyBleAdvertisement(result)
             scanCallbackHandler.post {
-                handleDetectionSignal(signal)
+                handleDetectionSignal(extractSignal(snapshot))
             }
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            val signals = ArrayList<DetectionSignal>(results.size)
+            val snapshots = ArrayList<CopiedBleAdvertisement>(results.size)
             results.forEach { result ->
-                signals += extractSignal(result)
+                snapshots += copyBleAdvertisement(result)
             }
             scanCallbackHandler.post {
-                signals.forEach { signal ->
-                    handleDetectionSignal(signal)
+                snapshots.forEach { snapshot ->
+                    handleDetectionSignal(extractSignal(snapshot))
                 }
             }
         }
@@ -316,50 +325,88 @@ class SmartGlassesDetector @Inject constructor(
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
-        return scanSignalProcessor.detectDevice(extractSignal(result), lastSensitivity)
+        return scanSignalProcessor.detectDevice(extractSignal(copyBleAdvertisement(result)), lastSensitivity)
     }
 
-    private fun extractSignal(result: ScanResult): DetectionSignal {
+    private data class CopiedBleAdvertisement(
+        val address: String,
+        val rssi: Int,
+        val advertisedName: String?,
+        val advertisementBytes: ByteArray,
+        val advertisingDataMap: Map<Int, ByteArray>,
+        val companyIds: Set<Int>,
+        val manufacturerEntries: List<Pair<Int, ByteArray>>,
+        val serviceUuids: List<String>,
+        val serviceDataUuids: List<String>,
+        val serviceDataValues: List<ByteArray>,
+        val device: BluetoothDevice
+    )
+
+    private fun copyBleAdvertisement(result: ScanResult): CopiedBleAdvertisement {
         val scanRecord = result.scanRecord
-        val advertisementBytes = AdvertisementCopy.copyBytes(scanRecord?.bytes)
-        val parsedAdvertisement = parseAdvertisement(scanRecord, advertisementBytes)
+        val manufacturerEntries = scanRecord?.let(::extractCopiedManufacturerEntries).orEmpty()
+        return CopiedBleAdvertisement(
+            address = resolveDeviceAddress(result),
+            rssi = result.rssi,
+            advertisedName = scanRecord?.deviceName,
+            advertisementBytes = AdvertisementCopy.copyBytes(scanRecord?.bytes),
+            advertisingDataMap = if (scanRecord != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                AdvertisementCopy.copyMap(scanRecord.advertisingDataMap)
+            } else {
+                emptyMap()
+            },
+            companyIds = scanRecord?.let(::extractCompanyIds).orEmpty(),
+            manufacturerEntries = manufacturerEntries,
+            serviceUuids = scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+            serviceDataUuids = scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
+            serviceDataValues = scanRecord?.serviceData?.values?.map { value -> value.copyOf() }.orEmpty(),
+            device = result.device
+        )
+    }
+
+    private fun extractSignal(snapshot: CopiedBleAdvertisement): DetectionSignal {
+        val parsedAdvertisement = parseAdvertisement(
+            advertisementBytes = snapshot.advertisementBytes,
+            advertisingDataMap = snapshot.advertisingDataMap
+        )
         return DetectionSignal(
             deviceName = BluetoothAdvertisedNamePolicy.resolve(
                 parsedAdvertisement.completeName,
-                scanRecord?.deviceName,
+                snapshot.advertisedName,
                 parsedAdvertisement.shortName,
-                resolveCachedDeviceName(result.device),
-                resolveDeviceAlias(result.device)
+                resolveCachedDeviceName(snapshot.device),
+                resolveDeviceAlias(snapshot.device)
             ),
-            address = resolveDeviceAddress(result),
-            companyIds = (scanRecord?.let(::extractCompanyIds).orEmpty()) + parsedAdvertisement.companyIds,
-            rssi = result.rssi,
+            address = snapshot.address,
+            companyIds = snapshot.companyIds + parsedAdvertisement.companyIds,
+            rssi = snapshot.rssi,
             serviceUuids = ArrayList(
                 BleUuid.merge(
-                    scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
-                    scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
+                    snapshot.serviceUuids,
+                    snapshot.serviceDataUuids,
                     parsedAdvertisement.serviceUuids
                 )
             ),
-            advertisementBytes = advertisementBytes,
-            extraPayloadBytes = scanRecord?.let(::extractCopiedExtraPayload) ?: byteArrayOf(),
+            advertisementBytes = snapshot.advertisementBytes,
+            extraPayloadBytes = AdvertisementCopy.extraPayload(
+                manufacturerEntries = snapshot.manufacturerEntries,
+                serviceDataValues = snapshot.serviceDataValues
+            ),
             parsedAdvertisement = parsedAdvertisement,
             appearance = parsedAdvertisement.appearance,
-            deviceClass = resolveDeviceClass(result.device)
+            deviceClass = resolveDeviceClass(snapshot.device)
         )
     }
 
     private fun parseAdvertisement(
-        scanRecord: ScanRecord?,
-        advertisementBytes: ByteArray
+        advertisementBytes: ByteArray,
+        advertisingDataMap: Map<Int, ByteArray>
     ): ParsedAdvertisement {
         val fromBytes = AdvertisementParser.parse(advertisementBytes)
-        if (scanRecord == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        if (advertisingDataMap.isEmpty()) {
             return fromBytes
         }
-
-        val snapshot = AdvertisementCopy.copyMap(scanRecord.advertisingDataMap)
-        return fromBytes.merge(AdvertisementParser.parseAdvertisingDataMap(snapshot))
+        return fromBytes.merge(AdvertisementParser.parseAdvertisingDataMap(advertisingDataMap))
     }
 
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
@@ -371,13 +418,6 @@ class SmartGlassesDetector @Inject constructor(
         return companyIds
     }
 
-    private fun extractCopiedExtraPayload(scanRecord: ScanRecord): ByteArray {
-        return AdvertisementCopy.extraPayload(
-            manufacturerEntries = extractCopiedManufacturerEntries(scanRecord),
-            serviceDataValues = scanRecord.serviceData?.values.orEmpty()
-        )
-    }
-
     private fun extractCopiedManufacturerEntries(
         scanRecord: ScanRecord
     ): List<Pair<Int, ByteArray>> {
@@ -387,7 +427,7 @@ class SmartGlassesDetector @Inject constructor(
             entries += manufacturerSpecificData.keyAt(index) to
                 (manufacturerSpecificData.valueAt(index) ?: byteArrayOf())
         }
-        return entries
+        return AdvertisementCopy.copyManufacturerEntries(entries)
     }
 
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {
@@ -468,10 +508,11 @@ class SmartGlassesDetector @Inject constructor(
         rememberSeenAdvertiser(signal)
         val snapshot = seenAdvertisers[signal.address] ?: return signal
         val mergedBytes = snapshot.advertisementBytes
-        val parsedAdvertisement = if (mergedBytes.isNotEmpty()) {
-            AdvertisementParser.parse(mergedBytes)
-        } else {
-            signal.parsedAdvertisement
+        val parsedAdvertisement = when {
+            mergedBytes.isEmpty() -> signal.parsedAdvertisement
+            mergedBytes === signal.advertisementBytes ->
+                signal.parsedAdvertisement ?: AdvertisementParser.parse(mergedBytes)
+            else -> AdvertisementParser.parse(mergedBytes)
         }
         return signal.copy(
             deviceName = snapshot.deviceName,
@@ -1208,17 +1249,17 @@ class SmartGlassesDetector @Inject constructor(
             return
         }
 
-        val signals = devices.values.map { device ->
-            extractClassicSignal(
-                bluetoothDevice = device,
-                extraName = null,
-                extraRssi = Constants.UNKNOWN_RSSI_DBM,
-                deviceClass = resolveDeviceClass(device)
-            )
-        }
+        val connectedDevices = ArrayList(devices.values)
         scanCallbackHandler.post {
-            signals.forEach { signal ->
-                handleDetectionSignal(signal)
+            connectedDevices.forEach { device ->
+                handleDetectionSignal(
+                    extractClassicSignal(
+                        bluetoothDevice = device,
+                        extraName = null,
+                        extraRssi = Constants.UNKNOWN_RSSI_DBM,
+                        deviceClass = resolveDeviceClass(device)
+                    )
+                )
             }
         }
     }

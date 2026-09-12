@@ -35,8 +35,12 @@ object ConnectedDevicePolicy {
         "android.bluetooth.action.CSIS_CONNECTION_STATE_CHANGED"
     const val ACTION_ADAPTER_CONNECTION_STATE_CHANGED =
         "android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED"
+    const val ACTION_BOND_STATE_CHANGED = "android.bluetooth.device.action.BOND_STATE_CHANGED"
     const val EXTRA_STATE = "android.bluetooth.profile.extra.STATE"
     const val EXTRA_ADAPTER_CONNECTION_STATE = "android.bluetooth.adapter.extra.CONNECTION_STATE"
+    const val EXTRA_BOND_STATE = "android.bluetooth.device.extra.BOND_STATE"
+    const val BOND_NONE = 10
+    const val BOND_BONDED = 12
 
     val PROFILE_CONNECTION_ACTIONS = setOf(
         ACTION_A2DP_CONNECTION_STATE_CHANGED,
@@ -56,7 +60,8 @@ object ConnectedDevicePolicy {
             ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
             ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
             ACTION_CSIS_CONNECTION_STATE_CHANGED,
-            ACTION_ADAPTER_CONNECTION_STATE_CHANGED
+            ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+            ACTION_BOND_STATE_CHANGED
         )
     }
 
@@ -112,15 +117,27 @@ object ConnectedDevicePolicy {
             adapterConnectionState == STATE_CONNECTED
     }
 
+    fun shouldApplyBonded(
+        action: String?,
+        bondState: Int,
+        scanningRequested: Boolean
+    ): Boolean {
+        return scanningRequested &&
+            action == ACTION_BOND_STATE_CHANGED &&
+            bondState == BOND_BONDED
+    }
+
     fun shouldClassifyConnectionEvent(
         action: String?,
         scanningRequested: Boolean,
         connectionState: Int = STATE_DISCONNECTED,
-        adapterConnectionState: Int = STATE_DISCONNECTED
+        adapterConnectionState: Int = STATE_DISCONNECTED,
+        bondState: Int = BOND_NONE
     ): Boolean {
         return shouldApplyAclConnected(action, scanningRequested) ||
             shouldApplyProfileConnected(action, connectionState, scanningRequested) ||
-            shouldApplyAdapterConnected(action, adapterConnectionState, scanningRequested)
+            shouldApplyAdapterConnected(action, adapterConnectionState, scanningRequested) ||
+            shouldApplyBonded(action, bondState, scanningRequested)
     }
 
     fun shouldRefreshSdpUuids(cachedUuidCount: Int): Boolean {

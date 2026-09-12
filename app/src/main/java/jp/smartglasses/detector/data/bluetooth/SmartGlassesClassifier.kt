@@ -52,6 +52,7 @@ internal class SmartGlassesClassifier(
             parsedAdvertisement = parsedAdvertisement
         )
 
+        val payloadBytes = resolved.payloadBytes()
         return withEligibleRssi(
             signal = resolved,
             device = detectByCompanyId(resolved),
@@ -64,12 +65,12 @@ internal class SmartGlassesClassifier(
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
             signal = resolved,
-            device = detectByPayload(resolved),
+            device = detectByPayload(resolved, payloadBytes),
             matchClass = DetectionMatchClass.CATALOG,
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
             signal = resolved,
-            device = detectByManufacturerSuffix(resolved),
+            device = detectByManufacturerSuffix(resolved, payloadBytes),
             matchClass = DetectionMatchClass.CATALOG,
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
@@ -84,7 +85,7 @@ internal class SmartGlassesClassifier(
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
             signal = resolved,
-            device = detectByHeuristicPayload(resolved),
+            device = detectByHeuristicPayload(resolved, payloadBytes),
             matchClass = DetectionMatchClass.CATALOG,
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
@@ -168,8 +169,10 @@ internal class SmartGlassesClassifier(
         return null
     }
 
-    private fun detectByPayload(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadBytes = signal.payloadBytes()
+    private fun detectByPayload(
+        signal: DetectionSignal,
+        payloadBytes: ByteArray
+    ): SmartGlassesDevice? {
         if (payloadBytes.isEmpty()) {
             return null
         }
@@ -208,8 +211,10 @@ internal class SmartGlassesClassifier(
         return null
     }
 
-    private fun detectByManufacturerSuffix(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadBytes = signal.payloadBytes()
+    private fun detectByManufacturerSuffix(
+        signal: DetectionSignal,
+        payloadBytes: ByteArray
+    ): SmartGlassesDevice? {
         if (payloadBytes.isEmpty()) {
             return null
         }
@@ -287,8 +292,10 @@ internal class SmartGlassesClassifier(
         )
     }
 
-    private fun detectByHeuristicPayload(signal: DetectionSignal): SmartGlassesDevice? {
-        val payloadBytes = signal.payloadBytes()
+    private fun detectByHeuristicPayload(
+        signal: DetectionSignal,
+        payloadBytes: ByteArray
+    ): SmartGlassesDevice? {
         if (payloadBytes.isEmpty()) {
             return null
         }

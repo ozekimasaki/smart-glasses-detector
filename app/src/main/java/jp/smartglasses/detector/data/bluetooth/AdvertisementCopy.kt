@@ -49,4 +49,17 @@ internal object AdvertisementCopy {
         }
         return merged
     }
+
+    fun copyManufacturerEntries(
+        entries: List<Pair<Int, ByteArray>>
+    ): List<Pair<Int, ByteArray>> {
+        if (entries.isEmpty()) {
+            return emptyList()
+        }
+        val copied = ArrayList<Pair<Int, ByteArray>>(entries.size)
+        for ((companyId, payload) in entries) {
+            copied += companyId to payload.copyOf()
+        }
+        return copied
+    }
 }

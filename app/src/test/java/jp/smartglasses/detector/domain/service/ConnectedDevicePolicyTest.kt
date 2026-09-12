@@ -215,7 +215,8 @@ class ConnectedDevicePolicyTest {
                 ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED,
-                ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED
+                ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED
             ),
             ConnectedDevicePolicy.connectionBroadcastActions()
         )
@@ -224,6 +225,44 @@ class ConnectedDevicePolicyTest {
         assertEquals(
             "android.bluetooth.adapter.extra.CONNECTION_STATE",
             ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE
+        )
+        assertEquals(
+            "android.bluetooth.device.action.BOND_STATE_CHANGED",
+            ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED
+        )
+        assertEquals(
+            "android.bluetooth.device.extra.BOND_STATE",
+            ConnectedDevicePolicy.EXTRA_BOND_STATE
+        )
+        assertEquals(10, ConnectedDevicePolicy.BOND_NONE)
+        assertEquals(12, ConnectedDevicePolicy.BOND_BONDED)
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyBonded(
+                action = ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED,
+                bondState = ConnectedDevicePolicy.BOND_BONDED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED,
+                scanningRequested = true,
+                bondState = ConnectedDevicePolicy.BOND_BONDED
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyBonded(
+                action = ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED,
+                bondState = ConnectedDevicePolicy.BOND_NONE,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyBonded(
+                action = ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED,
+                bondState = ConnectedDevicePolicy.BOND_BONDED,
+                scanningRequested = false
+            )
         )
         assertTrue(ConnectedDevicePolicy.shouldRefreshSdpUuids(0))
         assertFalse(ConnectedDevicePolicy.shouldRefreshSdpUuids(1))

@@ -47,4 +47,18 @@ class AdvertisementCopyTest {
         assertTrue(ascii.contains("Rokid"))
         assertFalse(extra.isEmpty())
     }
+
+    @Test
+    fun `copied manufacturer entries stay independent of the original payloads`() {
+        val originalPayload = byteArrayOf(0x47, 0x4C, 0x41, 0x53, 0x53)
+        val copied = AdvertisementCopy.copyManufacturerEntries(
+            listOf(0x01AB to originalPayload)
+        )
+
+        assertEquals(0x01AB, copied.single().first)
+        assertArrayEquals(byteArrayOf(0x47, 0x4C, 0x41, 0x53, 0x53), copied.single().second)
+        originalPayload[0] = 0x00
+        assertEquals(0x47.toByte(), copied.single().second[0])
+        assertTrue(AdvertisementCopy.copyManufacturerEntries(emptyList()).isEmpty())
+    }
 }
