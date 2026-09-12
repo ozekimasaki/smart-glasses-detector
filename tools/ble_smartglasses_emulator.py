@@ -109,6 +109,7 @@ NON_GLASSES_NAME_DEVICES = {
     97: "R1",
     98: "Even R1",
     99: "Even Realities R1",
+    100: "Frame TV",
 }
 
 

@@ -959,6 +959,12 @@ class SmartGlassesClassifierTest {
                 regex.containsMatchIn("Halo 4F") && !regex.containsMatchIn("Halo Band")
             }
         )
+        assertTrue(
+            "Brilliant Labs Frame XX official name format should be configured",
+            brilliant.nameRegexes.any { regex ->
+                regex.containsMatchIn("Frame 4F") && !regex.containsMatchIn("Frame TV")
+            }
+        )
     }
 
     @Test
@@ -1429,6 +1435,30 @@ class SmartGlassesClassifierTest {
 
         assertNull(band)
         assertNull(quest)
+    }
+
+    @Test
+    fun `brilliant frame official coded names are detected and generic frame tv is not`() {
+        val frame = classifier.classify(
+            DetectionSignal(
+                deviceName = "Frame AB",
+                address = "AA:BB:CC:DD:EE:61",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val frameTv = classifier.classify(
+            DetectionSignal(
+                deviceName = "Frame TV",
+                address = "AA:BB:CC:DD:EE:62",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Brilliant Labs", frame?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, frame?.manufacturer?.detectionMethod)
+        assertNull(frameTv)
     }
 
     private fun asciiToHex(value: String): String {

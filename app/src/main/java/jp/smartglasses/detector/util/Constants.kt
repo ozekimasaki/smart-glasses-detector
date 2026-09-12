@@ -466,13 +466,13 @@ object Constants {
                 "Brilliant Halo",
                 "Monocle",
                 "Frame-",
-                "Frame ",
                 "Frame Update",
                 "Halo-"
             ),
-            // Halo 公式 BLE 仕様: "Halo XX"（XX は EUI-48 の第4バイト）
+            // Halo / Frame 公式 BLE 仕様: "Halo XX" / "Frame XX"（XX は EUI-48 の第4バイト）
             nameRegexes = listOf(
-                Regex("""(?i)\bHalo\s+[0-9A-Fa-f]{2}\b""")
+                Regex("""(?i)\bHalo\s+[0-9A-Fa-f]{2}\b"""),
+                Regex("""(?i)\bFrame\s+[0-9A-Fa-f]{2}\b""")
             ),
             serviceUuids = setOf("7A230001-5475-A6A4-654C-8431F6AD49C4"),
             allowCompanyIdOnly = false

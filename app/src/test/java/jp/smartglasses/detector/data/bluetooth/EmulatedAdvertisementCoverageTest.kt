@@ -57,6 +57,10 @@ class EmulatedAdvertisementCoverageTest {
             catalog.nameDevices.any { device -> device.name == "Halo 4F" }
         )
         assertTrue(
+            "Brilliant Frame official coded name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Frame 4F" }
+        )
+        assertTrue(
             "Mentra Live lowercase prefix should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "mentra_live_abc" }
         )
@@ -202,7 +206,8 @@ class EmulatedAdvertisementCoverageTest {
             "Even R1 controller ring should stay in the non-glasses catalog",
             catalog.nonGlassesNames.contains("R1") &&
                 catalog.nonGlassesNames.contains("Even R1") &&
-                catalog.nonGlassesNames.contains("Even Realities R1")
+                catalog.nonGlassesNames.contains("Even Realities R1") &&
+                catalog.nonGlassesNames.contains("Frame TV")
         )
 
         catalog.nonGlassesNames.forEach { name ->
