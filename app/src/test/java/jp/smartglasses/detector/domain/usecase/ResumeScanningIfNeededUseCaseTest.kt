@@ -177,6 +177,7 @@ class ResumeScanningIfNeededUseCaseTest {
         override val scannedDevices: Flow<SmartGlassesDevice> = emptyFlow()
         override val scanFailures: Flow<BluetoothScanFailure> = emptyFlow()
         override val isScanning = MutableStateFlow(hardwareScanning)
+        override val isHardwareScanRunning = MutableStateFlow(false)
         override val nearbyDevices = MutableStateFlow(emptyList<SmartGlassesDevice>())
 
         override suspend fun startScanning() = Unit

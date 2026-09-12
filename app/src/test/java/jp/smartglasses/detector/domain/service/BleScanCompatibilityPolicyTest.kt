@@ -51,4 +51,20 @@ class BleScanCompatibilityPolicyTest {
             )
         )
     }
+
+    @Test
+    fun `does not restore a match-all filter that this session already rejected`() {
+        assertFalse(
+            BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(
+                usingMatchAllFilter = false,
+                matchAllRejectedThisSession = true
+            )
+        )
+        assertTrue(
+            BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(
+                usingMatchAllFilter = false,
+                matchAllRejectedThisSession = false
+            )
+        )
+    }
 }

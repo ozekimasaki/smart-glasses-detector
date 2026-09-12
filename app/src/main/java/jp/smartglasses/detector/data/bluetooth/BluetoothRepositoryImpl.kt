@@ -37,6 +37,9 @@ class BluetoothRepositoryImpl @Inject constructor(
     override val isScanning: Flow<Boolean>
         get() = smartGlassesDetector.isScanning
 
+    override val isHardwareScanRunning: Flow<Boolean>
+        get() = smartGlassesDetector.isHardwareScanRunning
+
     override val nearbyDevices: Flow<List<SmartGlassesDevice>>
         get() = smartGlassesDetector.nearbyDevices
     

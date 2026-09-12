@@ -78,6 +78,8 @@ class SmartGlassesDetector @Inject constructor(
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+    private val _hardwareScanRunning = MutableStateFlow(false)
+    val isHardwareScanRunning: StateFlow<Boolean> = _hardwareScanRunning.asStateFlow()
     private val _nearbyDevices = MutableStateFlow<List<SmartGlassesDevice>>(emptyList())
     val nearbyDevices: StateFlow<List<SmartGlassesDevice>> = _nearbyDevices.asStateFlow()
     private val detectionCooldownGate = DetectionCooldownGate()
@@ -97,6 +99,7 @@ class SmartGlassesDetector @Inject constructor(
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var usingExtendedAdvertising = true
     private var usingMatchAllFilter = true
+    private var matchAllFilterRejectedThisSession = false
     private var retryAttempt = 0
     private var scanWatchdogJob: Job? = null
     private var nearbyPruneJob: Job? = null
@@ -197,6 +200,8 @@ class SmartGlassesDetector @Inject constructor(
                 return
             }
 
+            _hardwareScanRunning.value = false
+
             if (
                 ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
                 userRequestedScanning.get()
@@ -209,7 +214,7 @@ class SmartGlassesDetector @Inject constructor(
                 ) {
                     BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
                         Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
-                        usingMatchAllFilter = false
+                        rejectMatchAllFilter()
                         startLeAndClassicScanning()
                         return
                     }
@@ -645,11 +650,13 @@ class SmartGlassesDetector @Inject constructor(
     fun startScanning(sensitivity: ScanSensitivity) {
         if (bluetoothAdapter == null) {
             _isScanning.value = false
+            _hardwareScanRunning.value = false
             throw IllegalStateException("Bluetooth adapter is unavailable.")
         }
 
         if (!hasRequiredScanPermission()) {
             _isScanning.value = false
+            _hardwareScanRunning.value = false
             throw SecurityException("Bluetooth scan permission is missing.")
         }
 
@@ -658,6 +665,7 @@ class SmartGlassesDetector @Inject constructor(
         if (ScanResumePolicy.shouldResetScanSession(alreadyRequested)) {
             usingExtendedAdvertising = true
             usingMatchAllFilter = true
+            matchAllFilterRejectedThisSession = false
             classicDiscoveryStarted.set(false)
             lastClassicDiscoveryStartedAt.set(0L)
             clearClassicInquiryMemory()
@@ -681,6 +689,7 @@ class SmartGlassesDetector @Inject constructor(
         startNearbyPrune()
 
         if (!bluetoothAdapter.isEnabled || !isLocationServicesSatisfied()) {
+            _hardwareScanRunning.value = false
             return
         }
 
@@ -751,6 +760,7 @@ class SmartGlassesDetector @Inject constructor(
                 scanPermissionGranted = hasRequiredScanPermission(),
                 locationServicesSatisfied = isLocationServicesSatisfied()
             )
+            _hardwareScanRunning.value = false
             return
         }
 
@@ -758,6 +768,7 @@ class SmartGlassesDetector @Inject constructor(
 
         val scanner = adapter.bluetoothLeScanner ?: run {
             Log.w(TAG, "Bluetooth LE scanner is unavailable.")
+            _hardwareScanRunning.value = false
             scheduleScanRetry()
             return
         }
@@ -767,9 +778,11 @@ class SmartGlassesDetector @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop previous BLE scan before restart", e)
         }
+        _hardwareScanRunning.value = false
 
         try {
             startLeScan(scanner, usingExtendedAdvertising)
+            markHardwareScanRunning()
             retryAttempt = 0
             startClassicDiscoveryIfNeeded()
         } catch (e: Exception) {
@@ -778,6 +791,7 @@ class SmartGlassesDetector @Inject constructor(
                 usingExtendedAdvertising = false
                 try {
                     startLeScan(scanner, extendedAdvertising = false)
+                    markHardwareScanRunning()
                     retryAttempt = 0
                     startClassicDiscoveryIfNeeded()
                 } catch (legacyError: Exception) {
@@ -816,7 +830,7 @@ class SmartGlassesDetector @Inject constructor(
                     }
                     BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
                         Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
-                        usingMatchAllFilter = false
+                        rejectMatchAllFilter()
                     }
                     BleScanCompatibilityStep.NONE -> throw e
                 }
@@ -849,6 +863,7 @@ class SmartGlassesDetector @Inject constructor(
             scanPermissionGranted = scanPermissionGranted ?: hasRequiredScanPermission(),
             locationServicesSatisfied = locationServicesSatisfied ?: isLocationServicesSatisfied()
         )
+        _hardwareScanRunning.value = false
         scanEnvironmentSignals.notifyChanged()
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
@@ -879,10 +894,25 @@ class SmartGlassesDetector @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to refresh BLE scan", e)
         }
-        if (BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(usingMatchAllFilter)) {
+        _hardwareScanRunning.value = false
+        if (
+            BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(
+                usingMatchAllFilter = usingMatchAllFilter,
+                matchAllRejectedThisSession = matchAllFilterRejectedThisSession
+            )
+        ) {
             usingMatchAllFilter = true
         }
         startLeAndClassicScanning()
+    }
+
+    private fun rejectMatchAllFilter() {
+        usingMatchAllFilter = false
+        matchAllFilterRejectedThisSession = true
+    }
+
+    private fun markHardwareScanRunning() {
+        _hardwareScanRunning.value = true
     }
 
     private fun scheduleScanRetry() {

@@ -622,6 +622,30 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `even official g1 coded left name is detected`() {
+        val left = classifier.classify(
+            DetectionSignal(
+                deviceName = "G1_12_L",
+                address = "AA:BB:CC:DD:EE:24F",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val right = classifier.classify(
+            DetectionSignal(
+                deviceName = "G1_12_R",
+                address = "AA:BB:CC:DD:EE:24G",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Even Realities", left?.manufacturer?.name)
+        assertEquals("Even Realities", right?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, left?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `even g2 coded left right names are detected without even prefix`() {
         val left = classifier.classify(
             DetectionSignal(

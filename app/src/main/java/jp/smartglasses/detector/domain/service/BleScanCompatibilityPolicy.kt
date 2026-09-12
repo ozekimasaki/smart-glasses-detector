@@ -20,7 +20,10 @@ object BleScanCompatibilityPolicy {
         }
     }
 
-    fun shouldRestoreMatchAllFilterOnRefresh(usingMatchAllFilter: Boolean): Boolean {
-        return !usingMatchAllFilter
+    fun shouldRestoreMatchAllFilterOnRefresh(
+        usingMatchAllFilter: Boolean,
+        matchAllRejectedThisSession: Boolean = false
+    ): Boolean {
+        return !usingMatchAllFilter && !matchAllRejectedThisSession
     }
 }

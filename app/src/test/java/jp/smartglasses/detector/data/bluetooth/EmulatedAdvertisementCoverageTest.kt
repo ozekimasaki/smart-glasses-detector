@@ -116,6 +116,11 @@ class EmulatedAdvertisementCoverageTest {
             "Huawei Chinese eyewear name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "华为眼镜" }
         )
+        assertTrue(
+            "Even G1 official coded name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "G1_12_L" } &&
+                catalog.nameDevices.any { device -> device.name == "G1_12_R" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(
@@ -172,6 +177,10 @@ class EmulatedAdvertisementCoverageTest {
     @Test
     fun `emulator payload catalog is detected`() {
         assertTrue(catalog.payloadDevices.isNotEmpty())
+        assertTrue(
+            "Meta Ray-Ban payload should be in the emulator",
+            catalog.payloadDevices.any { device -> device.ascii == "META_RB_GLASS" }
+        )
 
         catalog.payloadDevices.forEach { device ->
             val payload = device.ascii.encodeToByteArray()

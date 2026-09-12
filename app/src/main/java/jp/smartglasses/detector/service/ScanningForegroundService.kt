@@ -502,7 +502,7 @@ class ScanningForegroundService : Service() {
                         hasPermissions = hasPermissions,
                         bluetoothEnabled = bluetoothEnabled,
                         locationServicesEnabled = locationServicesEnabled,
-                        hardwareScanning = bluetoothRepository.isScanning.first()
+                        hardwareScanning = bluetoothRepository.isHardwareScanRunning.first()
                     )
                 ) {
                     Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")

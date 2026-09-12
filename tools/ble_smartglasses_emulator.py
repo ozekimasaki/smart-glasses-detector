@@ -80,6 +80,8 @@ NAME_PATTERN_DEVICES = {
     67: "若琪眼镜",
     68: "映莫GO2",
     69: "华为眼镜",
+    70: "G1_12_L",
+    75: "G1_12_R",
 }
 
 UUID_DEVICES = {
@@ -97,6 +99,7 @@ UUID128_DEVICES = {
 # メーカーデータ先頭の ASCII プロジェクト ID（MentraOS AR99 など）
 PAYLOAD_DEVICES = {
     61: ("Xingyi AR99 (payload AR99)", "AR99"),
+    74: ("Meta Ray-Ban payload", "META_RB_GLASS"),
 }
 
 APPEARANCE_DEVICES = {
@@ -195,9 +198,12 @@ def start_advertise_ascii_manufacturer_payload(label, ascii_id):
     run("sudo hciconfig hci0 up")
     run('sudo hciconfig hci0 name "BLE Device"')
 
-    ident = ascii_id.encode("ascii")[:4].ljust(4, b"\x00")
-    # MentraOS は manufacturer data が 20 バイト以上のとき project name を読む
-    payload = ident + bytes(16)
+    ident = ascii_id.encode("ascii")
+    if len(ident) <= 4:
+        # MentraOS は manufacturer data が 20 バイト以上のとき project name を読む
+        payload = ident.ljust(4, b"\x00") + bytes(16)
+    else:
+        payload = ident[:26]
     rec_len = 1 + len(payload)
     total = 3 + 1 + rec_len
     payload_hex = " ".join(f"{b:02X}" for b in payload)
