@@ -136,6 +136,12 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `does not restart the service when hardware is already scanning`() {
+        assertFalse(ScanResumePolicy.shouldRestartService(hardwareScanning = true))
+        assertTrue(ScanResumePolicy.shouldRestartService(hardwareScanning = false))
+    }
+
+    @Test
     fun `foreground-only scanning resumes when the app becomes visible again`() {
         assertTrue(
             ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = false)

@@ -73,6 +73,20 @@ class ResumeScanningIfNeededUseCaseTest {
         assertEquals(0, controller.startCount)
     }
 
+    @Test
+    fun `does not restart the service when hardware is already scanning`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = false),
+            bluetoothRepository = FakeBluetoothRepository(permissions = true, hardwareScanning = true),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(0, controller.startCount)
+    }
+
     private class RecordingScanServiceController : ScanServiceController {
         var startCount = 0
         var lastFromBackground: Boolean? = null
@@ -107,11 +121,12 @@ class ResumeScanningIfNeededUseCaseTest {
     }
 
     private class FakeBluetoothRepository(
-        private val permissions: Boolean
+        private val permissions: Boolean,
+        hardwareScanning: Boolean = false
     ) : BluetoothRepository {
         override val scannedDevices: Flow<SmartGlassesDevice> = emptyFlow()
         override val scanFailures: Flow<BluetoothScanFailure> = emptyFlow()
-        override val isScanning = MutableStateFlow(false)
+        override val isScanning = MutableStateFlow(hardwareScanning)
         override val nearbyDevices = MutableStateFlow(emptyList<SmartGlassesDevice>())
 
         override suspend fun startScanning() = Unit

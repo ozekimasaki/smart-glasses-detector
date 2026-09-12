@@ -17,9 +17,12 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.domain.usecase.ResumeScanningIfNeededUseCase
+import jp.smartglasses.detector.util.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,6 +32,7 @@ class SmartGlassesDetectorApp : Application() {
     lateinit var resumeScanningIfNeeded: ResumeScanningIfNeededUseCase
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var foregroundResumeJob: Job? = null
 
     private val resumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
@@ -67,11 +71,17 @@ class SmartGlassesDetectorApp : Application() {
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
                     resumeScanningInBackground("app became visible", appInForeground = true)
+                    startForegroundResumeLoop()
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    stopForegroundResumeLoop()
                 }
             }
         )
         if (processLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             resumeScanningInBackground("app process started in foreground", appInForeground = true)
+            startForegroundResumeLoop()
         }
     }
 
@@ -92,6 +102,28 @@ class SmartGlassesDetectorApp : Application() {
                 Log.w(TAG, "Failed to resume scanning after $reason", e)
             }
         }
+    }
+
+    private fun startForegroundResumeLoop() {
+        if (foregroundResumeJob?.isActive == true) {
+            return
+        }
+
+        foregroundResumeJob = applicationScope.launch {
+            while (true) {
+                delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
+                try {
+                    resumeScanningIfNeeded(appInForeground = true)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to refresh scanning while the app is visible", e)
+                }
+            }
+        }
+    }
+
+    private fun stopForegroundResumeLoop() {
+        foregroundResumeJob?.cancel()
+        foregroundResumeJob = null
     }
 
     private fun isAppInForeground(): Boolean {

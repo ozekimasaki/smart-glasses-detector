@@ -29,6 +29,10 @@ object ScanResumePolicy {
         return fromBackground
     }
 
+    fun shouldRestartService(hardwareScanning: Boolean): Boolean {
+        return !hardwareScanning
+    }
+
     const val ACTION_BLUETOOTH_STATE_CHANGED = "android.bluetooth.adapter.action.STATE_CHANGED"
     const val ACTION_LOCATION_MODE_CHANGED = "android.location.MODE_CHANGED"
     const val BLUETOOTH_STATE_ON = 12

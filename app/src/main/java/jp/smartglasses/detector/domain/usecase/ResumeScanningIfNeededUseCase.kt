@@ -27,6 +27,10 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
             return
         }
 
+        if (!ScanResumePolicy.shouldRestartService(bluetoothRepository.isScanning.first())) {
+            return
+        }
+
         scanServiceController.startScanService(fromBackground = !appInForeground)
     }
 }
