@@ -709,8 +709,24 @@ class SmartGlassesDetector @Inject constructor(
                 scanner.startScan(matchAllScanFilters(), settings, scanCallback)
                 return
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
-                usingMatchAllFilter = false
+                when (
+                    BleScanCompatibilityPolicy.nextStep(
+                        usingMatchAllFilter = usingMatchAllFilter,
+                        usingExtendedAdvertising = usingExtendedAdvertising
+                    )
+                ) {
+                    BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
+                        Log.w(TAG, "Match-all BLE scan with extended advertising was rejected, retrying legacy advertisements", e)
+                        usingExtendedAdvertising = false
+                        startLeScan(scanner, extendedAdvertising = false)
+                        return
+                    }
+                    BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
+                        Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
+                        usingMatchAllFilter = false
+                    }
+                    BleScanCompatibilityStep.NONE -> throw e
+                }
             }
         }
         scanner.startScan(null, settings, scanCallback)

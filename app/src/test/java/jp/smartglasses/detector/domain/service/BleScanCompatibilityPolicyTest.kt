@@ -29,6 +29,13 @@ class BleScanCompatibilityPolicyTest {
                 usingExtendedAdvertising = false
             )
         )
+        assertEquals(
+            BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = false,
+                usingExtendedAdvertising = true
+            )
+        )
     }
 
     @Test
