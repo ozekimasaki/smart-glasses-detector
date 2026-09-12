@@ -87,6 +87,7 @@ NAME_PATTERN_DEVICES = {
     78: "VITURE Beast",
     79: "Rokid Max 2",
     80: "Echo Frames 2",
+    82: "スマートメガネ",
 }
 
 UUID_DEVICES = {

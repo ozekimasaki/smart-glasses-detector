@@ -49,10 +49,12 @@ object Constants {
         Regex("""(?i)ai[\s-]?eyewear"""),
         Regex("""(?i)ar[\s-]?eyewear"""),
         Regex("""スマートグラス"""),
+        Regex("""スマートメガネ"""),
         Regex("""スマート眼鏡"""),
         Regex("""アイウェア"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
+        Regex("""MRグラス"""),
         Regex("""AIグラス"""),
         Regex("""智能眼镜"""),
         Regex("""智能眼鏡""")

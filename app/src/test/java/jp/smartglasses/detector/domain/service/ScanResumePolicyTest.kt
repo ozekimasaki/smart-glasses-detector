@@ -297,6 +297,12 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `duplicate start intent refreshes hardware while the service is already active`() {
+        assertTrue(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = true))
+        assertFalse(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = false))
+    }
+
+    @Test
     fun `already requested scanning does not reset the scan session`() {
         assertFalse(ScanResumePolicy.shouldResetScanSession(alreadyRequested = true))
         assertTrue(ScanResumePolicy.shouldResetScanSession(alreadyRequested = false))

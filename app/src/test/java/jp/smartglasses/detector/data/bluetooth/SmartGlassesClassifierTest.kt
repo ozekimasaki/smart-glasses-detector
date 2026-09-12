@@ -1130,6 +1130,29 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `japanese smart megane name is detected by heuristic`() {
+        val megane = classifier.classify(
+            DetectionSignal(
+                deviceName = "スマートメガネ-A1",
+                address = "AA:BB:CC:DD:EE:39A",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val mixedReality = classifier.classify(
+            DetectionSignal(
+                deviceName = "MRグラス 01",
+                address = "AA:BB:CC:DD:EE:39B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals(DetectionMethod.HEURISTIC, megane?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, mixedReality?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `smart watch names are excluded from generic glasses heuristic`() {
         val detected = classifier.classify(
             DetectionSignal(

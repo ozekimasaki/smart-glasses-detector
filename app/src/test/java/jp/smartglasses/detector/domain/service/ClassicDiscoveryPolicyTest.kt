@@ -164,6 +164,11 @@ class ClassicDiscoveryPolicyTest {
     }
 
     @Test
+    fun `classic inquiry still starts when ble launch fails`() {
+        assertTrue(ClassicDiscoveryPolicy.shouldAttemptAfterBleLaunchFailure())
+    }
+
+    @Test
     fun `blank addresses are not tracked for delayed name updates`() {
         assertFalse(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(""))
         assertFalse(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser("   "))

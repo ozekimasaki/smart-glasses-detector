@@ -46,6 +46,10 @@ object ClassicDiscoveryPolicy {
         }
     }
 
+    fun shouldAttemptAfterBleLaunchFailure(): Boolean {
+        return true
+    }
+
     fun shouldRememberSeenAdvertiser(address: String): Boolean {
         return address.isNotBlank()
     }

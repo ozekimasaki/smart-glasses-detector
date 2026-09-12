@@ -136,7 +136,7 @@ class MainViewModel @Inject constructor(
                 _event.send(MainEvent.ShowMessage(R.string.error_location_pre_s))
                 _event.send(MainEvent.OpenLocationSettings)
             }
-            ScanRestorePrompt.Hardware -> startScanning()
+            ScanRestorePrompt.Hardware -> restartHardwareScan()
             ScanRestorePrompt.None -> refreshScanBlockers()
         }
     }
@@ -146,6 +146,17 @@ class MainViewModel @Inject constructor(
             stopScanning()
         } else {
             startScanning()
+        }
+    }
+
+    private fun restartHardwareScan() {
+        viewModelScope.launch {
+            try {
+                startScanningUseCase()
+                bluetoothRepository.ensureHardwareScanning()
+            } catch (_: Exception) {
+                _event.send(MainEvent.ShowMessage(R.string.error_scan_start))
+            }
         }
     }
 

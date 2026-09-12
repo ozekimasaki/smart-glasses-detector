@@ -771,6 +771,7 @@ class SmartGlassesDetector @Inject constructor(
         val scanner = adapter.bluetoothLeScanner ?: run {
             Log.w(TAG, "Bluetooth LE scanner is unavailable.")
             _hardwareScanRunning.value = false
+            startClassicDiscoveryIfNeeded()
             scheduleScanRetry()
             return
         }
@@ -786,7 +787,6 @@ class SmartGlassesDetector @Inject constructor(
             startLeScan(scanner, usingExtendedAdvertising)
             markHardwareScanRunning()
             retryAttempt = 0
-            startClassicDiscoveryIfNeeded()
         } catch (e: Exception) {
             if (usingExtendedAdvertising) {
                 Log.w(TAG, "Extended BLE scan failed, retrying with legacy advertisements", e)
@@ -795,7 +795,6 @@ class SmartGlassesDetector @Inject constructor(
                     startLeScan(scanner, extendedAdvertising = false)
                     markHardwareScanRunning()
                     retryAttempt = 0
-                    startClassicDiscoveryIfNeeded()
                 } catch (legacyError: Exception) {
                     Log.w(TAG, "Failed to start BLE scan", legacyError)
                     scheduleScanRetry()
@@ -804,6 +803,9 @@ class SmartGlassesDetector @Inject constructor(
                 Log.w(TAG, "Failed to start BLE scan", e)
                 scheduleScanRetry()
             }
+        }
+        if (ClassicDiscoveryPolicy.shouldAttemptAfterBleLaunchFailure()) {
+            startClassicDiscoveryIfNeeded()
         }
     }
 

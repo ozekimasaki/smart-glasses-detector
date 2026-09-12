@@ -129,6 +129,10 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "Rokid Max 2" } &&
                 catalog.nameDevices.any { device -> device.name == "Echo Frames 2" }
         )
+        assertTrue(
+            "Japanese smart megane heuristic name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "スマートメガネ" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

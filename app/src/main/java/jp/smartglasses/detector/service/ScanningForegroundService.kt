@@ -122,6 +122,9 @@ class ScanningForegroundService : Service() {
         }
 
         if (scanJob?.isActive == true) {
+            if (ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = true)) {
+                bluetoothRepository.ensureHardwareScanning()
+            }
             return
         }
 

@@ -55,6 +55,10 @@ object ScanResumePolicy {
             !hardwareScanning
     }
 
+    fun shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive: Boolean): Boolean {
+        return scanAlreadyActive
+    }
+
     fun shouldResetScanSession(alreadyRequested: Boolean): Boolean {
         return !alreadyRequested
     }
