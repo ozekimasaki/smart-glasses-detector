@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -362,8 +363,10 @@ class ScanningForegroundService : Service() {
 
         if (!isStopping.get()) {
             runBlocking {
-                scanJob?.cancelAndJoin()
-                stopBluetoothScanSafely()
+                withTimeoutOrNull(SERVICE_DESTROY_TIMEOUT_MS) {
+                    scanJob?.cancelAndJoin()
+                    stopBluetoothScanSafely()
+                }
             }
         }
 
@@ -375,6 +378,7 @@ class ScanningForegroundService : Service() {
         private const val TAG = "ScanningFgService"
         const val ACTION_START = "jp.smartglasses.detector.action.START"
         const val ACTION_STOP = "jp.smartglasses.detector.action.STOP"
+        private const val SERVICE_DESTROY_TIMEOUT_MS = 1_500L
     }
 
     private suspend fun stopForegroundAndSelf() {

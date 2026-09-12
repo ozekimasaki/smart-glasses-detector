@@ -67,6 +67,66 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `unnamed meta company id remains detectable`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:04A",
+                companyIds = setOf(0x058E),
+                rssi = -60
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Meta Platforms", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `meta quest names are not treated as glasses from company id`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Quest 3",
+                address = "AA:BB:CC:DD:EE:04B",
+                companyIds = setOf(0x058E),
+                rssi = -55
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `amazon echo dot names are not treated as glasses from company id`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Echo Dot",
+                address = "AA:BB:CC:DD:EE:04C",
+                companyIds = setOf(0x0171),
+                rssi = -50
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `unnamed amazon company id remains detectable`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:04D",
+                companyIds = setOf(0x0171),
+                rssi = -60
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Amazon", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.COMPANY_ID, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `name pattern detection remains enabled`() {
         val detected = classifier.classify(
             DetectionSignal(

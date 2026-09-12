@@ -525,11 +525,13 @@ class SmartGlassesDetector @Inject constructor(
         scanner: BluetoothLeScanner,
         extendedAdvertising: Boolean
     ) {
-        scanner.startScan(
-            matchAllScanFilters(),
-            buildScanSettings(lastSensitivity, extendedAdvertising),
-            scanCallback
-        )
+        val settings = buildScanSettings(lastSensitivity, extendedAdvertising)
+        try {
+            scanner.startScan(matchAllScanFilters(), settings, scanCallback)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
+            scanner.startScan(null, settings, scanCallback)
+        }
     }
 
     @SuppressLint("MissingPermission")

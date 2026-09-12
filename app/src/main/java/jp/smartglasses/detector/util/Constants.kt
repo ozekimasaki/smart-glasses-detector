@@ -4,6 +4,7 @@ internal data class DetectionRule(
     val manufacturerName: String,
     val companyIds: Set<Int> = emptySet(),
     val namePatterns: List<String> = emptyList(),
+    val excludedNamePatterns: List<String> = emptyList(),
     val serviceUuids: Set<String> = emptySet(),
     val payloadPatterns: List<String> = emptyList(),
     val manufacturerDataSuffixes: Set<Int> = emptySet(),
@@ -115,6 +116,15 @@ object Constants {
                 "Echo Frames",
                 "Echo Frames 2",
                 "Amazon Frame"
+            ),
+            excludedNamePatterns = listOf(
+                "Echo Dot",
+                "Echo Show",
+                "Echo Spot",
+                "Echo Studio",
+                "Fire TV",
+                "Fire Stick",
+                "Kindle"
             )
         ),
         DetectionRule(
@@ -134,6 +144,10 @@ object Constants {
                 "RayBan Display",
                 "Ray-Ban Stories",
                 "RayBan Stories"
+            ),
+            excludedNamePatterns = listOf(
+                "Quest",
+                "Oculus"
             ),
             serviceUuids = setOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
             payloadPatterns = listOf("META_RB_GLASS")

@@ -106,6 +106,10 @@ internal class SmartGlassesClassifier(
                 companyId in rule.companyIds
             } ?: continue
 
+            if (rule.excludesName(signal.deviceName)) {
+                continue
+            }
+
             return toDevice(
                 signal = signal,
                 rule = rule,
@@ -284,6 +288,16 @@ internal class SmartGlassesClassifier(
             ),
             rssi = signal.rssi
         )
+    }
+
+    private fun DetectionRule.excludesName(deviceName: String?): Boolean {
+        if (deviceName.isNullOrBlank() || excludedNamePatterns.isEmpty()) {
+            return false
+        }
+
+        return excludedNamePatterns.any { pattern ->
+            deviceName.contains(pattern, ignoreCase = true)
+        }
     }
 
     private fun toDevice(
