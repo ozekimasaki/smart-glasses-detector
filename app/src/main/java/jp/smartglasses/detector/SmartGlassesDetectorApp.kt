@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.LocationManager
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -28,12 +30,13 @@ class SmartGlassesDetectorApp : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+    private val resumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
-            val bluetoothState = intent?.getIntExtra(
-                BluetoothAdapter.EXTRA_STATE,
-                BluetoothAdapter.ERROR
-            )
+            val bluetoothState = if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+            } else {
+                null
+            }
             if (!ScanResumePolicy.shouldHandleAction(intent?.action, bluetoothState)) {
                 return
             }
@@ -43,7 +46,7 @@ class SmartGlassesDetectorApp : Application() {
                 try {
                     resumeScanningIfNeeded(appInForeground = isAppInForeground())
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to resume scanning after Bluetooth on", e)
+                    Log.w(TAG, "Failed to resume scanning after ${intent?.action}", e)
                 } finally {
                     pendingResult.finish()
                 }
@@ -55,8 +58,8 @@ class SmartGlassesDetectorApp : Application() {
         super.onCreate()
         ContextCompat.registerReceiver(
             this,
-            bluetoothStateReceiver,
-            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            resumeReceiver,
+            resumeIntentFilter(),
             ContextCompat.RECEIVER_EXPORTED
         )
         val processLifecycle = ProcessLifecycleOwner.get().lifecycle
@@ -69,6 +72,15 @@ class SmartGlassesDetectorApp : Application() {
         )
         if (processLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             resumeScanningInBackground("app process started in foreground", appInForeground = true)
+        }
+    }
+
+    private fun resumeIntentFilter(): IntentFilter {
+        return IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                addAction(LocationManager.MODE_CHANGED_ACTION)
+            }
         }
     }
 

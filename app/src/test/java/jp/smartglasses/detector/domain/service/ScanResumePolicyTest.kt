@@ -78,9 +78,16 @@ class ScanResumePolicyTest {
     fun `handles boot and package replaced actions`() {
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_BOOT_COMPLETED))
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_MY_PACKAGE_REPLACED))
-        assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_LOCKED_BOOT_COMPLETED))
+        assertFalse(ScanResumePolicy.shouldHandleAction(Intent.ACTION_LOCKED_BOOT_COMPLETED))
         assertFalse(ScanResumePolicy.shouldHandleAction(Intent.ACTION_SCREEN_ON))
         assertFalse(ScanResumePolicy.shouldHandleAction(null))
+    }
+
+    @Test
+    fun `handles location mode changes so pre-S restore can resume`() {
+        assertTrue(
+            ScanResumePolicy.shouldHandleAction(ScanResumePolicy.ACTION_LOCATION_MODE_CHANGED)
+        )
     }
 
     @Test
@@ -108,6 +115,24 @@ class ScanResumePolicyTest {
     fun `keeps scanning intent after unexpected stop so foreground resume can restart`() {
         assertTrue(ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = false))
         assertFalse(ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = true))
+    }
+
+    @Test
+    fun `permission or location loss is an environmental pause that keeps intent`() {
+        assertTrue(ScanResumePolicy.shouldKeepScanningIntent(userOrPolicyStop = false))
+        assertTrue(
+            ScanResumePolicy.shouldResume(
+                wasScanning = true,
+                backgroundEnabled = true,
+                hasPermissions = true
+            )
+        )
+    }
+
+    @Test
+    fun `background foreground-service start failures are deferred until visible`() {
+        assertTrue(ScanResumePolicy.shouldSwallowBackgroundForegroundStartFailure(fromBackground = true))
+        assertFalse(ScanResumePolicy.shouldSwallowBackgroundForegroundStartFailure(fromBackground = false))
     }
 
     @Test

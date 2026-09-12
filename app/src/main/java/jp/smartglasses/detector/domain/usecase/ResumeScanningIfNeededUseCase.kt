@@ -13,12 +13,13 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
     private val bluetoothRepository: BluetoothRepository,
     private val scanServiceController: ScanServiceController
 ) {
-    suspend operator fun invoke(appInForeground: Boolean = false) {
+    suspend operator fun invoke(
+        appInForeground: Boolean = false,
+        backgroundScanSupported: Boolean = BackgroundScanSupport.isSupported()
+    ) {
         val shouldResume = ScanResumePolicy.shouldResume(
             wasScanning = settingsRepository.isScanning.first(),
-            backgroundEnabled = BackgroundScanSupport.isEnabled(
-                settingsRepository.backgroundEnabled.first()
-            ),
+            backgroundEnabled = backgroundScanSupported && settingsRepository.backgroundEnabled.first(),
             hasPermissions = bluetoothRepository.hasPermissions(),
             appInForeground = appInForeground
         )
@@ -26,6 +27,6 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
             return
         }
 
-        scanServiceController.startScanService()
+        scanServiceController.startScanService(fromBackground = !appInForeground)
     }
 }

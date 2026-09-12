@@ -35,4 +35,12 @@ class ScanFailurePolicyTest {
         assertEquals(16_000L, ScanFailurePolicy.retryDelayMs(5))
         assertEquals(30_000L, ScanFailurePolicy.retryDelayMs(8))
     }
+
+    @Test
+    fun `unknown scan errors do not keep the hardware scan running`() {
+        assertFalse(ScanFailurePolicy.shouldKeepScanning(0))
+        assertFalse(ScanFailurePolicy.shouldKeepScanning(99))
+        assertFalse(ScanFailurePolicy.isRecoverable(0))
+        assertFalse(ScanFailurePolicy.shouldFallbackToLegacy(99))
+    }
 }

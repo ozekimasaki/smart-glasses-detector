@@ -79,7 +79,7 @@ class ScanningForegroundService : Service() {
 
         override fun onStop(owner: LifecycleOwner) {
             if (!shouldKeepScanningInBackground()) {
-                pauseScanningForBackground()
+                pauseScanningKeepingIntent()
             } else {
                 applyEffectiveScanSensitivity()
             }
@@ -151,21 +151,21 @@ class ScanningForegroundService : Service() {
                 bluetoothRepository.scanFailures.collect { failure ->
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
                     if (!ScanFailurePolicy.shouldKeepScanning(failure.errorCode)) {
-                        stopScanningAndStopSelf()
+                        pauseScanningKeepingIntent()
                     }
                 }
             }
 
             try {
                 if (!bluetoothRepository.hasPermissions()) {
-                    Log.w(TAG, "Missing Bluetooth permission. Stop foreground service.")
-                    stopScanningAndStopSelf()
+                    Log.w(TAG, "Missing Bluetooth permission. Pause until permission returns.")
+                    pauseScanningKeepingIntent()
                     return@launch
                 }
 
                 if (!bluetoothRepository.isLocationServicesEnabled()) {
-                    Log.w(TAG, "Location services are disabled. Stop foreground service.")
-                    stopScanningAndStopSelf()
+                    Log.w(TAG, "Location services are disabled. Pause until they are enabled.")
+                    pauseScanningKeepingIntent()
                     return@launch
                 }
 
@@ -185,7 +185,7 @@ class ScanningForegroundService : Service() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start Bluetooth scanning", e)
-                stopScanningAndStopSelf()
+                pauseScanningKeepingIntent()
             } finally {
                 scanJob = null
                 stopBluetoothScanSafely()
@@ -217,7 +217,7 @@ class ScanningForegroundService : Service() {
         }
     }
 
-    private fun pauseScanningForBackground() {
+    private fun pauseScanningKeepingIntent() {
         if (isStopping.get()) {
             return
         }
@@ -239,7 +239,7 @@ class ScanningForegroundService : Service() {
         super.onTaskRemoved(rootIntent)
 
         if (!shouldKeepScanningInBackground()) {
-            pauseScanningForBackground()
+            pauseScanningKeepingIntent()
         }
     }
 
@@ -439,7 +439,7 @@ class ScanningForegroundService : Service() {
                         appInForeground = isAppInForeground()
                     )
                 ) {
-                    pauseScanningForBackground()
+                    pauseScanningKeepingIntent()
                 }
             }
         }
@@ -466,7 +466,7 @@ class ScanningForegroundService : Service() {
                     !bluetoothRepository.isLocationServicesEnabled()
                 ) {
                     Log.w(TAG, "Required scan permission or location services are no longer available.")
-                    stopScanningAndStopSelf()
+                    pauseScanningKeepingIntent()
                     return@launch
                 }
             }

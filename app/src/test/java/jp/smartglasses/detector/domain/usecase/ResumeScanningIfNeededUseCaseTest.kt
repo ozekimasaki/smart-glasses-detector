@@ -26,6 +26,7 @@ class ResumeScanningIfNeededUseCaseTest {
         useCase(appInForeground = true)
 
         assertEquals(1, controller.startCount)
+        assertEquals(false, controller.lastFromBackground)
     }
 
     @Test
@@ -40,6 +41,22 @@ class ResumeScanningIfNeededUseCaseTest {
         useCase(appInForeground = false)
 
         assertEquals(0, controller.startCount)
+        assertEquals(null, controller.lastFromBackground)
+    }
+
+    @Test
+    fun `background resume asks the controller to defer a restricted start`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = true),
+            bluetoothRepository = FakeBluetoothRepository(permissions = true),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = false, backgroundScanSupported = true)
+
+        assertEquals(1, controller.startCount)
+        assertEquals(true, controller.lastFromBackground)
     }
 
     @Test
@@ -58,9 +75,11 @@ class ResumeScanningIfNeededUseCaseTest {
 
     private class RecordingScanServiceController : ScanServiceController {
         var startCount = 0
+        var lastFromBackground: Boolean? = null
 
-        override fun startScanService() {
+        override fun startScanService(fromBackground: Boolean) {
             startCount += 1
+            lastFromBackground = fromBackground
         }
 
         override fun stopScanService() = Unit
