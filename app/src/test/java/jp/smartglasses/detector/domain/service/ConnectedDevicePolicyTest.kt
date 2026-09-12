@@ -81,6 +81,101 @@ class ConnectedDevicePolicyTest {
     }
 
     @Test
+    fun `acl connected events are classified while scanning`() {
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyAclConnected(
+                action = ConnectedDevicePolicy.ACTION_ACL_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyAclConnected(
+                action = ConnectedDevicePolicy.ACTION_ACL_CONNECTED,
+                scanningRequested = false
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyAclConnected(
+                action = ClassicDiscoveryPolicy.ACTION_FOUND,
+                scanningRequested = true
+            )
+        )
+    }
+
+    @Test
+    fun `audio and hid profile connections are classified only when connected`() {
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_A2DP_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_HEADSET_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_DISCONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_A2DP_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = false
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_ACL_CONNECTED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = ConnectedDevicePolicy.ACTION_ACL_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = ConnectedDevicePolicy.ACTION_A2DP_CONNECTION_STATE_CHANGED,
+                scanningRequested = true,
+                connectionState = ConnectedDevicePolicy.STATE_DISCONNECTED
+            )
+        )
+        assertEquals(
+            listOf(
+                ConnectedDevicePolicy.ACTION_ACL_CONNECTED,
+                ConnectedDevicePolicy.ACTION_A2DP_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_HEADSET_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED
+            ),
+            ConnectedDevicePolicy.connectionBroadcastActions()
+        )
+        assertEquals(2, ConnectedDevicePolicy.STATE_CONNECTED)
+        assertEquals("android.bluetooth.profile.extra.STATE", ConnectedDevicePolicy.EXTRA_STATE)
+        assertTrue(ConnectedDevicePolicy.shouldRefreshSdpUuids(0))
+        assertFalse(ConnectedDevicePolicy.shouldRefreshSdpUuids(1))
+    }
+
+    @Test
     fun `blank addresses are not kept as connected advertisers`() {
         assertFalse(ConnectedDevicePolicy.shouldKeepAddress(""))
         assertFalse(ConnectedDevicePolicy.shouldKeepAddress("   "))

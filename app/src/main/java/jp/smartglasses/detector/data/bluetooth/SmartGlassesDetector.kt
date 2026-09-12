@@ -152,13 +152,29 @@ class SmartGlassesDetector @Inject constructor(
             val extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
             val deviceClass = intent.extractBluetoothClass()?.deviceClass
                 ?: resolveDeviceClass(bluetoothDevice)
-            if (action == BluetoothDevice.ACTION_FOUND && scanningRequested) {
+            val connectionState = intent.getIntExtra(
+                ConnectedDevicePolicy.EXTRA_STATE,
+                ConnectedDevicePolicy.STATE_DISCONNECTED
+            )
+            val fromConnection = ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = action,
+                scanningRequested = scanningRequested,
+                connectionState = connectionState
+            )
+            if (
+                (action == BluetoothDevice.ACTION_FOUND && scanningRequested) ||
+                fromConnection
+            ) {
                 rememberSeenAdvertiser(
                     address = address,
                     rssi = extraRssi
                 )
             }
+            if (fromConnection) {
+                requestUuidRefreshIfNeeded(bluetoothDevice)
+            }
             if (
+                !fromConnection &&
                 !ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                     action = action,
                     scanningRequested = scanningRequested,
@@ -529,8 +545,46 @@ class SmartGlassesDetector @Inject constructor(
                 extraRssi = extraRssi,
                 previouslySeenRssi = classicInquiryRssi[address]
             ),
-            deviceClass = deviceClass
+            deviceClass = deviceClass,
+            serviceUuids = resolveCachedDeviceUuids(bluetoothDevice)
         ).toDetectionSignal()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun resolveCachedDeviceUuids(device: BluetoothDevice): List<String> {
+        if (!hasBluetoothConnectPermission()) {
+            return emptyList()
+        }
+
+        return try {
+            device.uuids?.mapNotNull { parcelUuid ->
+                parcelUuid?.uuid?.toString()
+            }.orEmpty()
+        } catch (_: SecurityException) {
+            emptyList()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestUuidRefreshIfNeeded(device: BluetoothDevice) {
+        if (!hasBluetoothConnectPermission()) {
+            return
+        }
+
+        val cachedUuidCount = try {
+            device.uuids?.size ?: 0
+        } catch (_: SecurityException) {
+            return
+        }
+        if (!ConnectedDevicePolicy.shouldRefreshSdpUuids(cachedUuidCount)) {
+            return
+        }
+
+        try {
+            device.fetchUuidsWithSdp()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch Bluetooth SDP UUIDs", e)
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -633,6 +687,10 @@ class SmartGlassesDetector @Inject constructor(
             addAction(BluetoothDevice.ACTION_FOUND)
             addAction(BluetoothDevice.ACTION_NAME_CHANGED)
             addAction(BluetoothDevice.ACTION_CLASS_CHANGED)
+            addAction(BluetoothDevice.ACTION_UUID)
+            ConnectedDevicePolicy.connectionBroadcastActions().forEach { connectionAction ->
+                addAction(connectionAction)
+            }
         }
         ContextCompat.registerReceiver(
             context,
@@ -1439,7 +1497,8 @@ internal data class ClassicDiscoverySignal(
     val rssi: Int,
     val extraName: String? = null,
     val alias: String? = null,
-    val deviceClass: Int? = null
+    val deviceClass: Int? = null,
+    val serviceUuids: List<String> = emptyList()
 ) {
     fun toDetectionSignal(): DetectionSignal {
         return DetectionSignal(
@@ -1451,6 +1510,7 @@ internal data class ClassicDiscoverySignal(
             address = address,
             companyIds = emptySet(),
             rssi = rssi,
+            serviceUuids = serviceUuids,
             deviceClass = deviceClass
         )
     }

@@ -104,6 +104,20 @@ class ClassicDiscoveryPolicyTest {
         )
         assertTrue(
             ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                action = ClassicDiscoveryPolicy.ACTION_UUID,
+                scanningRequested = true,
+                alreadySeenAddress = true
+            )
+        )
+        assertFalse(
+            ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                action = ClassicDiscoveryPolicy.ACTION_UUID,
+                scanningRequested = true,
+                alreadySeenAddress = false
+            )
+        )
+        assertTrue(
+            ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                 action = ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED,
                 scanningRequested = true,
                 alreadySeenAddress = false,
@@ -184,6 +198,10 @@ class ClassicDiscoveryPolicyTest {
         assertEquals(
             "android.bluetooth.device.action.CLASS_CHANGED",
             ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED
+        )
+        assertEquals(
+            "android.bluetooth.device.action.UUID",
+            ClassicDiscoveryPolicy.ACTION_UUID
         )
     }
 
