@@ -236,7 +236,14 @@ object Constants {
                 "RayNeo Air 4",
                 "RayNeo Air 4 Pro",
                 "NXTWEAR S",
-                "NXTWEAR AIR"
+                "NXTWEAR AIR",
+                // 中国向けブランド名。裸の「雷鸟」はテレビ等に当たるため使わない。
+                "雷鸟Air",
+                "雷鸟X2",
+                "雷鸟X3",
+                "雷鸟V3",
+                "雷鸟眼镜",
+                "雷鸟AR"
             )
         ),
         DetectionRule(
@@ -530,7 +537,11 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Thunderbird",
-            namePatterns = listOf("Thunderbird"),
+            namePatterns = listOf(
+                "Thunderbird",
+                "Thunderbird Glass",
+                "Thunderbird Air"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

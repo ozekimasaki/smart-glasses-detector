@@ -1486,6 +1486,40 @@ class SmartGlassesClassifierTest {
         assertEquals(DetectionMethod.DEVICE_NAME, nimoBle?.manufacturer?.detectionMethod)
     }
 
+    @Test
+    fun `rayneo chinese product names are detected and thunderbird tvs are not`() {
+        val air = classifier.classify(
+            DetectionSignal(
+                deviceName = "雷鸟Air 2",
+                address = "AA:BB:CC:DD:EE:67",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val x3 = classifier.classify(
+            DetectionSignal(
+                deviceName = "雷鸟X3 Pro",
+                address = "AA:BB:CC:DD:EE:68",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val tv = classifier.classify(
+            DetectionSignal(
+                deviceName = "雷鸟TV",
+                address = "AA:BB:CC:DD:EE:69",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("TCL", air?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, air?.manufacturer?.detectionMethod)
+        assertEquals("TCL", x3?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, x3?.manufacturer?.detectionMethod)
+        assertNull(tv)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

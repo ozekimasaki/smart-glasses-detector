@@ -24,6 +24,13 @@ class PlayReleaseConfigTest {
         assertTrue(manifest.contains("android:intentMatchingFlags=\"enforceIntentFilter\""))
         assertFalse(manifest.contains("LOCKED_BOOT_COMPLETED"))
         assertFalse(manifest.contains("REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"))
+
+        val privacy = locate("app/src/main/res/values/strings.xml").readText()
+        assertTrue(
+            privacy.contains(
+                ">https://smart-glasses-detector-policy.maigo999.workers.dev<"
+            )
+        )
     }
 
     private fun locate(relativePath: String): File {

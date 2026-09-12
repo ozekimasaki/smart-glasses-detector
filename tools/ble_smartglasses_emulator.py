@@ -76,6 +76,7 @@ NAME_PATTERN_DEVICES = {
     63: "Solos AirGo 3 1234",
     64: "RayNeo Air 4 Pro",
     65: "NexSim A1B2C3",
+    66: "雷鸟Air 2",
 }
 
 UUID_DEVICES = {
@@ -111,6 +112,7 @@ NON_GLASSES_NAME_DEVICES = {
     98: "Even R1",
     99: "Even Realities R1",
     100: "Frame TV",
+    101: "雷鸟TV",
 }
 
 

@@ -100,6 +100,10 @@ class EmulatedAdvertisementCoverageTest {
             "Mentra Display legacy NexSim name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "NexSim A1B2C3" }
         )
+        assertTrue(
+            "RayNeo Chinese Air name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "雷鸟Air 2" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(
@@ -211,7 +215,8 @@ class EmulatedAdvertisementCoverageTest {
             catalog.nonGlassesNames.contains("R1") &&
                 catalog.nonGlassesNames.contains("Even R1") &&
                 catalog.nonGlassesNames.contains("Even Realities R1") &&
-                catalog.nonGlassesNames.contains("Frame TV")
+                catalog.nonGlassesNames.contains("Frame TV") &&
+                catalog.nonGlassesNames.contains("雷鸟TV")
         )
 
         catalog.nonGlassesNames.forEach { name ->
