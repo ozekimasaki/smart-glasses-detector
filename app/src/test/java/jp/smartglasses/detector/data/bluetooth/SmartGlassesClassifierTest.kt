@@ -312,6 +312,9 @@ class SmartGlassesClassifierTest {
 
         assertNull(detected)
     }
+
+    @Test
+    fun `apple vision pro is detected by name`() {
         val detected = classifier.classify(
             DetectionSignal(
                 deviceName = "Apple Vision Pro",
