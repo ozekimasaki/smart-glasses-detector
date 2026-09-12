@@ -108,6 +108,8 @@ class ScanResumePolicyTest {
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_BOOT_COMPLETED))
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_MY_PACKAGE_REPLACED))
         assertTrue(ScanResumePolicy.shouldHandleAction(Intent.ACTION_USER_UNLOCKED))
+        assertTrue(ScanResumePolicy.shouldHandleAction("android.intent.action.QUICKBOOT_POWERON"))
+        assertTrue(ScanResumePolicy.shouldHandleAction("com.htc.intent.action.QUICKBOOT_POWERON"))
         assertFalse(ScanResumePolicy.shouldHandleAction(Intent.ACTION_LOCKED_BOOT_COMPLETED))
         assertFalse(ScanResumePolicy.shouldHandleAction(Intent.ACTION_SCREEN_ON))
         assertFalse(ScanResumePolicy.shouldHandleAction(null))

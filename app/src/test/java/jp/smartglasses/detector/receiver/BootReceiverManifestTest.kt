@@ -16,6 +16,8 @@ class BootReceiverManifestTest {
         assertTrue(manifest.contains("android.intent.action.USER_UNLOCKED"))
         assertTrue(manifest.contains("android.bluetooth.adapter.action.STATE_CHANGED"))
         assertTrue(manifest.contains("android.location.MODE_CHANGED"))
+        assertTrue(manifest.contains("android.intent.action.QUICKBOOT_POWERON"))
+        assertTrue(manifest.contains("com.htc.intent.action.QUICKBOOT_POWERON"))
     }
 
     private fun locateManifest(): File {

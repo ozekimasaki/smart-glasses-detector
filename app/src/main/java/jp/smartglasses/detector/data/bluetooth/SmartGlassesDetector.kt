@@ -57,6 +57,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,6 +79,8 @@ class SmartGlassesDetector @Inject constructor(
     val nearbyDevices: StateFlow<List<SmartGlassesDevice>> = _nearbyDevices.asStateFlow()
     private val detectionCooldownGate = DetectionCooldownGate()
     private val nearbyDeviceTracker = NearbyDeviceTracker()
+    private val classicInquiryAddresses = ConcurrentHashMap.newKeySet<String>()
+    private val classicInquiryRssi = ConcurrentHashMap<String, Int>()
     private val scanSignalProcessor = ScanSignalProcessor()
     private val diagnosticWriteGate = DiagnosticLogWriteGate()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
@@ -103,9 +106,29 @@ class SmartGlassesDetector @Inject constructor(
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == BluetoothDevice.ACTION_FOUND) {
-                handleClassicDiscoveryResult(intent)
+            val action = intent?.action ?: return
+            val bluetoothDevice = intent.extractBluetoothDevice() ?: return
+            val address = resolveDeviceAddress(bluetoothDevice)
+            val scanningRequested = userRequestedScanning.get()
+            if (action == BluetoothDevice.ACTION_FOUND && scanningRequested) {
+                rememberClassicInquiry(
+                    address = address,
+                    rssi = intent.getShortExtra(
+                        BluetoothDevice.EXTRA_RSSI,
+                        Constants.UNKNOWN_RSSI_DBM.toShort()
+                    ).toInt()
+                )
             }
+            if (
+                !ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                    action = action,
+                    scanningRequested = scanningRequested,
+                    alreadySeenAddress = wasSeenInClassicInquiry(address)
+                )
+            ) {
+                return
+            }
+            handleClassicDiscoveryResult(intent)
         }
     }
 
@@ -306,18 +329,45 @@ class SmartGlassesDetector @Inject constructor(
         return device.manufacturer.name.trim().lowercase()
     }
 
+    private fun rememberClassicInquiry(address: String?, rssi: Int) {
+        if (address.isNullOrBlank()) {
+            return
+        }
+        classicInquiryAddresses.add(address)
+        if (rssi != Constants.UNKNOWN_RSSI_DBM) {
+            classicInquiryRssi[address] = rssi
+        }
+    }
+
+    private fun wasSeenInClassicInquiry(address: String?): Boolean {
+        return !address.isNullOrBlank() && classicInquiryAddresses.contains(address)
+    }
+
+    private fun clearClassicInquiryMemory() {
+        classicInquiryAddresses.clear()
+        classicInquiryRssi.clear()
+    }
+
     @SuppressLint("MissingPermission")
     private fun handleClassicDiscoveryResult(intent: Intent) {
         val bluetoothDevice = intent.extractBluetoothDevice() ?: return
+        val address = resolveDeviceAddress(bluetoothDevice)
+        val extraRssi = intent.getShortExtra(
+            BluetoothDevice.EXTRA_RSSI,
+            Constants.UNKNOWN_RSSI_DBM.toShort()
+        ).toInt()
+        if (extraRssi != Constants.UNKNOWN_RSSI_DBM && !address.isNullOrBlank()) {
+            classicInquiryRssi[address] = extraRssi
+        }
         val signal = ClassicDiscoverySignal(
             deviceName = resolveCachedDeviceName(bluetoothDevice),
             extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
             alias = resolveDeviceAlias(bluetoothDevice),
-            address = resolveDeviceAddress(bluetoothDevice),
-            rssi = intent.getShortExtra(
-                BluetoothDevice.EXTRA_RSSI,
-                Constants.UNKNOWN_RSSI_DBM.toShort()
-            ).toInt(),
+            address = address,
+            rssi = ClassicDiscoveryPolicy.resolveRssi(
+                extraRssi = extraRssi,
+                previouslySeenRssi = address?.let(classicInquiryRssi::get)
+            ),
             deviceClass = intent.extractBluetoothClass()?.deviceClass
                 ?: resolveDeviceClass(bluetoothDevice)
         ).toDetectionSignal()
@@ -429,6 +479,8 @@ class SmartGlassesDetector @Inject constructor(
 
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothDevice.ACTION_NAME_CHANGED)
+            addAction(BluetoothDevice.ACTION_CLASS_CHANGED)
         }
         ContextCompat.registerReceiver(
             context,
@@ -447,7 +499,7 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun startClassicDiscoveryIfNeeded() {
+    private fun startClassicDiscoveryIfNeeded(immediate: Boolean = false) {
         if (!ClassicDiscoveryPolicy.shouldStartClassicDiscovery(classicDiscoveryStarted.get())) {
             return
         }
@@ -455,8 +507,11 @@ class SmartGlassesDetector @Inject constructor(
             return
         }
         classicDiscoveryJob?.cancel()
+        val delayMs = ClassicDiscoveryPolicy.startDelayMs(immediate = immediate)
         classicDiscoveryJob = diagnosticPersistenceScope.launch {
-            delay(Constants.CLASSIC_DISCOVERY_DELAY_MS)
+            if (delayMs > 0L) {
+                delay(delayMs)
+            }
             if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
                 startClassicDiscovery()
             }
@@ -520,6 +575,7 @@ class SmartGlassesDetector @Inject constructor(
         usingMatchAllFilter = true
         classicDiscoveryStarted.set(false)
         lastClassicDiscoveryStartedAt.set(0L)
+        clearClassicInquiryMemory()
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = true,
             bluetoothEnabled = bluetoothAdapter.isEnabled,
@@ -576,6 +632,7 @@ class SmartGlassesDetector @Inject constructor(
         diagnosticWriteGate.clear()
         classicDiscoveryStarted.set(false)
         lastClassicDiscoveryStartedAt.set(0L)
+        clearClassicInquiryMemory()
         _nearbyDevices.value = nearbyDeviceTracker.clear()
     }
 
@@ -653,16 +710,15 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun refreshClassicDiscoveryIfNeeded() {
-        if (
-            ClassicDiscoveryPolicy.shouldRefreshClassicDiscovery(
-                lastStartedAtMs = lastClassicDiscoveryStartedAt.get(),
-                nowMs = System.currentTimeMillis(),
-                intervalMs = ClassicDiscoveryPolicy.refreshIntervalMs(isAppInForeground())
-            )
-        ) {
+        val refreshDue = ClassicDiscoveryPolicy.shouldRefreshClassicDiscovery(
+            lastStartedAtMs = lastClassicDiscoveryStartedAt.get(),
+            nowMs = System.currentTimeMillis(),
+            intervalMs = ClassicDiscoveryPolicy.refreshIntervalMs(isAppInForeground())
+        )
+        if (refreshDue) {
             classicDiscoveryStarted.set(false)
         }
-        startClassicDiscoveryIfNeeded()
+        startClassicDiscoveryIfNeeded(immediate = refreshDue)
     }
 
     @SuppressLint("MissingPermission")
