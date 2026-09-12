@@ -88,6 +88,9 @@ NAME_PATTERN_DEVICES = {
     79: "Rokid Max 2",
     80: "Echo Frames 2",
     82: "スマートメガネ",
+    83: "RayNeo Air 3s",
+    84: "XREAL One S",
+    85: "VITURE Luma Pro",
 }
 
 UUID_DEVICES = {

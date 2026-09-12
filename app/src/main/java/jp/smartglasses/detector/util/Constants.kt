@@ -56,6 +56,7 @@ object Constants {
         Regex("""XRグラス"""),
         Regex("""MRグラス"""),
         Regex("""AIグラス"""),
+        Regex("""カメラグラス"""),
         Regex("""智能眼镜"""),
         Regex("""智能眼鏡""")
     )
@@ -359,6 +360,8 @@ object Constants {
                 "Nreal",
                 "XREAL One",
                 "XREAL One Pro",
+                "XREAL One S",
+                "XREAL 1S",
                 "XREAL Eye",
                 "XREAL Air",
                 "XREAL Air 2",
@@ -436,6 +439,7 @@ object Constants {
                 "VITURE One Lite",
                 "VITURE Beast",
                 "VITURE Luma",
+                "VITURE Luma Pro",
                 "VITURE Luma Ultra",
                 "VITURE Pro",
                 "VITURE Neckband"

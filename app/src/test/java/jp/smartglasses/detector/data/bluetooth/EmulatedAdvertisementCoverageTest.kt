@@ -133,6 +133,12 @@ class EmulatedAdvertisementCoverageTest {
             "Japanese smart megane heuristic name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "スマートメガネ" }
         )
+        assertTrue(
+            "Recent USB-C era product names should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "RayNeo Air 3s" } &&
+                catalog.nameDevices.any { device -> device.name == "XREAL One S" } &&
+                catalog.nameDevices.any { device -> device.name == "VITURE Luma Pro" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

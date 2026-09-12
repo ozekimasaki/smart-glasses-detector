@@ -71,7 +71,7 @@ internal class SmartGlassesClassifier(
         ) ?: withEligibleRssi(
             signal = resolved,
             device = detectByAppearance(resolved),
-            matchClass = DetectionMatchClass.WEAK,
+            matchClass = DetectionMatchClass.CATALOG,
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
             signal = resolved,

@@ -205,6 +205,38 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `gap eyeglasses appearance is detected at catalog distance`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06E",
+                companyIds = emptySet(),
+                rssi = -90,
+                appearance = 0x01C0
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.APPEARANCE, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `classic glasses class of device is detected at catalog distance`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06F",
+                companyIds = emptySet(),
+                rssi = -90,
+                deviceClass = 0x0714
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.APPEARANCE, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `weak heuristic names stay ignored at the old balanced floor`() {
         val detected = classifier.classify(
             DetectionSignal(
@@ -1034,12 +1066,30 @@ class SmartGlassesClassifierTest {
                 rssi = -60
             )
         )
+        val xrealOneS = classifier.classify(
+            DetectionSignal(
+                deviceName = "XREAL One S",
+                address = "AA:BB:CC:DD:EE:36A",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val vitureLumaPro = classifier.classify(
+            DetectionSignal(
+                deviceName = "VITURE Luma Pro",
+                address = "AA:BB:CC:DD:EE:36B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
 
         assertEquals("INMO", inmo?.manufacturer?.name)
         assertEquals("Samsung", galaxyXr?.manufacturer?.name)
         assertEquals("Even Realities", evenG3?.manufacturer?.name)
         assertEquals("Halliday", halliday?.manufacturer?.name)
         assertEquals("Brilliant Labs", frameName?.manufacturer?.name)
+        assertEquals("XREAL", xrealOneS?.manufacturer?.name)
+        assertEquals("VITURE", vitureLumaPro?.manufacturer?.name)
         assertEquals(DetectionMethod.DEVICE_NAME, frameName?.manufacturer?.detectionMethod)
     }
 
@@ -1147,9 +1197,18 @@ class SmartGlassesClassifierTest {
                 rssi = -60
             )
         )
+        val cameraGlasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "カメラグラス Mini",
+                address = "AA:BB:CC:DD:EE:39C",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
 
         assertEquals(DetectionMethod.HEURISTIC, megane?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, mixedReality?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, cameraGlasses?.manufacturer?.detectionMethod)
     }
 
     @Test
