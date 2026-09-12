@@ -121,6 +121,14 @@ class EmulatedAdvertisementCoverageTest {
             catalog.nameDevices.any { device -> device.name == "G1_12_L" } &&
                 catalog.nameDevices.any { device -> device.name == "G1_12_R" }
         )
+        assertTrue(
+            "Recent catalog product names should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "XREAL One Pro" } &&
+                catalog.nameDevices.any { device -> device.name == "Oakley Meta" } &&
+                catalog.nameDevices.any { device -> device.name == "VITURE Beast" } &&
+                catalog.nameDevices.any { device -> device.name == "Rokid Max 2" } &&
+                catalog.nameDevices.any { device -> device.name == "Echo Frames 2" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

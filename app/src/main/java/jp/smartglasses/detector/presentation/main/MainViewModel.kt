@@ -16,10 +16,15 @@ import jp.smartglasses.detector.domain.service.ScanUiStatePolicy
 import jp.smartglasses.detector.domain.usecase.StartScanningUseCase
 import jp.smartglasses.detector.domain.usecase.StopScanningUseCase
 import jp.smartglasses.detector.util.BackgroundScanSupport
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -41,6 +46,7 @@ sealed interface MainEvent {
     data object RequestNotificationPermission : MainEvent
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val bluetoothRepository: BluetoothRepository,
@@ -89,17 +95,27 @@ class MainViewModel @Inject constructor(
     private val scanBlockerRefresh = MutableStateFlow(0)
     val restorePrompt = combine(
         settingsRepository.isScanning,
-        bluetoothRepository.isScanning,
+        bluetoothRepository.isHardwareScanRunning,
         scanEnvironmentSignals.revision,
         scanBlockerRefresh
-    ) { persistedIntent, _, _, _ ->
+    ) { persistedIntent, hardwareScanning, _, _ ->
         ScanUiStatePolicy.restorePrompt(
             persistedIntent = persistedIntent,
             hasScanPermissions = bluetoothRepository.hasPermissions(),
             requiresLocationServices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
             locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled(),
-            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
+            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+            hardwareScanning = hardwareScanning
         )
+    }.flatMapLatest { prompt ->
+        if (prompt != ScanRestorePrompt.Hardware) {
+            flowOf(prompt)
+        } else {
+            flow {
+                delay(ScanUiStatePolicy.HARDWARE_RESTORE_PROMPT_DELAY_MS)
+                emit(prompt)
+            }
+        }
     }.stateIn(viewModelScope, SharingStarted.Lazily, ScanRestorePrompt.None)
 
     private var notificationPrompted = false
@@ -120,6 +136,7 @@ class MainViewModel @Inject constructor(
                 _event.send(MainEvent.ShowMessage(R.string.error_location_pre_s))
                 _event.send(MainEvent.OpenLocationSettings)
             }
+            ScanRestorePrompt.Hardware -> startScanning()
             ScanRestorePrompt.None -> refreshScanBlockers()
         }
     }

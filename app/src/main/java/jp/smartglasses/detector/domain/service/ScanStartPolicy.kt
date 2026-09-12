@@ -48,7 +48,8 @@ object ScanUiStatePolicy {
         hasScanPermissions: Boolean,
         requiresLocationServices: Boolean,
         locationServicesEnabled: Boolean,
-        bluetoothEnabled: Boolean = true
+        bluetoothEnabled: Boolean = true,
+        hardwareScanning: Boolean = true
     ): ScanRestorePrompt {
         if (!persistedIntent) {
             return ScanRestorePrompt.None
@@ -62,15 +63,21 @@ object ScanUiStatePolicy {
         if (requiresLocationServices && !locationServicesEnabled) {
             return ScanRestorePrompt.Location
         }
+        if (!hardwareScanning) {
+            return ScanRestorePrompt.Hardware
+        }
         return ScanRestorePrompt.None
     }
+
+    const val HARDWARE_RESTORE_PROMPT_DELAY_MS = 8_000L
 }
 
 enum class ScanRestorePrompt {
     None,
     ScanPermission,
     Bluetooth,
-    Location
+    Location,
+    Hardware
 }
 
 object BackgroundScanRuntimePolicy {

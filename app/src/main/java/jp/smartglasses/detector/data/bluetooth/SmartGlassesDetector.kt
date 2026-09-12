@@ -704,6 +704,8 @@ class SmartGlassesDetector @Inject constructor(
         if (!userRequestedScanning.get()) {
             return
         }
+        retryJob?.cancel()
+        retryJob = null
         refreshBleScan()
         refreshClassicDiscoveryIfNeeded()
     }

@@ -82,6 +82,11 @@ NAME_PATTERN_DEVICES = {
     69: "华为眼镜",
     70: "G1_12_L",
     75: "G1_12_R",
+    76: "XREAL One Pro",
+    77: "Oakley Meta",
+    78: "VITURE Beast",
+    79: "Rokid Max 2",
+    80: "Echo Frames 2",
 }
 
 UUID_DEVICES = {
