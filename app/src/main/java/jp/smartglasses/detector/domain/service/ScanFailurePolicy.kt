@@ -19,7 +19,8 @@ object ScanFailurePolicy {
         return errorCode == SCAN_FAILED_APPLICATION_REGISTRATION_FAILED ||
             errorCode == SCAN_FAILED_INTERNAL_ERROR ||
             errorCode == SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES ||
-            errorCode == SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+            errorCode == SCAN_FAILED_SCANNING_TOO_FREQUENTLY ||
+            errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED
     }
 
     fun shouldFallbackToLegacy(errorCode: Int): Boolean {

@@ -17,7 +17,7 @@ class ScanFailurePolicyTest {
     fun `unsupported extended advertising keeps scanning for a legacy fallback`() {
         assertTrue(ScanFailurePolicy.shouldFallbackToLegacy(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
         assertTrue(ScanFailurePolicy.shouldKeepScanning(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
-        assertFalse(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+        assertTrue(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
     }
 
     @Test
@@ -130,6 +130,29 @@ class ScanFailurePolicyTest {
                 bluetoothEnabled = true,
                 locationServicesEnabled = true,
                 scanPermissionGranted = false
+            )
+        )
+    }
+
+    @Test
+    fun `unsupported features retry after compatibility fallbacks are exhausted`() {
+        assertTrue(
+            ScanFailurePolicy.shouldTryCompatibilityFallback(
+                ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED
+            )
+        )
+        assertEquals(
+            BleScanCompatibilityStep.NONE,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = false,
+                usingExtendedAdvertising = false
+            )
+        )
+        assertTrue(ScanFailurePolicy.isRecoverable(ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED))
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(
+                ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED,
+                bluetoothEnabled = true
             )
         )
     }
