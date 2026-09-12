@@ -189,57 +189,68 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            handleDetectionSignal(extractSignal(result))
+            scanCallbackHandler.post {
+                handleDetectionSignal(extractSignal(result))
+            }
         }
-        
+
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            results.forEach { result ->
-                onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result)
+            val snapshot = ArrayList(results)
+            scanCallbackHandler.post {
+                snapshot.forEach { result ->
+                    handleDetectionSignal(extractSignal(result))
+                }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
-            if (ScanFailurePolicy.shouldIgnore(errorCode)) {
-                return
+            scanCallbackHandler.post {
+                handleScanFailed(errorCode)
             }
-
-            _hardwareScanRunning.value = false
-
-            if (
-                ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
-                userRequestedScanning.get()
-            ) {
-                when (
-                    BleScanCompatibilityPolicy.nextStep(
-                        usingMatchAllFilter = usingMatchAllFilter,
-                        usingExtendedAdvertising = usingExtendedAdvertising
-                    )
-                ) {
-                    BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
-                        Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
-                        rejectMatchAllFilter()
-                        startLeAndClassicScanning()
-                        return
-                    }
-                    BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
-                        Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
-                        usingExtendedAdvertising = false
-                        startLeAndClassicScanning()
-                        return
-                    }
-                    BleScanCompatibilityStep.NONE -> Unit
-                }
-            }
-
-            if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
-                Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
-                scheduleScanRetry()
-                return
-            }
-
-            _isScanning.value = false
-            _scanFailures.trySend(BluetoothScanFailure(errorCode))
         }
+    }
+
+    private fun handleScanFailed(errorCode: Int) {
+        if (ScanFailurePolicy.shouldIgnore(errorCode)) {
+            return
+        }
+
+        _hardwareScanRunning.value = false
+
+        if (
+            ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
+            userRequestedScanning.get()
+        ) {
+            when (
+                BleScanCompatibilityPolicy.nextStep(
+                    usingMatchAllFilter = usingMatchAllFilter,
+                    usingExtendedAdvertising = usingExtendedAdvertising
+                )
+            ) {
+                BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
+                    Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
+                    rejectMatchAllFilter()
+                    startLeAndClassicScanning()
+                    return
+                }
+                BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
+                    Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
+                    usingExtendedAdvertising = false
+                    startLeAndClassicScanning()
+                    return
+                }
+                BleScanCompatibilityStep.NONE -> Unit
+            }
+        }
+
+        if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
+            Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
+            scheduleScanRetry()
+            return
+        }
+
+        _isScanning.value = false
+        _scanFailures.trySend(BluetoothScanFailure(errorCode))
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
@@ -850,7 +861,7 @@ class SmartGlassesDetector @Inject constructor(
         val settings = buildScanSettings(lastSensitivity, extendedAdvertising)
         if (usingMatchAllFilter) {
             try {
-                startScanInternal(scanner, matchAllScanFilters(), settings)
+                scanner.startScan(matchAllScanFilters(), settings, scanCallback)
                 return
             } catch (e: IllegalArgumentException) {
                 when (
@@ -873,22 +884,7 @@ class SmartGlassesDetector @Inject constructor(
                 }
             }
         }
-        startScanInternal(scanner, null, settings)
-    }
-
-    private fun startScanInternal(
-        scanner: BluetoothLeScanner,
-        filters: List<ScanFilter>?,
-        settings: ScanSettings
-    ) {
-        try {
-            scanner.startScan(filters, settings, scanCallbackHandler, scanCallback)
-        } catch (e: IllegalArgumentException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Handler-based BLE scan callback is unavailable, using the default callback thread", e)
-            scanner.startScan(filters, settings, scanCallback)
-        }
+        scanner.startScan(null, settings, scanCallback)
     }
 
     private fun refreshClassicDiscoveryIfNeeded() {
