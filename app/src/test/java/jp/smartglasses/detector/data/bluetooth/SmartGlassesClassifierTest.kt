@@ -526,6 +526,60 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `even g2 coded left right names are detected without even prefix`() {
+        val left = classifier.classify(
+            DetectionSignal(
+                deviceName = "G2_12_L",
+                address = "AA:BB:CC:DD:EE:24A",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val right = classifier.classify(
+            DetectionSignal(
+                deviceName = "G2_4F_R",
+                address = "AA:BB:CC:DD:EE:24B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Even Realities", left?.manufacturer?.name)
+        assertEquals("Even Realities", right?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, left?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `st bluenrg generic uuid is not treated as even glasses`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:24C",
+                companyIds = emptySet(),
+                rssi = -55,
+                serviceUuids = listOf("00002760-08c2-11e1-9073-0e8ac72e0000")
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `epson moverio bt45 names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "BT-45C",
+                address = "AA:BB:CC:DD:EE:24D",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Seiko Epson", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `japanese generic glasses names are detected`() {
         val detected = classifier.classify(
             DetectionSignal(

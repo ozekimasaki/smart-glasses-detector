@@ -80,6 +80,9 @@ object Constants {
             namePatterns = listOf(
                 "Moverio",
                 "Epson BT",
+                "BT-45",
+                "BT-45C",
+                "BT-45CS",
                 "BT-40",
                 "BT-35",
                 "BT-30"
@@ -426,7 +429,15 @@ object Constants {
                 "EvenG3",
                 "Even G",
                 "G1_",
-                "G1-"
+                "G1-",
+                "G2_",
+                "G2-",
+                "G3_",
+                "G3-"
+            ),
+            // Even G1/G2 公式広告: G1_12_L / G2_XX_L / G2_XX_R
+            nameRegexes = listOf(
+                Regex("""(?i)\bG[123]_[0-9A-Za-z]+_[LR]\b""")
             )
         ),
         DetectionRule(
