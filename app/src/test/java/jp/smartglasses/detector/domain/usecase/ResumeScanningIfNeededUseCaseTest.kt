@@ -88,6 +88,24 @@ class ResumeScanningIfNeededUseCaseTest {
     }
 
     @Test
+    fun `restarts the service when session intent is live but hardware is dead`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = false),
+            bluetoothRepository = FakeBluetoothRepository(
+                permissions = true,
+                hardwareScanning = false,
+                sessionScanning = true
+            ),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(1, controller.startCount)
+    }
+
+    @Test
     fun `does not start when scan permission is missing`() = runBlocking {
         val controller = RecordingScanServiceController()
         val useCase = ResumeScanningIfNeededUseCase(
@@ -171,13 +189,14 @@ class ResumeScanningIfNeededUseCaseTest {
     private class FakeBluetoothRepository(
         private val permissions: Boolean,
         hardwareScanning: Boolean = false,
+        sessionScanning: Boolean = false,
         private val bluetoothEnabled: Boolean = true,
         private val locationEnabled: Boolean = true
     ) : BluetoothRepository {
         override val scannedDevices: Flow<SmartGlassesDevice> = emptyFlow()
         override val scanFailures: Flow<BluetoothScanFailure> = emptyFlow()
-        override val isScanning = MutableStateFlow(hardwareScanning)
-        override val isHardwareScanRunning = MutableStateFlow(false)
+        override val isScanning = MutableStateFlow(sessionScanning)
+        override val isHardwareScanRunning = MutableStateFlow(hardwareScanning)
         override val nearbyDevices = MutableStateFlow(emptyList<SmartGlassesDevice>())
 
         override suspend fun startScanning() = Unit

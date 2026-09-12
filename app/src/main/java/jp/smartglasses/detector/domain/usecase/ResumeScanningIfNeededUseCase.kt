@@ -29,7 +29,7 @@ class ResumeScanningIfNeededUseCase @Inject constructor(
             return
         }
 
-        if (!ScanResumePolicy.shouldRestartService(bluetoothRepository.isScanning.first())) {
+        if (!ScanResumePolicy.shouldRestartService(bluetoothRepository.isHardwareScanRunning.first())) {
             return
         }
 

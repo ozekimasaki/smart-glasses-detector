@@ -284,11 +284,38 @@ class SmartGlassesClassifierTest {
                 rssi = -90
             )
         )
+        val smartEyewear = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Eyewear",
+                address = "AA:BB:CC:DD:EE:06M",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val japaneseEyewear = classifier.classify(
+            DetectionSignal(
+                deviceName = "スマートアイウェア-01",
+                address = "AA:BB:CC:DD:EE:06N",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val aiMegane = classifier.classify(
+            DetectionSignal(
+                deviceName = "AIメガネ Mini",
+                address = "AA:BB:CC:DD:EE:06O",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
 
         assertEquals(DetectionMethod.HEURISTIC, smartGlasses?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, japanese?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, chinese?.manufacturer?.detectionMethod)
         assertEquals(DetectionMethod.HEURISTIC, korean?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, smartEyewear?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, japaneseEyewear?.manufacturer?.detectionMethod)
+        assertEquals(DetectionMethod.HEURISTIC, aiMegane?.manufacturer?.detectionMethod)
     }
 
     @Test

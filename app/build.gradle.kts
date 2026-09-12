@@ -49,8 +49,8 @@ android {
         applicationId = "jp.smartglasses.detector"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.1.16"
+        versionCode = 27
+        versionName = "1.1.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
