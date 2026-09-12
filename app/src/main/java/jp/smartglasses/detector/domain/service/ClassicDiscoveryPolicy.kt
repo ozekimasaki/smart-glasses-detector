@@ -56,6 +56,11 @@ object ClassicDiscoveryPolicy {
         return address.isNotBlank()
     }
 
+    fun shouldExportDiscoveryReceiver(): Boolean {
+        // Android 13 以降、一部 OEM は NOT_EXPORTED だと機器・接続ブロードキャストを落とす
+        return true
+    }
+
     fun shouldApplyInquiryUpdate(
         action: String?,
         scanningRequested: Boolean,

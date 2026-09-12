@@ -202,6 +202,7 @@ class ResumeScanningIfNeededUseCaseTest {
         override suspend fun startScanning() = Unit
         override fun ensureHardwareScanning() = Unit
         override fun pauseHardwareKeepingSession() = Unit
+        override fun stopScanningNow() = Unit
         override suspend fun stopScanning() = Unit
         override fun updateScanSensitivity(sensitivity: ScanSensitivity) = Unit
         override fun hasPermissions() = permissions

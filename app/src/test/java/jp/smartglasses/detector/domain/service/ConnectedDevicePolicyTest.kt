@@ -230,6 +230,7 @@ class ConnectedDevicePolicyTest {
                 ConnectedDevicePolicy.ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_BATTERY_LEVEL_CHANGED,
                 ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED
             ),
             ConnectedDevicePolicy.connectionBroadcastActions()
@@ -250,6 +251,28 @@ class ConnectedDevicePolicyTest {
         )
         assertEquals(10, ConnectedDevicePolicy.BOND_NONE)
         assertEquals(12, ConnectedDevicePolicy.BOND_BONDED)
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyBatteryLevelChanged(
+                action = ConnectedDevicePolicy.ACTION_BATTERY_LEVEL_CHANGED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = ConnectedDevicePolicy.ACTION_BATTERY_LEVEL_CHANGED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyBatteryLevelChanged(
+                action = ConnectedDevicePolicy.ACTION_BATTERY_LEVEL_CHANGED,
+                scanningRequested = false
+            )
+        )
+        assertEquals(
+            "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED",
+            ConnectedDevicePolicy.ACTION_BATTERY_LEVEL_CHANGED
+        )
         assertTrue(
             ConnectedDevicePolicy.shouldApplyBonded(
                 action = ConnectedDevicePolicy.ACTION_BOND_STATE_CHANGED,

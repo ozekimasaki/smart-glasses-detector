@@ -78,6 +78,33 @@ object ScanResumePolicy {
         return backgroundEnabled || appInForeground
     }
 
+    fun shouldDeferRecreationUntilSettingsReady(settingsReady: Boolean): Boolean {
+        return !settingsReady
+    }
+
+    fun shouldPromoteForegroundWhileSettingsLoad(
+        settingsReady: Boolean,
+        explicitStart: Boolean,
+        explicitStop: Boolean
+    ): Boolean {
+        return !settingsReady && !explicitStart && !explicitStop
+    }
+
+    fun shouldRestartSticky(
+        explicitStart: Boolean,
+        explicitStop: Boolean,
+        settingsReady: Boolean,
+        persistedScanningState: Boolean
+    ): Boolean {
+        if (explicitStop) {
+            return false
+        }
+        if (explicitStart || !settingsReady) {
+            return true
+        }
+        return persistedScanningState
+    }
+
     const val ACTION_BLUETOOTH_STATE_CHANGED = "android.bluetooth.adapter.action.STATE_CHANGED"
     const val ACTION_LOCATION_MODE_CHANGED = "android.location.MODE_CHANGED"
     const val ACTION_USER_UNLOCKED = "android.intent.action.USER_UNLOCKED"

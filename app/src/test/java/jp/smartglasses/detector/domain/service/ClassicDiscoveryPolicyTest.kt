@@ -234,5 +234,10 @@ class ClassicDiscoveryPolicyTest {
         assertFalse(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser("   "))
         assertTrue(ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser("AA:BB:CC:DD:EE:01"))
     }
+
+    @Test
+    fun `classic and connection broadcasts are exported so oem stacks still deliver them`() {
+        assertTrue(ClassicDiscoveryPolicy.shouldExportDiscoveryReceiver())
+    }
 }
 

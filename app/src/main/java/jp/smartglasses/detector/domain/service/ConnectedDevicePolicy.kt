@@ -35,6 +35,8 @@ object ConnectedDevicePolicy {
         "android.bluetooth.action.CSIS_CONNECTION_STATE_CHANGED"
     const val ACTION_ADAPTER_CONNECTION_STATE_CHANGED =
         "android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED"
+    const val ACTION_BATTERY_LEVEL_CHANGED =
+        "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
     const val ACTION_BOND_STATE_CHANGED = "android.bluetooth.device.action.BOND_STATE_CHANGED"
     const val EXTRA_STATE = "android.bluetooth.profile.extra.STATE"
     const val EXTRA_ADAPTER_CONNECTION_STATE = "android.bluetooth.adapter.extra.CONNECTION_STATE"
@@ -61,6 +63,7 @@ object ConnectedDevicePolicy {
             ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
             ACTION_CSIS_CONNECTION_STATE_CHANGED,
             ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+            ACTION_BATTERY_LEVEL_CHANGED,
             ACTION_BOND_STATE_CHANGED
         )
     }
@@ -95,6 +98,10 @@ object ConnectedDevicePolicy {
 
     fun shouldApplyAclConnected(action: String?, scanningRequested: Boolean): Boolean {
         return scanningRequested && action == ACTION_ACL_CONNECTED
+    }
+
+    fun shouldApplyBatteryLevelChanged(action: String?, scanningRequested: Boolean): Boolean {
+        return scanningRequested && action == ACTION_BATTERY_LEVEL_CHANGED
     }
 
     fun shouldApplyProfileConnected(
@@ -145,6 +152,7 @@ object ConnectedDevicePolicy {
         return shouldApplyAclConnected(action, scanningRequested) ||
             shouldApplyProfileConnected(action, connectionState, scanningRequested) ||
             shouldApplyAdapterConnected(action, adapterConnectionState, scanningRequested) ||
+            shouldApplyBatteryLevelChanged(action, scanningRequested) ||
             shouldApplyBonded(action, bondState, scanningRequested)
     }
 

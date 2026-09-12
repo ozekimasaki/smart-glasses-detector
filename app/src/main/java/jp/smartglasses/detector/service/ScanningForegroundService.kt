@@ -47,9 +47,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -79,8 +77,10 @@ class ScanningForegroundService : Service() {
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + supervisorJob)
     private val isStopping = AtomicBoolean(false)
-    private var backgroundScanningEnabled = false
-    private var persistedScanningState = false
+    private val pendingRecreationStartIds = ArrayList<Int>()
+    @Volatile private var settingsReady = false
+    @Volatile private var backgroundScanningEnabled = false
+    @Volatile private var persistedScanningState = false
     @Volatile private var notificationEnabled = true
     @Volatile private var vibrationEnabled = true
     @Volatile private var soundEnabled = true
@@ -106,25 +106,69 @@ class ScanningForegroundService : Service() {
     
     override fun onCreate() {
         super.onCreate()
-        initializeCachedSettings()
         observeSettings()
         createNotificationChannels()
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
-    }
-    
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_START -> startForegroundWithNotification()
-            ACTION_STOP -> stopScanningAndStopSelf()
-            null -> {
-                if (shouldResumeScanningAfterRestart()) {
-                    startForegroundWithNotification()
-                } else {
-                    stopSelf(startId)
+        scope.launch {
+            loadPersistedSettings()
+            withContext(Dispatchers.Main.immediate) {
+                settingsReady = true
+                val startIds = pendingRecreationStartIds.toList()
+                pendingRecreationStartIds.clear()
+                startIds.forEach { startId ->
+                    handleRecreation(startId)
                 }
             }
         }
-        return resolveRestartMode()
+    }
+    
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val explicitStart = intent?.action == ACTION_START
+        val explicitStop = intent?.action == ACTION_STOP
+        when {
+            explicitStart -> startForegroundWithNotification()
+            explicitStop -> {
+                pendingRecreationStartIds.clear()
+                stopScanningAndStopSelf()
+            }
+            ScanResumePolicy.shouldDeferRecreationUntilSettingsReady(settingsReady) -> {
+                if (
+                    ScanResumePolicy.shouldPromoteForegroundWhileSettingsLoad(
+                        settingsReady = false,
+                        explicitStart = false,
+                        explicitStop = false
+                    )
+                ) {
+                    promoteToForeground()
+                }
+                pendingRecreationStartIds += startId
+            }
+            else -> handleRecreation(startId)
+        }
+        return if (
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = explicitStart,
+                explicitStop = explicitStop,
+                settingsReady = settingsReady,
+                persistedScanningState = persistedScanningState
+            )
+        ) {
+            START_STICKY
+        } else {
+            START_NOT_STICKY
+        }
+    }
+
+    private fun handleRecreation(startId: Int) {
+        if (isStopping.get()) {
+            return
+        }
+        if (shouldResumeScanningAfterRestart()) {
+            startForegroundWithNotification()
+        } else {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf(startId)
+        }
     }
 
     private fun startForegroundWithNotification() {
@@ -139,8 +183,12 @@ class ScanningForegroundService : Service() {
             return
         }
 
-        val notification = createScanningNotification()
+        promoteToForeground()
+        startScanning()
+    }
 
+    private fun promoteToForeground() {
+        val notification = createScanningNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 Constants.NOTIFICATION_ID_SCANNING,
@@ -150,8 +198,6 @@ class ScanningForegroundService : Service() {
         } else {
             startForeground(Constants.NOTIFICATION_ID_SCANNING, notification)
         }
-        
-        startScanning()
     }
 
     private fun startScanning() {
@@ -392,16 +438,9 @@ class ScanningForegroundService : Service() {
         alertSettingsJob?.cancel()
         healthCheckJob?.cancel()
         environmentWatchJob?.cancel()
-
-        if (!isStopping.get()) {
-            runBlocking {
-                withTimeoutOrNull(SERVICE_DESTROY_TIMEOUT_MS) {
-                    scanJob?.cancelAndJoin()
-                    stopBluetoothScanSafely()
-                }
-            }
-        }
-
+        scanJob?.cancel()
+        scanJob = null
+        stopBluetoothScanNow()
         supervisorJob.cancel()
         super.onDestroy()
     }
@@ -410,7 +449,6 @@ class ScanningForegroundService : Service() {
         private const val TAG = "ScanningFgService"
         const val ACTION_START = "jp.smartglasses.detector.action.START"
         const val ACTION_STOP = "jp.smartglasses.detector.action.STOP"
-        private const val SERVICE_DESTROY_TIMEOUT_MS = 1_500L
     }
 
     private suspend fun stopForegroundAndSelf() {
@@ -428,20 +466,20 @@ class ScanningForegroundService : Service() {
         )
     }
 
-    private fun resolveRestartMode(): Int {
-        return if (persistedScanningState) START_STICKY else START_NOT_STICKY
-    }
-
     private fun shouldKeepScanningInBackground(): Boolean {
         return backgroundScanningEnabled
     }
 
-    private suspend fun stopBluetoothScanSafely() {
+    private fun stopBluetoothScanNow() {
         try {
-            bluetoothRepository.stopScanning()
+            bluetoothRepository.stopScanningNow()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop Bluetooth scanning safely", e)
         }
+    }
+
+    private suspend fun stopBluetoothScanSafely() {
+        stopBluetoothScanNow()
     }
 
     private suspend fun persistScanningState(scanning: Boolean) {
@@ -453,17 +491,15 @@ class ScanningForegroundService : Service() {
         }
     }
 
-    private fun initializeCachedSettings() {
+    private suspend fun loadPersistedSettings() {
         try {
-            runBlocking(Dispatchers.IO) {
-                backgroundScanningEnabled = BackgroundScanSupport.isEnabled(
-                    settingsRepository.backgroundEnabled.first()
-                )
-                persistedScanningState = settingsRepository.isScanning.first()
-                notificationEnabled = settingsRepository.notificationEnabled.first()
-                vibrationEnabled = settingsRepository.vibrationEnabled.first()
-                soundEnabled = settingsRepository.soundEnabled.first()
-            }
+            backgroundScanningEnabled = BackgroundScanSupport.isEnabled(
+                settingsRepository.backgroundEnabled.first()
+            )
+            persistedScanningState = settingsRepository.isScanning.first()
+            notificationEnabled = settingsRepository.notificationEnabled.first()
+            vibrationEnabled = settingsRepository.vibrationEnabled.first()
+            soundEnabled = settingsRepository.soundEnabled.first()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to initialize cached scanning settings", e)
             backgroundScanningEnabled = false

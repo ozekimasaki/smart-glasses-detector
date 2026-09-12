@@ -437,12 +437,16 @@ class SmartGlassesDetector @Inject constructor(
         scanRecord: ScanRecord
     ): List<Pair<Int, ByteArray>> {
         val manufacturerSpecificData = scanRecord.manufacturerSpecificData
-        val entries = ArrayList<Pair<Int, ByteArray>>(manufacturerSpecificData.size)
-        for (index in 0 until manufacturerSpecificData.size) {
-            entries += manufacturerSpecificData.keyAt(index) to
-                (manufacturerSpecificData.valueAt(index) ?: byteArrayOf())
+        val size = manufacturerSpecificData.size
+        if (size <= 0) {
+            return emptyList()
         }
-        return AdvertisementCopy.copyManufacturerEntries(entries)
+        val entries = ArrayList<Pair<Int, ByteArray>>(size)
+        for (index in 0 until size) {
+            val payload = manufacturerSpecificData.valueAt(index)
+            entries += manufacturerSpecificData.keyAt(index) to (payload?.copyOf() ?: byteArrayOf())
+        }
+        return entries
     }
 
     private fun extractServiceSolicitationUuids(scanRecord: ScanRecord?): List<String> {
@@ -759,7 +763,11 @@ class SmartGlassesDetector @Inject constructor(
             context,
             classicDiscoveryReceiver,
             filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            if (ClassicDiscoveryPolicy.shouldExportDiscoveryReceiver()) {
+                ContextCompat.RECEIVER_EXPORTED
+            } else {
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            }
         )
     }
 

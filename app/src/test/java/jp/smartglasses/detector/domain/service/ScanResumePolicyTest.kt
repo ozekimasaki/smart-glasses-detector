@@ -319,6 +319,84 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `process recreation waits for settings instead of treating defaults as a stop`() {
+        assertTrue(ScanResumePolicy.shouldDeferRecreationUntilSettingsReady(settingsReady = false))
+        assertFalse(ScanResumePolicy.shouldDeferRecreationUntilSettingsReady(settingsReady = true))
+        assertTrue(
+            ScanResumePolicy.shouldPromoteForegroundWhileSettingsLoad(
+                settingsReady = false,
+                explicitStart = false,
+                explicitStop = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldPromoteForegroundWhileSettingsLoad(
+                settingsReady = false,
+                explicitStart = true,
+                explicitStop = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldPromoteForegroundWhileSettingsLoad(
+                settingsReady = false,
+                explicitStart = false,
+                explicitStop = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldPromoteForegroundWhileSettingsLoad(
+                settingsReady = true,
+                explicitStart = false,
+                explicitStop = false
+            )
+        )
+    }
+
+    @Test
+    fun `explicit start stays sticky and explicit stop does not restart`() {
+        assertTrue(
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = true,
+                explicitStop = false,
+                settingsReady = false,
+                persistedScanningState = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = false,
+                explicitStop = true,
+                settingsReady = true,
+                persistedScanningState = true
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = false,
+                explicitStop = false,
+                settingsReady = false,
+                persistedScanningState = false
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = false,
+                explicitStop = false,
+                settingsReady = true,
+                persistedScanningState = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartSticky(
+                explicitStart = false,
+                explicitStop = false,
+                settingsReady = true,
+                persistedScanningState = false
+            )
+        )
+    }
+
+    @Test
     fun `duplicate start intent refreshes hardware while the service is already active`() {
         assertTrue(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = true))
         assertFalse(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = false))
