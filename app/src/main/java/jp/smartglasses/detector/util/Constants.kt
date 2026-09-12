@@ -418,7 +418,9 @@ object Constants {
                 "Oakley Vanguard",
                 "Ray-Ban Stories",
                 "Essilor",
-                "Oakley Airwave"
+                "Oakley Airwave",
+                "Radar Pace",
+                "Oakley Radar Pace"
             )
         ),
         DetectionRule(
@@ -491,10 +493,12 @@ object Constants {
             manufacturerName = "Oppo",
             companyIds = setOf(0x079A),
             namePatterns = listOf(
-                "Air Glass",
                 "Oppo Glass",
                 "Oppo Glasses",
                 "OPPO Air Glass"
+            ),
+            nameRegexes = listOf(
+                Regex("""(?i)(?<![A-Za-z])Air[\s-]?Glass""")
             ),
             allowCompanyIdOnly = false
         ),
@@ -1366,6 +1370,78 @@ object Constants {
         DetectionRule(
             manufacturerName = "Cellid",
             namePatterns = listOf("Cellid"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "DreamGlass",
+            namePatterns = listOf(
+                "DreamGlass",
+                "Dream Glass",
+                "Dream Glass Flow",
+                "DG Flow"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "ODG",
+            namePatterns = listOf(
+                "ODG R-7",
+                "ODG R-8",
+                "ODG R-9",
+                "ODG R7",
+                "ODG R8",
+                "ODG R9",
+                "Osterhout"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Atheer",
+            namePatterns = listOf("Atheer", "Atheer Air", "Atheer One"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Pivothead",
+            namePatterns = listOf("Pivothead"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "GlassUp",
+            namePatterns = listOf("GlassUp"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Optinvent",
+            namePatterns = listOf("Optinvent", "ORA-1", "ORA-2", "ORA2"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Epiphany",
+            namePatterns = listOf("Epiphany Eyewear", "Epiphany Eye"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "INAIR",
+            namePatterns = listOf(
+                "INAIR Glass",
+                "INAIR Glasses",
+                "INAIR 2 Pro",
+                "INAIR 2"
+            ),
+            excludedNamePatterns = listOf(
+                "INAIR Pod",
+                "INAIR Hub"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Garmin",
+            namePatterns = listOf("Varia Vision"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Intel",
+            namePatterns = listOf("Intel Vaunt", "Vaunt"),
             allowCompanyIdOnly = false
         )
     )

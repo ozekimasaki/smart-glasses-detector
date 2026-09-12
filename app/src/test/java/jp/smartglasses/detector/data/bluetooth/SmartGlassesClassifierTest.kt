@@ -1176,7 +1176,17 @@ class SmartGlassesClassifierTest {
             "Foxconn",
             "Innovega",
             "MetaVu",
-            "Cellid"
+            "Cellid",
+            "DreamGlass",
+            "ODG",
+            "Atheer",
+            "Pivothead",
+            "GlassUp",
+            "Optinvent",
+            "Epiphany",
+            "INAIR",
+            "Garmin",
+            "Intel"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2769,6 +2779,119 @@ class SmartGlassesClassifierTest {
         assertNull(amazfitWatch)
         assertNull(shokzHeadphones)
         assertNull(tozoEarbuds)
+    }
+
+    @Test
+    fun `legacy and display glasses names are detected without matching hubs`() {
+        val dreamGlass = classifier.classify(
+            DetectionSignal(
+                deviceName = "Dream Glass Flow",
+                address = "AA:BB:CC:DD:EE:G1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val odg = classifier.classify(
+            DetectionSignal(
+                deviceName = "ODG R-9",
+                address = "AA:BB:CC:DD:EE:G2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val atheer = classifier.classify(
+            DetectionSignal(
+                deviceName = "Atheer Air",
+                address = "AA:BB:CC:DD:EE:G3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val glassUp = classifier.classify(
+            DetectionSignal(
+                deviceName = "GlassUp",
+                address = "AA:BB:CC:DD:EE:G4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val ora = classifier.classify(
+            DetectionSignal(
+                deviceName = "ORA-2",
+                address = "AA:BB:CC:DD:EE:G5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val inair = classifier.classify(
+            DetectionSignal(
+                deviceName = "INAIR 2 Pro",
+                address = "AA:BB:CC:DD:EE:G6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val inairGlass = classifier.classify(
+            DetectionSignal(
+                deviceName = "INAIR Glass",
+                address = "AA:BB:CC:DD:EE:G6B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val oppoAir = classifier.classify(
+            DetectionSignal(
+                deviceName = "Air Glass",
+                address = "AA:BB:CC:DD:EE:G6C",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val inairPod = classifier.classify(
+            DetectionSignal(
+                deviceName = "INAIR Pod",
+                address = "AA:BB:CC:DD:EE:G7",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val varia = classifier.classify(
+            DetectionSignal(
+                deviceName = "Varia Vision",
+                address = "AA:BB:CC:DD:EE:G8",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val fenix = classifier.classify(
+            DetectionSignal(
+                deviceName = "Garmin Fenix 8",
+                address = "AA:BB:CC:DD:EE:G9",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val radarPace = classifier.classify(
+            DetectionSignal(
+                deviceName = "Oakley Radar Pace",
+                address = "AA:BB:CC:DD:EE:GA",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("DreamGlass", dreamGlass?.manufacturer?.name)
+        assertEquals("ODG", odg?.manufacturer?.name)
+        assertEquals("Atheer", atheer?.manufacturer?.name)
+        assertEquals("GlassUp", glassUp?.manufacturer?.name)
+        assertEquals("Optinvent", ora?.manufacturer?.name)
+        assertEquals("INAIR", inair?.manufacturer?.name)
+        assertEquals("INAIR", inairGlass?.manufacturer?.name)
+        assertEquals("Oppo", oppoAir?.manufacturer?.name)
+        assertNull(inairPod)
+        assertEquals("Garmin", varia?.manufacturer?.name)
+        assertNull(fenix)
+        assertEquals("Luxottica", radarPace?.manufacturer?.name)
     }
 
     private fun asciiToHex(value: String): String {

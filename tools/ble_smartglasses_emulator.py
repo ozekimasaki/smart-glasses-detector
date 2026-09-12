@@ -179,6 +179,16 @@ NAME_PATTERN_DEVICES = {
     188: "RayNeo GT Max",
     189: "Thunderbird V3",
     190: "Cellid",
+    191: "Dream Glass Flow",
+    192: "ODG R-9",
+    193: "Atheer Air",
+    194: "Pivothead",
+    195: "GlassUp",
+    196: "ORA-2",
+    197: "Epiphany Eyewear",
+    198: "INAIR 2 Pro",
+    199: "Varia Vision",
+    200: "Intel Vaunt",
 }
 
 UUID_DEVICES = {
@@ -224,6 +234,8 @@ NON_GLASSES_NAME_DEVICES = {
     202: "Shokz OpenRun",
     203: "TOZO T6",
     204: "JBL Tune 510BT",
+    205: "INAIR Pod",
+    206: "Garmin Fenix 8",
 }
 
 
