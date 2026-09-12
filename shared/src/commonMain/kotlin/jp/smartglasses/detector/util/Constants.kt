@@ -1,6 +1,6 @@
 package jp.smartglasses.detector.util
 
-internal data class DetectionRule(
+data class DetectionRule(
     val manufacturerName: String,
     val companyIds: Set<Int> = emptySet(),
     val namePatterns: List<String> = emptyList(),
@@ -19,25 +19,25 @@ object Constants {
     const val NOTIFICATION_ID_SCANNING = 1001
     const val NOTIFICATION_ID_DETECTION = 1002
 
-    internal const val UNKNOWN_RSSI_DBM = -127
-    internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
-    internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
-    internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 4 * 60 * 1000L
-    internal const val BLE_SCAN_FOREGROUND_REFRESH_INTERVAL_MS = 45_000L
-    internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
-    internal const val CLASSIC_DISCOVERY_DELAY_MS = 15_000L
-    internal const val CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
+    const val UNKNOWN_RSSI_DBM = -127
+    const val COOLDOWN_SAME_DEVICE_MS = 30_000L
+    const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
+    const val BLE_SCAN_REFRESH_INTERVAL_MS = 4 * 60 * 1000L
+    const val BLE_SCAN_FOREGROUND_REFRESH_INTERVAL_MS = 45_000L
+    const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
+    const val CLASSIC_DISCOVERY_DELAY_MS = 15_000L
+    const val CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
     // Classic inquiry は前面でも 2 分間隔のため、最後の信号から次の inquiry まで近くに残す
-    internal const val NEARBY_DEVICE_TTL_MS = CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS
-    internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
-    internal const val DIAGNOSTIC_LOG_KEEP_COUNT = 500
-    internal const val DIAGNOSTIC_LOG_WRITE_COOLDOWN_MS = 30_000L
-    internal const val DETECTION_LOG_KEEP_COUNT = 1000
+    const val NEARBY_DEVICE_TTL_MS = CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS
+    const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
+    const val DIAGNOSTIC_LOG_KEEP_COUNT = 500
+    const val DIAGNOSTIC_LOG_WRITE_COOLDOWN_MS = 30_000L
+    const val DETECTION_LOG_KEEP_COUNT = 1000
 
-    internal const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
+    const val GENERIC_SMART_GLASSES_NAME = "スマートグラス"
 
     // 未知メーカーでも Smart Glasses / スマートグラスと名乗る広告はカタログ距離で拾う
-    internal val GENERIC_STRONG_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+    val GENERIC_STRONG_GLASSES_NAME_REGEXES: List<Regex> by lazy {
         listOf(
         Regex("""(?i)smart[\s-]?eye[\s-]?glass"""),
         Regex("""(?i)smart[\s-]?glass"""),
@@ -168,7 +168,7 @@ object Constants {
     }
 
     // glasses / HUD / アイウェアはファッション眼鏡や汎用HUDに当たるため近い距離だけ
-    internal val GENERIC_WEAK_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+    val GENERIC_WEAK_GLASSES_NAME_REGEXES: List<Regex> by lazy {
         listOf(
         Regex("""(?i)eye-?wear"""),
         Regex("""(?i)\beyewear\b"""),
@@ -180,11 +180,11 @@ object Constants {
         )
     }
 
-    internal val GENERIC_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+    val GENERIC_GLASSES_NAME_REGEXES: List<Regex> by lazy {
         GENERIC_STRONG_GLASSES_NAME_REGEXES + GENERIC_WEAK_GLASSES_NAME_REGEXES
     }
 
-    internal val GENERIC_NON_GLASSES_NAME_REGEXES: List<Regex> by lazy {
+    val GENERIC_NON_GLASSES_NAME_REGEXES: List<Regex> by lazy {
         listOf(
         Regex("""(?i)airpods"""),
         Regex("""(?i)pixel\s*buds"""),
@@ -212,7 +212,7 @@ object Constants {
 
     // メーカーデータの ASCII に GLASS / EYEWEAR が載っている無名広告（未知メーカー）
     // HOURGLASS / SUNGLASS は単語境界や区切りが無いので当てない
-    internal val GENERIC_STRONG_PAYLOAD_REGEXES: List<Regex> by lazy {
+    val GENERIC_STRONG_PAYLOAD_REGEXES: List<Regex> by lazy {
         listOf(
         Regex("""(?i)(?:^|[\s_\-./])glass(?:es)?(?:$|[\s_\-./0-9])"""),
         Regex("""(?i)(?:^|[\s_\-./])eyewear(?:$|[\s_\-./0-9])"""),
@@ -220,7 +220,7 @@ object Constants {
         )
     }
 
-    internal val SMART_GLASSES_DETECTION_RULES: List<DetectionRule> by lazy {
+    val SMART_GLASSES_DETECTION_RULES: List<DetectionRule> by lazy {
         listOf(
         DetectionRule(
             manufacturerName = "Seiko Epson",

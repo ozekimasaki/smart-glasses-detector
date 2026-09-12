@@ -10,7 +10,7 @@ import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.DetectionRule
 import jp.smartglasses.detector.util.ScanSensitivity
 
-internal data class DetectionSignal(
+data class DetectionSignal(
     val deviceName: String?,
     val address: String,
     val companyIds: Set<Int>,
@@ -25,7 +25,7 @@ internal data class DetectionSignal(
     val deviceClass: Int? = null
 )
 
-internal class SmartGlassesClassifier(
+class SmartGlassesClassifier(
     private val detectionRules: List<DetectionRule> = Constants.SMART_GLASSES_DETECTION_RULES,
     private val genericStrongNameRegexes: List<Regex> = Constants.GENERIC_STRONG_GLASSES_NAME_REGEXES,
     private val genericWeakNameRegexes: List<Regex> = Constants.GENERIC_WEAK_GLASSES_NAME_REGEXES,
@@ -406,7 +406,7 @@ internal class SmartGlassesClassifier(
     }
 }
 
-internal fun DetectionSignal.payloadHex(): String {
+fun DetectionSignal.payloadHex(): String {
     if (advertisementDataHex.isNotEmpty() || extraPayloadHex.isNotEmpty()) {
         return advertisementDataHex + extraPayloadHex
     }
@@ -414,7 +414,7 @@ internal fun DetectionSignal.payloadHex(): String {
         AdvertisementParser.encodeHex(extraPayloadBytes)
 }
 
-internal fun DetectionSignal.payloadBytes(): ByteArray {
+fun DetectionSignal.payloadBytes(): ByteArray {
     if (advertisementBytes.isNotEmpty() || extraPayloadBytes.isNotEmpty()) {
         if (extraPayloadBytes.isEmpty()) {
             return advertisementBytes
@@ -427,7 +427,7 @@ internal fun DetectionSignal.payloadBytes(): ByteArray {
     return AdvertisementParser.hexToBytes(payloadHex()) ?: byteArrayOf()
 }
 
-internal fun DetectionSignal.advertisementBytesOrHex(): ByteArray? {
+fun DetectionSignal.advertisementBytesOrHex(): ByteArray? {
     if (advertisementBytes.isNotEmpty()) {
         return advertisementBytes
     }

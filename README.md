@@ -5,14 +5,14 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Privacy Policy](https://img.shields.io/badge/Privacy-Policy-F47C20)](https://smart-glasses-detector-policy.maigo999.workers.dev)
 
-近くのスマートグラスを Bluetooth Low Energy (BLE) で検出し、通知と履歴で確認できる Android アプリです。ボタン 1 つで探索を開始でき、技術用語を使わない画面設計で一般ユーザーでも扱えることを目指しています。
+近くのスマートグラスを Bluetooth Low Energy (BLE) で検出し、通知と履歴で確認できるアプリです。Android は Jetpack Compose、iOS は SwiftUI で、検出ルールは Kotlin Multiplatform の `:shared` モジュールに集約しています。ボタン 1 つで探索を開始でき、技術用語を使わない画面設計で一般ユーザーでも扱えることを目指しています。
 
 ## 概要
 
 - **パッケージ名**: `jp.smartglasses.detector`
 - **表示名**: スマートグラス検出
-- **アーキテクチャ**: MVVM + Clean Architecture（`presentation` → `domain` → `data`）
-- **UI**: Jetpack Compose + Material Design 3
+- **アーキテクチャ**: MVVM + Clean Architecture（`presentation` → `domain` → `data`）。検出頭脳は `:shared`
+- **UI**: Android は Jetpack Compose + Material Design 3、iOS は SwiftUI
 - BLE 広告（アドバタイズ）を監視し、Company ID / Service UUID / 広告ペイロード / デバイス名 / Appearance / ヒューリスティックでスマートグラス候補を判定します。
 
 ## 主な機能
@@ -29,7 +29,8 @@
 ## 対応環境
 
 - `minSdk`: 26 (Android 8.0)
-- `targetSdk`: 35 (Android 15) / `compileSdk`: 37
+- `targetSdk`: 36 (Android 16) / `compileSdk`: 37
+- iOS 17 以上（[`iosApp/`](iosApp/)、詳細は [`docs/ios-build.md`](docs/ios-build.md)）
 - Android 12 以上: `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`
 - Android 11 以前: BLE 探索のため位置情報権限（`ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`、`maxSdkVersion=30`）が必要
 - `android.hardware.bluetooth_le` を必須機能として要求
@@ -89,9 +90,9 @@ scripts\gradlew-safe.cmd bundleRelease
 Linux / macOS の例（Windows では `scripts\gradlew-safe.cmd <task>`）:
 
 ```bash
-# ユニットテスト（app/src/test）
-./gradlew test
-./gradlew testDebugUnitTest
+# ユニットテスト（:shared + :app）
+./gradlew :shared:jvmTest
+./gradlew :app:testDebugUnitTest
 
 # Android Lint
 ./gradlew lint
@@ -112,23 +113,13 @@ Kotlin コンパイル（型チェックを兼ねる）は `assembleDebug` な�
 ```
 .
 ├── app/                     # Android アプリ本体（:app モジュール）
-│   ├── src/main/java/jp/smartglasses/detector/
-│   │   ├── di/              # Hilt モジュール
-│   │   ├── domain/          # model / repository interface / usecase / service
-│   │   ├── data/            # bluetooth / database(Room) / preferences / repository / export
-│   │   ├── presentation/    # Compose 画面と ViewModel（main/history/settings/onboarding/about/privacy）
-│   │   ├── service/         # ScanningForegroundService
-│   │   ├── receiver/        # BootReceiver
-│   │   ├── ui/theme/        # Compose テーマ
-│   │   ├── util/            # Constants など
-│   │   ├── MainActivity.kt
-│   │   └── SmartGlassesDetectorApp.kt
-│   └── build.gradle.kts
+├── shared/                  # KMP 検出ルール / 分類器（Android + iOS）
+├── iosApp/                  # SwiftUI + CoreBluetooth
 ├── gradle/libs.versions.toml # 依存バージョンカタログ
 ├── scripts/                 # Windows 向け Gradle ラッパースクリプト
 ├── tools/                   # BLE エミュレータ（テスト用 Python スクリプト）
 ├── privacy-site/            # プライバシーポリシー静的サイト（Cloudflare Workers）
-├── docs/                    # ビルド環境・署名・Play 公開手順のドキュメント
+├── docs/                    # ビルド環境・署名・Play 公開・iOS 手順
 ├── AGENTS.md                # コーディングエージェント向けガイド
 ├── CLAUDE.md
 └── PROJECT_PLAN.md          # 開発計画書
@@ -156,6 +147,8 @@ Kotlin コンパイル（型チェックを兼ねる）は `assembleDebug` な�
 ## 開発メモ
 
 - アプリ本体: [`app/`](app/)
+- 共有検出: [`shared/`](shared/)
+- iOS アプリ: [`iosApp/`](iosApp/)
 - プライバシーポリシー静的サイト: [`privacy-site/`](privacy-site/)
 - 開発計画書: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
 

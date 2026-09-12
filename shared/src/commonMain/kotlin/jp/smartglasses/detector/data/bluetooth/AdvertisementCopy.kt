@@ -1,6 +1,6 @@
 package jp.smartglasses.detector.data.bluetooth
 
-internal object AdvertisementCopy {
+object AdvertisementCopy {
     fun copyBytes(bytes: ByteArray?): ByteArray {
         return bytes?.copyOf() ?: byteArrayOf()
     }
@@ -44,7 +44,7 @@ internal object AdvertisementCopy {
         val merged = ByteArray(totalSize)
         var offset = 0
         for (part in parts) {
-            System.arraycopy(part, 0, merged, offset, part.size)
+            part.copyInto(merged, destinationOffset = offset)
             offset += part.size
         }
         return merged

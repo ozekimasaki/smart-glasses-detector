@@ -41,6 +41,19 @@ class PlayReleaseConfigTest {
     }
 
     @Test
+    fun `ios app declares bluetooth usage without location keys`() {
+        val settings = locate("settings.gradle.kts").readText()
+        assertTrue(settings.contains("include(\":shared\")"))
+        assertTrue(locate("app/build.gradle.kts").readText().contains("implementation(project(\":shared\"))"))
+
+        val plist = locate("iosApp/SmartGlassesDetector/Info.plist").readText()
+        assertTrue(plist.contains("NSBluetoothAlwaysUsageDescription"))
+        assertTrue(plist.contains("bluetooth-central"))
+        assertFalse(plist.contains("NSLocationWhenInUseUsageDescription"))
+        assertFalse(plist.contains("NSLocationAlwaysAndWhenInUseUsageDescription"))
+    }
+
+    @Test
     fun `gradle dependencies stay on the latest stable releases`() {
         val catalog = locate("gradle/libs.versions.toml").readText()
         val wrapper = locate("gradle/wrapper/gradle-wrapper.properties").readText()
@@ -88,6 +101,7 @@ class PlayReleaseConfigTest {
     fun `ci does not cancel pull request jobs when the same branch is pushed`() {
         val workflow = locate(".github/workflows/ci.yml").readText()
         assertTrue(workflow.contains("github.event.pull_request.number || github.ref"))
+        assertTrue(workflow.contains(":shared:jvmTest"))
         assertFalse(workflow.contains("github.event.pull_request.head.ref || github.ref_name"))
     }
 
