@@ -1520,6 +1520,66 @@ class SmartGlassesClassifierTest {
         assertNull(tv)
     }
 
+    @Test
+    fun `chinese brand names for rokid inmo huawei and meizu glasses are detected`() {
+        val rokid = classifier.classify(
+            DetectionSignal(
+                deviceName = "若琪眼镜",
+                address = "AA:BB:CC:DD:EE:70",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val inmo = classifier.classify(
+            DetectionSignal(
+                deviceName = "映莫GO2",
+                address = "AA:BB:CC:DD:EE:71",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val huawei = classifier.classify(
+            DetectionSignal(
+                deviceName = "华为智能眼镜",
+                address = "AA:BB:CC:DD:EE:72",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val meizu = classifier.classify(
+            DetectionSignal(
+                deviceName = "星纪眼镜-A1",
+                address = "AA:BB:CC:DD:EE:73",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+        val huaweiWatch = classifier.classify(
+            DetectionSignal(
+                deviceName = "华为手表",
+                address = "AA:BB:CC:DD:EE:74",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val huaweiWatchCid = classifier.classify(
+            DetectionSignal(
+                deviceName = "华为手表",
+                address = "AA:BB:CC:DD:EE:75",
+                companyIds = setOf(0x027D),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Rokid", rokid?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, rokid?.manufacturer?.detectionMethod)
+        assertEquals("INMO", inmo?.manufacturer?.name)
+        assertEquals("Huawei", huawei?.manufacturer?.name)
+        assertEquals("Meizu", meizu?.manufacturer?.name)
+        assertNull(huaweiWatch)
+        assertNull(huaweiWatchCid)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

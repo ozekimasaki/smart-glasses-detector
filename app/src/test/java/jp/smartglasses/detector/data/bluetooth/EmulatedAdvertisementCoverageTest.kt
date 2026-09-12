@@ -104,6 +104,18 @@ class EmulatedAdvertisementCoverageTest {
             "RayNeo Chinese Air name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "雷鸟Air 2" }
         )
+        assertTrue(
+            "Rokid Chinese brand name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "若琪眼镜" }
+        )
+        assertTrue(
+            "INMO Chinese brand name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "映莫GO2" }
+        )
+        assertTrue(
+            "Huawei Chinese eyewear name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "华为眼镜" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(
@@ -216,7 +228,8 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nonGlassesNames.contains("Even R1") &&
                 catalog.nonGlassesNames.contains("Even Realities R1") &&
                 catalog.nonGlassesNames.contains("Frame TV") &&
-                catalog.nonGlassesNames.contains("雷鸟TV")
+                catalog.nonGlassesNames.contains("雷鸟TV") &&
+                catalog.nonGlassesNames.contains("华为手表")
         )
 
         catalog.nonGlassesNames.forEach { name ->

@@ -169,6 +169,8 @@ object Constants {
                 "HUAWEI Vision Glass",
                 "Huawei Vision Glass",
                 "OWNDAYS",
+                "华为眼镜",
+                "华为智能眼镜",
                 "HW1001",
                 "HW1002",
                 "HWF2003N",
@@ -182,6 +184,8 @@ object Constants {
                 "Watch GT",
                 "Watch FIT",
                 "Watch Fit",
+                "Watch",
+                "手表",
                 "Band"
             )
         ),
@@ -204,7 +208,8 @@ object Constants {
                 "MYVU Explorer",
                 "StarV",
                 "StarV View",
-                "Meizu Glass"
+                "Meizu Glass",
+                "星纪眼镜"
             )
         ),
         DetectionRule(
@@ -372,7 +377,8 @@ object Constants {
                 "Rokid Glasses",
                 "Rokid Glass",
                 "Rokid AR Lite",
-                "Rokid AR Spatial"
+                "Rokid AR Spatial",
+                "若琪"
             ),
             // 実機広告名: Glasses_XXXX（UUID 0x9100 が広告に乗らない場合の保険）
             nameRegexes = listOf(
@@ -392,7 +398,8 @@ object Constants {
                 "INMOAIR",
                 "INMO GO",
                 "INMO GO2",
-                "INMOGO"
+                "INMOGO",
+                "映莫"
             ),
             allowCompanyIdOnly = false
         ),
