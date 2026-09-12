@@ -18,13 +18,13 @@ class BleScanRefreshPolicyTest {
     }
 
     @Test
-    fun `keeps the longer interval while the app is in the background`() {
+    fun `keeps the same refresh interval while the app is in the background`() {
         assertEquals(
-            Constants.BLE_SCAN_REFRESH_INTERVAL_MS,
+            Constants.BLE_SCAN_FOREGROUND_REFRESH_INTERVAL_MS,
             BleScanRefreshPolicy.intervalMs(appInForeground = false)
         )
         assertEquals(
-            4 * 60 * 1000L,
+            45_000L,
             BleScanRefreshPolicy.intervalMs(appInForeground = false)
         )
     }

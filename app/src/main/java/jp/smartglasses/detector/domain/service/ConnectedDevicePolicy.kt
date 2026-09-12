@@ -117,6 +117,14 @@ object ConnectedDevicePolicy {
             adapterConnectionState == STATE_CONNECTED
     }
 
+    fun shouldPollConnectedDevicesOnAdapterConnected(
+        action: String?,
+        adapterConnectionState: Int,
+        scanningRequested: Boolean
+    ): Boolean {
+        return shouldApplyAdapterConnected(action, adapterConnectionState, scanningRequested)
+    }
+
     fun shouldApplyBonded(
         action: String?,
         bondState: Int,

@@ -147,9 +147,24 @@ class SmartGlassesDetector @Inject constructor(
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val action = intent?.action ?: return
+            val scanningRequested = userRequestedScanning.get()
+            val adapterConnectionState = intent.getIntExtra(
+                ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE,
+                ConnectedDevicePolicy.STATE_DISCONNECTED
+            )
+            if (
+                ConnectedDevicePolicy.shouldPollConnectedDevicesOnAdapterConnected(
+                    action = action,
+                    adapterConnectionState = adapterConnectionState,
+                    scanningRequested = scanningRequested
+                )
+            ) {
+                diagnosticPersistenceScope.launch {
+                    pollConnectedDevices()
+                }
+            }
             val bluetoothDevice = intent.extractBluetoothDevice() ?: return
             val address = resolveDeviceAddress(bluetoothDevice)
-            val scanningRequested = userRequestedScanning.get()
             val extraRssi = intent.getShortExtra(
                 BluetoothDevice.EXTRA_RSSI,
                 Constants.UNKNOWN_RSSI_DBM.toShort()
@@ -159,10 +174,6 @@ class SmartGlassesDetector @Inject constructor(
                 ?: resolveDeviceClass(bluetoothDevice)
             val connectionState = intent.getIntExtra(
                 ConnectedDevicePolicy.EXTRA_STATE,
-                ConnectedDevicePolicy.STATE_DISCONNECTED
-            )
-            val adapterConnectionState = intent.getIntExtra(
-                ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE,
                 ConnectedDevicePolicy.STATE_DISCONNECTED
             )
             val bondState = intent.getIntExtra(

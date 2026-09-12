@@ -158,6 +158,20 @@ class ConnectedDevicePolicyTest {
                 scanningRequested = true
             )
         )
+        assertTrue(
+            ConnectedDevicePolicy.shouldPollConnectedDevicesOnAdapterConnected(
+                action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                adapterConnectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldPollConnectedDevicesOnAdapterConnected(
+                action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                adapterConnectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = false
+            )
+        )
         assertFalse(
             ConnectedDevicePolicy.shouldApplyAdapterConnected(
                 action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
