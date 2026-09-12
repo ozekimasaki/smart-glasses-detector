@@ -13,8 +13,18 @@ object BleScanPendingIntentPolicy {
     const val EXTRA_ERROR_CODE = "android.bluetooth.le.extra.ERROR_CODE"
     const val DEFAULT_ERROR_CODE = 0
 
-    fun shouldStart(scanningRequested: Boolean): Boolean {
-        return scanningRequested
+    fun shouldStart(
+        scanningRequested: Boolean,
+        pendingIntentScanEnabled: Boolean = true
+    ): Boolean {
+        return scanningRequested && pendingIntentScanEnabled
+    }
+
+    fun shouldRestoreOnRefresh(
+        usingPendingIntentScan: Boolean,
+        pendingIntentScanRejectedThisSession: Boolean
+    ): Boolean {
+        return !usingPendingIntentScan && !pendingIntentScanRejectedThisSession
     }
 
     fun shouldHandleDelivery(action: String?): Boolean {

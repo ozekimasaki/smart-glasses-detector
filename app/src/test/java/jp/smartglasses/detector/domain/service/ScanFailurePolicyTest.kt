@@ -185,4 +185,28 @@ class ScanFailurePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `dual scan resource errors drop the pending-intent scan first`() {
+        assertTrue(
+            ScanFailurePolicy.shouldDropPendingIntentScan(
+                ScanFailurePolicy.SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldDropPendingIntentScan(
+                ScanFailurePolicy.SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldDropPendingIntentScan(
+                ScanFailurePolicy.SCAN_FAILED_INTERNAL_ERROR
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldDropPendingIntentScan(
+                ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED
+            )
+        )
+    }
 }

@@ -10,6 +10,34 @@ class BleScanPendingIntentPolicyTest {
     fun `starts the surviving scan only while the user wants to scan`() {
         assertTrue(BleScanPendingIntentPolicy.shouldStart(scanningRequested = true))
         assertFalse(BleScanPendingIntentPolicy.shouldStart(scanningRequested = false))
+        assertFalse(
+            BleScanPendingIntentPolicy.shouldStart(
+                scanningRequested = true,
+                pendingIntentScanEnabled = false
+            )
+        )
+    }
+
+    @Test
+    fun `restores the surviving scan on refresh unless this session already rejected it`() {
+        assertTrue(
+            BleScanPendingIntentPolicy.shouldRestoreOnRefresh(
+                usingPendingIntentScan = false,
+                pendingIntentScanRejectedThisSession = false
+            )
+        )
+        assertFalse(
+            BleScanPendingIntentPolicy.shouldRestoreOnRefresh(
+                usingPendingIntentScan = true,
+                pendingIntentScanRejectedThisSession = false
+            )
+        )
+        assertFalse(
+            BleScanPendingIntentPolicy.shouldRestoreOnRefresh(
+                usingPendingIntentScan = false,
+                pendingIntentScanRejectedThisSession = true
+            )
+        )
     }
 
     @Test

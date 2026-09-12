@@ -108,6 +108,8 @@ class SmartGlassesDetector @Inject constructor(
     private var usingExtendedAdvertising = true
     private var usingMatchAllFilter = true
     private var matchAllFilterRejectedThisSession = false
+    private var usingPendingIntentScan = true
+    private var pendingIntentScanRejectedThisSession = false
     private var retryAttempt = 0
     private var scanWatchdogJob: Job? = null
     private var nearbyPruneJob: Job? = null
@@ -319,15 +321,29 @@ class SmartGlassesDetector @Inject constructor(
         _hardwareScanRunning.value = false
 
         if (
-            ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
-            userRequestedScanning.get()
+            userRequestedScanning.get() &&
+            (
+                ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) ||
+                    (
+                        usingPendingIntentScan &&
+                            ScanFailurePolicy.shouldDropPendingIntentScan(errorCode)
+                    )
+                )
         ) {
             when (
                 BleScanCompatibilityPolicy.nextStep(
                     usingMatchAllFilter = usingMatchAllFilter,
-                    usingExtendedAdvertising = usingExtendedAdvertising
+                    usingExtendedAdvertising = usingExtendedAdvertising,
+                    usingPendingIntentScan = usingPendingIntentScan,
+                    errorCode = errorCode
                 )
             ) {
+                BleScanCompatibilityStep.DROP_PENDING_INTENT_SCAN -> {
+                    Log.w(TAG, "Dual BLE scan is unsupported, falling back to callback-only scanning")
+                    rejectPendingIntentScan()
+                    startLeAndClassicScanning()
+                    return
+                }
                 BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
                     Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
                     rejectMatchAllFilter()
@@ -920,6 +936,8 @@ class SmartGlassesDetector @Inject constructor(
             usingExtendedAdvertising = true
             usingMatchAllFilter = true
             matchAllFilterRejectedThisSession = false
+            usingPendingIntentScan = true
+            pendingIntentScanRejectedThisSession = false
             classicDiscoveryStarted.set(false)
             lastClassicDiscoveryStartedAt.set(0L)
             clearClassicInquiryMemory()
@@ -1132,7 +1150,12 @@ class SmartGlassesDetector @Inject constructor(
         filters: List<ScanFilter>?,
         settings: ScanSettings
     ) {
-        if (!BleScanPendingIntentPolicy.shouldStart(userRequestedScanning.get())) {
+        if (
+            !BleScanPendingIntentPolicy.shouldStart(
+                scanningRequested = userRequestedScanning.get(),
+                pendingIntentScanEnabled = usingPendingIntentScan
+            )
+        ) {
             return
         }
         try {
@@ -1224,6 +1247,14 @@ class SmartGlassesDetector @Inject constructor(
         ) {
             usingMatchAllFilter = true
         }
+        if (
+            BleScanPendingIntentPolicy.shouldRestoreOnRefresh(
+                usingPendingIntentScan = usingPendingIntentScan,
+                pendingIntentScanRejectedThisSession = pendingIntentScanRejectedThisSession
+            )
+        ) {
+            usingPendingIntentScan = true
+        }
         startLeAndClassicScanning()
     }
 
@@ -1250,6 +1281,11 @@ class SmartGlassesDetector @Inject constructor(
     private fun rejectMatchAllFilter() {
         usingMatchAllFilter = false
         matchAllFilterRejectedThisSession = true
+    }
+
+    private fun rejectPendingIntentScan() {
+        usingPendingIntentScan = false
+        pendingIntentScanRejectedThisSession = true
     }
 
     private fun markHardwareScanRunning() {
