@@ -24,11 +24,18 @@ class PlayReleaseConfigTest {
         assertTrue(manifest.contains("android:intentMatchingFlags=\"enforceIntentFilter\""))
         assertFalse(manifest.contains("LOCKED_BOOT_COMPLETED"))
         assertFalse(manifest.contains("REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"))
+        assertFalse(locate("AGENTS.md").readText().contains("LOCKED_BOOT_COMPLETED"))
 
         val privacy = locate("app/src/main/res/values/strings.xml").readText()
         assertTrue(
             privacy.contains(
                 ">https://smart-glasses-detector-policy.maigo999.workers.dev<"
+            )
+        )
+        assertTrue(privacy.contains("設定画面または記録画面から、検出記録と調査ログを削除"))
+        assertTrue(
+            locate("privacy-site/public/index.html").readText().contains(
+                "設定画面または記録画面から、検出記録と調査ログを削除"
             )
         )
     }
@@ -75,6 +82,13 @@ class PlayReleaseConfigTest {
         assertTrue(workflow.contains("contents: write"))
         assertTrue(workflow.contains("apksigner"))
         assertFalse(workflow.contains("LOCKED_BOOT_COMPLETED"))
+    }
+
+    @Test
+    fun `ci does not cancel pull request jobs when the same branch is pushed`() {
+        val workflow = locate(".github/workflows/ci.yml").readText()
+        assertTrue(workflow.contains("github.event.pull_request.number || github.ref"))
+        assertFalse(workflow.contains("github.event.pull_request.head.ref || github.ref_name"))
     }
 
     private fun locate(relativePath: String): File {

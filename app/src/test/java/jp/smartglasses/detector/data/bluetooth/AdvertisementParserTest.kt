@@ -32,6 +32,29 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses bluetooth 5 broadcast name as complete name`() {
+        val name = "Loomos"
+        val nameBytes = name.encodeToByteArray()
+        val record = byteArrayOf((nameBytes.size + 1).toByte(), 0x30) + nameBytes
+
+        val parsed = AdvertisementParser.parse(record)
+
+        assertEquals("Loomos", parsed.completeName)
+    }
+
+    @Test
+    fun `complete local name wins over broadcast name`() {
+        val complete = "Even G2_12_L".encodeToByteArray()
+        val broadcast = "Loomos".encodeToByteArray()
+        val record = byteArrayOf((complete.size + 1).toByte(), 0x09) + complete +
+            byteArrayOf((broadcast.size + 1).toByte(), 0x30) + broadcast
+
+        val parsed = AdvertisementParser.parse(record)
+
+        assertEquals("Even G2_12_L", parsed.completeName)
+    }
+
+    @Test
     fun `phone appearance is not eyeglasses`() {
         val parsed = AdvertisementParser.parse(
             byteArrayOf(0x03, 0x19, 0x40, 0x00)
@@ -80,6 +103,29 @@ class AdvertisementParserTest {
             listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
             parsed.serviceUuids
         )
+    }
+
+    @Test
+    fun `manufacturer tlv encoding copies the payload bytes`() {
+        val payload = byteArrayOf(0x11, 0x22, 0x33)
+        val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(0x01AB, payload)
+        payload[0] = 0x00
+
+        assertEquals(0x11.toByte(), encoded[4])
+        assertEquals(0x22.toByte(), encoded[5])
+        assertEquals(0x33.toByte(), encoded[6])
+    }
+
+    @Test
+    fun `copied advertising map bytes survive later mutation`() {
+        val original = byteArrayOf(0xC0.toByte(), 0x01)
+        val snapshot = mapOf(AdvertisementParser.AD_TYPE_APPEARANCE to original.copyOf())
+        original[0] = 0x40
+
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(snapshot)
+
+        assertEquals(0x01C0, parsed.appearance)
+        assertTrue(AdvertisementParser.isEyeglassesAppearance(parsed.appearance))
     }
 
     @Test
@@ -144,6 +190,23 @@ class AdvertisementParserTest {
         assertEquals("05FF41523939", hex)
         assertEquals(setOf(0x5241), AdvertisementParser.parseHex(hex).companyIds)
         assertTrue(AdvertisementParser.asciiFromHex(hex).contains("AR99"))
+    }
+
+    @Test
+    fun `encodeHex round trips little endian advertisements`() {
+        val bytes = byteArrayOf(0x05, 0xFF.toByte(), 0xAB.toByte(), 0x01, 0x00, 0x00)
+
+        assertEquals("05FFAB010000", AdvertisementParser.encodeHex(bytes))
+        assertTrue(bytes.contentEquals(AdvertisementParser.hexToBytes("05FFAB010000")!!))
+        assertEquals(setOf(0x01AB), AdvertisementParser.parse(bytes).companyIds)
+    }
+
+    @Test
+    fun `detects activelook manufacturer data suffix from bytes`() {
+        val bytes = AdvertisementParser.hexToBytes("05FFFADA08F2")
+
+        assertTrue(AdvertisementParser.hasManufacturerDataSuffix(bytes, 0x08F2))
+        assertFalse(AdvertisementParser.hasManufacturerDataSuffix(byteArrayOf(0x05, 0x16, 0x45, 0xFE.toByte(), 0x08, 0xF2.toByte()), 0x08F2))
     }
 
     @Test

@@ -4,7 +4,7 @@
 
 - **アプリ名**: スマートグラス検出
 - **パッケージ名**: `jp.smartglasses.detector`
-- **minSdk**: 26 (Android 8.0) / **targetSdk**: 35 (Android 15) / **compileSdk**: 37
+- **minSdk**: 26 (Android 8.0) / **targetSdk**: 36 (Android 16) / **compileSdk**: 37
 - **目的**: BLE スキャンで近くのスマートグラスを検出し通知するアプリ
 
 ## アーキテクチャ

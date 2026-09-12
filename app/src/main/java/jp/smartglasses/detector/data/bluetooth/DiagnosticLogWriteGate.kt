@@ -8,6 +8,7 @@ internal class DiagnosticLogWriteGate(
 ) {
     private val lock = Any()
     private val lastWrites = mutableMapOf<String, Long>()
+    private var lastPruneAt = 0L
 
     fun shouldWrite(key: String): Boolean = synchronized(lock) {
         val now = clock()
@@ -24,11 +25,20 @@ internal class DiagnosticLogWriteGate(
 
     fun clear() = synchronized(lock) {
         lastWrites.clear()
+        lastPruneAt = 0L
     }
 
     private fun pruneExpiredEntries(now: Long) {
+        if (lastWrites.size < PRUNE_SIZE_THRESHOLD && now - lastPruneAt < cooldownMs) {
+            return
+        }
+        lastPruneAt = now
         lastWrites.entries.removeAll { (_, writtenAt) ->
             now - writtenAt >= cooldownMs
         }
+    }
+
+    private companion object {
+        const val PRUNE_SIZE_THRESHOLD = 64
     }
 }

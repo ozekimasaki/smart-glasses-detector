@@ -20,14 +20,15 @@ object DetectionHistoryGrouping {
             return emptyMap()
         }
 
-        val today = startOfDay(nowMs, timeZone)
-        val yesterday = startOfDay(nowMs - 24 * 60 * 60 * 1000L, timeZone)
+        val calendar = Calendar.getInstance(timeZone)
+        val today = startOfDay(calendar, nowMs)
+        val yesterday = startOfDay(calendar, nowMs - 24 * 60 * 60 * 1000L)
         val dateFormat = SimpleDateFormat("M月d日", locale).apply {
             this.timeZone = timeZone
         }
 
         return logs.groupBy { log ->
-            val logDay = startOfDay(log.detectedAt, timeZone)
+            val logDay = startOfDay(calendar, log.detectedAt)
             when (logDay) {
                 today -> TODAY_LABEL
                 yesterday -> YESTERDAY_LABEL
@@ -37,7 +38,10 @@ object DetectionHistoryGrouping {
     }
 
     internal fun startOfDay(timestamp: Long, timeZone: TimeZone): Long {
-        val calendar = Calendar.getInstance(timeZone)
+        return startOfDay(Calendar.getInstance(timeZone), timestamp)
+    }
+
+    private fun startOfDay(calendar: Calendar, timestamp: Long): Long {
         calendar.timeInMillis = timestamp
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)

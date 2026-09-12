@@ -28,16 +28,22 @@ class DetectionLogRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun observeLatestLogs(limit: Int): Flow<List<DetectionLog>> {
+        return dao.observeLatestLogs(limit).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun observeTodayCount(startOfDay: Long): Flow<Int> {
+        return dao.observeTodayCount(startOfDay)
+    }
+
     override suspend fun getLatestLogs(limit: Int): List<DetectionLog> {
         return dao.getLatestLogs(limit).map { it.toDomain() }
     }
     
     override suspend fun insertLog(log: DetectionLog) {
-        dao.insertLog(log.toEntity())
-        val overflow = dao.count() - Constants.DETECTION_LOG_KEEP_COUNT
-        if (overflow > 0) {
-            dao.deleteOldest(overflow)
-        }
+        dao.insertAndTrim(log.toEntity(), Constants.DETECTION_LOG_KEEP_COUNT)
     }
     
     override suspend fun deleteOldLogs(before: Long) {

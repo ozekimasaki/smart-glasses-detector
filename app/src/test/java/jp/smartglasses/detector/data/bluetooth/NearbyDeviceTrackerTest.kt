@@ -36,6 +36,18 @@ class NearbyDeviceTrackerTest {
     }
 
     @Test
+    fun `same rssi name updates still appear in the cached snapshot`() {
+        val tracker = NearbyDeviceTracker(ttlMs = 20_000L, clock = { 1_000L })
+
+        tracker.record(device(address = "AA:01", rssi = -50, name = "Old"))
+        val snapshot = tracker.record(device(address = "AA:01", rssi = -50, name = "Updated"))
+
+        assertEquals(1, snapshot.size)
+        assertEquals("Updated", snapshot.single().name)
+        assertEquals(-50, snapshot.single().rssi)
+    }
+
+    @Test
     fun `expired devices disappear from the snapshot`() {
         var now = 1_000L
         val tracker = NearbyDeviceTracker(ttlMs = 20_000L, clock = { now })

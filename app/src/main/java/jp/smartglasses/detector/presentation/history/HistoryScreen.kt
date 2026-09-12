@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,7 +32,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.DetectionHistoryGrouping
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
+import jp.smartglasses.detector.presentation.components.ClearStoredDataDialog
 import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
 
@@ -59,6 +63,7 @@ fun HistoryScreen(
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var confirmClearData by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
@@ -84,11 +89,27 @@ fun HistoryScreen(
         }
     }
 
+    if (confirmClearData) {
+        ClearStoredDataDialog(
+            onConfirm = {
+                confirmClearData = false
+                viewModel.clearStoredDetectionData()
+            },
+            onDismiss = { confirmClearData = false }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.history_title)) },
                 actions = {
+                    IconButton(onClick = { confirmClearData = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = stringResource(R.string.history_clear_data)
+                        )
+                    }
                     IconButton(onClick = viewModel::shareDiagnosticLogs) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.Send,
@@ -165,13 +186,16 @@ fun HistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     groupedLogs.forEach { (dateLabel, dateLogs) ->
-                        item {
+                        item(key = "header-$dateLabel") {
                             DateHeader(label = dateLabel)
                         }
-                        items(dateLogs) { log ->
+                        items(
+                            items = dateLogs,
+                            key = { log -> log.id }
+                        ) { log ->
                             LogItem(log = log)
                         }
-                        item {
+                        item(key = "spacer-$dateLabel") {
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }

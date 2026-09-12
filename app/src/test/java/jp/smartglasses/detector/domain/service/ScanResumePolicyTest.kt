@@ -297,6 +297,28 @@ class ScanResumePolicyTest {
     }
 
     @Test
+    fun `keeps the foreground service during an environment pause while scanning should continue`() {
+        assertTrue(
+            ScanResumePolicy.shouldKeepForegroundServiceDuringEnvironmentPause(
+                backgroundEnabled = true,
+                appInForeground = false
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldKeepForegroundServiceDuringEnvironmentPause(
+                backgroundEnabled = false,
+                appInForeground = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldKeepForegroundServiceDuringEnvironmentPause(
+                backgroundEnabled = false,
+                appInForeground = false
+            )
+        )
+    }
+
+    @Test
     fun `duplicate start intent refreshes hardware while the service is already active`() {
         assertTrue(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = true))
         assertFalse(ScanResumePolicy.shouldRefreshHardwareOnDuplicateStart(scanAlreadyActive = false))

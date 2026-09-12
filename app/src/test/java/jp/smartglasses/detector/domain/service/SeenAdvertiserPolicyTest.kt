@@ -163,4 +163,61 @@ class SeenAdvertiserPolicyTest {
         )
         assertEquals(1_000L, fresh.lastSeenAtMs)
     }
+
+    @Test
+    fun `later empty advertisements keep an earlier manufacturer payload`() {
+        val payloadHex = "0201060FFF8E0554455354"
+        val merged = SeenAdvertiserPolicy.merge(
+            existing = SeenAdvertiserPolicy.merge(
+                existing = null,
+                rssi = -105,
+                companyIds = setOf(0x058E),
+                advertisementDataHex = payloadHex
+            ),
+            rssi = -55,
+            advertisementDataHex = ""
+        )
+
+        assertEquals(-55, merged.rssi)
+        assertEquals(payloadHex, merged.advertisementDataHex)
+        assertEquals(setOf(0x058E), merged.companyIds)
+    }
+
+    @Test
+    fun `shorter duplicate hex does not erase a longer advertisement`() {
+        val merged = SeenAdvertiserPolicy.mergeAdvertisementHex(
+            existing = "0201060FFF8E05META",
+            incoming = "020106"
+        )
+
+        assertEquals("0201060FFF8E05META", merged)
+    }
+
+    @Test
+    fun `shorter duplicate bytes do not erase a longer advertisement`() {
+        val merged = SeenAdvertiserPolicy.mergeAdvertisementBytes(
+            existing = byteArrayOf(0x02, 0x01, 0x06, 0x03, 0x09, 0x41),
+            incoming = byteArrayOf(0x02, 0x01, 0x06)
+        )
+
+        assertTrue(byteArrayOf(0x02, 0x01, 0x06, 0x03, 0x09, 0x41).contentEquals(merged))
+    }
+
+    @Test
+    fun `later empty advertisement bytes keep an earlier payload`() {
+        val payload = byteArrayOf(0x02, 0x01, 0x06, 0x05, 0xFF.toByte(), 0xAB.toByte(), 0x01, 0x00, 0x00)
+        val merged = SeenAdvertiserPolicy.merge(
+            existing = SeenAdvertiserPolicy.merge(
+                existing = null,
+                rssi = -105,
+                companyIds = setOf(0x01AB),
+                advertisementBytes = payload
+            ),
+            rssi = -55,
+            advertisementBytes = byteArrayOf()
+        )
+
+        assertTrue(payload.contentEquals(merged.advertisementBytes))
+        assertEquals(-55, merged.rssi)
+    }
 }

@@ -14,6 +14,7 @@ interface BluetoothRepository {
 
     suspend fun startScanning()
     fun ensureHardwareScanning()
+    fun pauseHardwareKeepingSession()
     suspend fun stopScanning()
     fun updateScanSensitivity(sensitivity: ScanSensitivity)
     fun hasPermissions(): Boolean

@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -18,6 +20,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
@@ -29,13 +33,13 @@ import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.model.deduplicationKey
-import jp.smartglasses.detector.domain.model.hasPayload
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
+import jp.smartglasses.detector.domain.service.ConnectedDevicePolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
 import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
@@ -71,9 +75,9 @@ class SmartGlassesDetector @Inject constructor(
     private val diagnosticLogRepository: DiagnosticLogRepository,
     private val scanEnvironmentSignals: ScanEnvironmentSignals
 ) {
-    private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.BUFFERED)
+    private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.UNLIMITED)
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
-    private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.BUFFERED)
+    private val _scanFailures = Channel<BluetoothScanFailure>(capacity = Channel.UNLIMITED)
     val scanFailures: Flow<BluetoothScanFailure> = _scanFailures.receiveAsFlow()
 
     private val _isScanning = MutableStateFlow(false)
@@ -106,11 +110,31 @@ class SmartGlassesDetector @Inject constructor(
     private var retryJob: Job? = null
     private var classicDiscoveryJob: Job? = null
     private var classicDiscoveryRetryJob: Job? = null
+    private var connectedDeviceJob: Job? = null
+    private val connectedProfileLock = Any()
+    private val connectedProfileProxies = HashMap<Int, BluetoothProfile>()
+    private val requestedConnectedProfiles = HashSet<Int>()
     private val diagnosticPersistenceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
             Log.e(TAG, "Failed to persist diagnostic log", throwable)
         }
     )
+    private val scanCallbackThread = HandlerThread("ble-scan-callback").apply { start() }
+    private val scanCallbackHandler = Handler(scanCallbackThread.looper)
+    private val connectedProfileListener = object : BluetoothProfile.ServiceListener {
+        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+            synchronized(connectedProfileLock) {
+                connectedProfileProxies[profile] = proxy
+            }
+        }
+
+        override fun onServiceDisconnected(profile: Int) {
+            synchronized(connectedProfileLock) {
+                connectedProfileProxies.remove(profile)
+                requestedConnectedProfiles.remove(profile)
+            }
+        }
+    }
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -118,25 +142,38 @@ class SmartGlassesDetector @Inject constructor(
             val bluetoothDevice = intent.extractBluetoothDevice() ?: return
             val address = resolveDeviceAddress(bluetoothDevice)
             val scanningRequested = userRequestedScanning.get()
+            val extraRssi = intent.getShortExtra(
+                BluetoothDevice.EXTRA_RSSI,
+                Constants.UNKNOWN_RSSI_DBM.toShort()
+            ).toInt()
+            val extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
+            val deviceClass = intent.extractBluetoothClass()?.deviceClass
+                ?: resolveDeviceClass(bluetoothDevice)
             if (action == BluetoothDevice.ACTION_FOUND && scanningRequested) {
                 rememberSeenAdvertiser(
                     address = address,
-                    rssi = intent.getShortExtra(
-                        BluetoothDevice.EXTRA_RSSI,
-                        Constants.UNKNOWN_RSSI_DBM.toShort()
-                    ).toInt()
+                    rssi = extraRssi
                 )
             }
             if (
                 !ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                     action = action,
                     scanningRequested = scanningRequested,
-                    alreadySeenAddress = wasSeenInClassicInquiry(address)
+                    alreadySeenAddress = wasSeenInClassicInquiry(address),
+                    deviceClass = deviceClass
                 )
             ) {
                 return
             }
-            handleClassicDiscoveryResult(intent)
+            val signal = extractClassicSignal(
+                bluetoothDevice = bluetoothDevice,
+                extraName = extraName,
+                extraRssi = extraRssi,
+                deviceClass = deviceClass
+            )
+            scanCallbackHandler.post {
+                handleDetectionSignal(signal, action = action)
+            }
         }
     }
 
@@ -186,57 +223,72 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            handleDetectionSignal(extractSignal(result))
+            val signal = extractSignal(result)
+            scanCallbackHandler.post {
+                handleDetectionSignal(signal)
+            }
         }
-        
+
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
+            val signals = ArrayList<DetectionSignal>(results.size)
             results.forEach { result ->
-                onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result)
+                signals += extractSignal(result)
+            }
+            scanCallbackHandler.post {
+                signals.forEach { signal ->
+                    handleDetectionSignal(signal)
+                }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
-            if (ScanFailurePolicy.shouldIgnore(errorCode)) {
-                return
+            scanCallbackHandler.post {
+                handleScanFailed(errorCode)
             }
-
-            _hardwareScanRunning.value = false
-
-            if (
-                ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
-                userRequestedScanning.get()
-            ) {
-                when (
-                    BleScanCompatibilityPolicy.nextStep(
-                        usingMatchAllFilter = usingMatchAllFilter,
-                        usingExtendedAdvertising = usingExtendedAdvertising
-                    )
-                ) {
-                    BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
-                        Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
-                        rejectMatchAllFilter()
-                        startLeAndClassicScanning()
-                        return
-                    }
-                    BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
-                        Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
-                        usingExtendedAdvertising = false
-                        startLeAndClassicScanning()
-                        return
-                    }
-                    BleScanCompatibilityStep.NONE -> Unit
-                }
-            }
-
-            if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
-                Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
-                scheduleScanRetry()
-                return
-            }
-
-            _isScanning.value = false
-            _scanFailures.trySend(BluetoothScanFailure(errorCode))
         }
+    }
+
+    private fun handleScanFailed(errorCode: Int) {
+        if (ScanFailurePolicy.shouldIgnore(errorCode)) {
+            return
+        }
+
+        _hardwareScanRunning.value = false
+
+        if (
+            ScanFailurePolicy.shouldTryCompatibilityFallback(errorCode) &&
+            userRequestedScanning.get()
+        ) {
+            when (
+                BleScanCompatibilityPolicy.nextStep(
+                    usingMatchAllFilter = usingMatchAllFilter,
+                    usingExtendedAdvertising = usingExtendedAdvertising
+                )
+            ) {
+                BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
+                    Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
+                    rejectMatchAllFilter()
+                    startLeAndClassicScanning()
+                    return
+                }
+                BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
+                    Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
+                    usingExtendedAdvertising = false
+                    startLeAndClassicScanning()
+                    return
+                }
+                BleScanCompatibilityStep.NONE -> Unit
+            }
+        }
+
+        if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
+            Log.w(TAG, "Recoverable BLE scan failure $errorCode, retrying")
+            scheduleScanRetry()
+            return
+        }
+
+        _isScanning.value = false
+        _scanFailures.trySend(BluetoothScanFailure(errorCode))
     }
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
@@ -245,7 +297,8 @@ class SmartGlassesDetector @Inject constructor(
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
-        val parsedAdvertisement = parseAdvertisement(scanRecord)
+        val advertisementBytes = scanRecord?.bytes?.copyOf() ?: byteArrayOf()
+        val parsedAdvertisement = parseAdvertisement(scanRecord, advertisementBytes)
         return DetectionSignal(
             deviceName = BluetoothAdvertisedNamePolicy.resolve(
                 parsedAdvertisement.completeName,
@@ -257,27 +310,35 @@ class SmartGlassesDetector @Inject constructor(
             address = resolveDeviceAddress(result),
             companyIds = (scanRecord?.let(::extractCompanyIds).orEmpty()) + parsedAdvertisement.companyIds,
             rssi = result.rssi,
-            serviceUuids = BleUuid.merge(
-                scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
-                scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
-                parsedAdvertisement.serviceUuids
+            serviceUuids = ArrayList(
+                BleUuid.merge(
+                    scanRecord?.serviceUuids?.map { uuid -> uuid.toString() }.orEmpty(),
+                    scanRecord?.serviceData?.keys?.map { uuid -> uuid.toString() }.orEmpty(),
+                    parsedAdvertisement.serviceUuids
+                )
             ),
-            advertisementDataHex = scanRecord?.bytes?.toHexString().orEmpty(),
-            extraPayloadHex = scanRecord?.let(::extractManufacturerPayloadHex).orEmpty(),
+            advertisementBytes = advertisementBytes,
+            extraPayloadBytes = scanRecord?.let(::extractManufacturerPayloadBytes) ?: byteArrayOf(),
+            parsedAdvertisement = parsedAdvertisement,
             appearance = parsedAdvertisement.appearance,
             deviceClass = resolveDeviceClass(result.device)
         )
     }
 
-    private fun parseAdvertisement(scanRecord: ScanRecord?): ParsedAdvertisement {
-        val fromBytes = AdvertisementParser.parse(scanRecord?.bytes)
+    private fun parseAdvertisement(
+        scanRecord: ScanRecord?,
+        advertisementBytes: ByteArray
+    ): ParsedAdvertisement {
+        val fromBytes = AdvertisementParser.parse(advertisementBytes)
         if (scanRecord == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return fromBytes
         }
 
-        return fromBytes.merge(
-            AdvertisementParser.parseAdvertisingDataMap(scanRecord.advertisingDataMap)
-        )
+        val snapshot = HashMap<Int, ByteArray>(scanRecord.advertisingDataMap.size)
+        for ((type, data) in scanRecord.advertisingDataMap) {
+            snapshot[type] = data.copyOf()
+        }
+        return fromBytes.merge(AdvertisementParser.parseAdvertisingDataMap(snapshot))
     }
 
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
@@ -289,22 +350,30 @@ class SmartGlassesDetector @Inject constructor(
         return companyIds
     }
 
-    private fun extractManufacturerPayloadHex(scanRecord: ScanRecord): String {
+    private fun extractManufacturerPayloadBytes(scanRecord: ScanRecord): ByteArray {
         val manufacturerSpecificData = scanRecord.manufacturerSpecificData
         if (manufacturerSpecificData.size == 0) {
-            return ""
+            return byteArrayOf()
         }
 
-        return buildString {
-            for (index in 0 until manufacturerSpecificData.size) {
-                append(
-                    AdvertisementParser.encodeManufacturerSpecificTlv(
-                        companyId = manufacturerSpecificData.keyAt(index),
-                        payload = manufacturerSpecificData.valueAt(index) ?: byteArrayOf()
-                    )
-                )
-            }
+        var totalSize = 0
+        val parts = ArrayList<ByteArray>(manufacturerSpecificData.size)
+        for (index in 0 until manufacturerSpecificData.size) {
+            val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(
+                companyId = manufacturerSpecificData.keyAt(index),
+                payload = (manufacturerSpecificData.valueAt(index) ?: byteArrayOf()).copyOf()
+            )
+            parts += encoded
+            totalSize += encoded.size
         }
+
+        val merged = ByteArray(totalSize)
+        var offset = 0
+        for (part in parts) {
+            System.arraycopy(part, 0, merged, offset, part.size)
+            offset += part.size
+        }
+        return merged
     }
 
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {
@@ -336,7 +405,11 @@ class SmartGlassesDetector @Inject constructor(
         serviceUuids: List<String> = emptyList(),
         appearance: Int? = null,
         deviceClass: Int? = null,
-        deviceName: String? = null
+        deviceName: String? = null,
+        advertisementDataHex: String = "",
+        extraPayloadHex: String = "",
+        advertisementBytes: ByteArray = byteArrayOf(),
+        extraPayloadBytes: ByteArray = byteArrayOf()
     ) {
         if (!ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(address)) {
             return
@@ -353,6 +426,10 @@ class SmartGlassesDetector @Inject constructor(
             appearance = appearance,
             deviceClass = deviceClass,
             deviceName = deviceName,
+            advertisementDataHex = advertisementDataHex,
+            extraPayloadHex = extraPayloadHex,
+            advertisementBytes = advertisementBytes,
+            extraPayloadBytes = extraPayloadBytes,
             nowMs = System.currentTimeMillis()
         )
     }
@@ -365,29 +442,42 @@ class SmartGlassesDetector @Inject constructor(
             serviceUuids = signal.serviceUuids,
             appearance = signal.appearance,
             deviceClass = signal.deviceClass,
-            deviceName = signal.deviceName
+            deviceName = signal.deviceName,
+            advertisementDataHex = signal.advertisementDataHex,
+            extraPayloadHex = signal.extraPayloadHex,
+            advertisementBytes = signal.advertisementBytes,
+            extraPayloadBytes = signal.extraPayloadBytes
         )
     }
 
     private fun enrichWithSeenAdvertiser(signal: DetectionSignal): DetectionSignal {
         rememberSeenAdvertiser(signal)
         val snapshot = seenAdvertisers[signal.address] ?: return signal
+        val mergedBytes = snapshot.advertisementBytes
+        val parsedAdvertisement = if (mergedBytes.isNotEmpty()) {
+            AdvertisementParser.parse(mergedBytes)
+        } else {
+            signal.parsedAdvertisement
+        }
         return signal.copy(
             deviceName = snapshot.deviceName,
             companyIds = snapshot.companyIds,
             serviceUuids = snapshot.serviceUuids,
             appearance = snapshot.appearance,
             deviceClass = snapshot.deviceClass,
-            rssi = snapshot.rssi
+            rssi = snapshot.rssi,
+            advertisementDataHex = snapshot.advertisementDataHex,
+            extraPayloadHex = snapshot.extraPayloadHex,
+            advertisementBytes = mergedBytes,
+            extraPayloadBytes = snapshot.extraPayloadBytes,
+            parsedAdvertisement = parsedAdvertisement
         )
     }
 
     private fun handleDetectionSignal(signal: DetectionSignal, action: String? = null) {
         val enriched = enrichWithSeenAdvertiser(signal)
-        val processed = scanSignalProcessor.process(enriched, lastSensitivity)
-        persistDiagnosticLog(processed.diagnosticLog)
-
-        val detectedDevice = processed.detectedDevice
+        persistDiagnosticLog(enriched)
+        val detectedDevice = scanSignalProcessor.detectDevice(enriched, lastSensitivity)
         if (detectedDevice != null) {
             rememberNearbyDevice(detectedDevice)
             if (shouldEmitDetection(detectedDevice)) {
@@ -417,29 +507,27 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun handleClassicDiscoveryResult(intent: Intent) {
-        val bluetoothDevice = intent.extractBluetoothDevice() ?: return
+    private fun extractClassicSignal(
+        bluetoothDevice: BluetoothDevice,
+        extraName: String?,
+        extraRssi: Int,
+        deviceClass: Int?
+    ): DetectionSignal {
         val address = resolveDeviceAddress(bluetoothDevice)
-        val extraRssi = intent.getShortExtra(
-            BluetoothDevice.EXTRA_RSSI,
-            Constants.UNKNOWN_RSSI_DBM.toShort()
-        ).toInt()
         if (extraRssi != Constants.UNKNOWN_RSSI_DBM && address.isNotBlank()) {
             classicInquiryRssi[address] = extraRssi
         }
-        val baseSignal = ClassicDiscoverySignal(
+        return ClassicDiscoverySignal(
             deviceName = resolveCachedDeviceName(bluetoothDevice),
-            extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
+            extraName = extraName,
             alias = resolveDeviceAlias(bluetoothDevice),
             address = address,
             rssi = ClassicDiscoveryPolicy.resolveRssi(
                 extraRssi = extraRssi,
                 previouslySeenRssi = classicInquiryRssi[address]
             ),
-            deviceClass = intent.extractBluetoothClass()?.deviceClass
-                ?: resolveDeviceClass(bluetoothDevice)
+            deviceClass = deviceClass
         ).toDetectionSignal()
-        handleDetectionSignal(baseSignal, action = intent.action)
     }
 
     @SuppressLint("MissingPermission")
@@ -654,12 +742,6 @@ class SmartGlassesDetector @Inject constructor(
             throw IllegalStateException("Bluetooth adapter is unavailable.")
         }
 
-        if (!hasRequiredScanPermission()) {
-            _isScanning.value = false
-            _hardwareScanRunning.value = false
-            throw SecurityException("Bluetooth scan permission is missing.")
-        }
-
         lastSensitivity = sensitivity
         val alreadyRequested = userRequestedScanning.getAndSet(true)
         if (ScanResumePolicy.shouldResetScanSession(alreadyRequested)) {
@@ -675,21 +757,30 @@ class SmartGlassesDetector @Inject constructor(
             diagnosticWriteGate.clear()
             _nearbyDevices.value = emptyList()
         }
-        _isScanning.value = HardwareScanStatePolicy.isActive(
-            userRequestedScanning = true,
-            bluetoothEnabled = bluetoothAdapter.isEnabled,
-            scanPermissionGranted = true,
-            locationServicesSatisfied = isLocationServicesSatisfied()
-        )
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
         ensureLocationModeReceiverRegistered()
         ensureScanPermissionWatch()
         startScanWatchdog()
         startNearbyPrune()
+        ensureConnectedDeviceWatch()
 
-        if (!bluetoothAdapter.isEnabled || !isLocationServicesSatisfied()) {
-            _hardwareScanRunning.value = false
+        val permissionGranted = hasRequiredScanPermission()
+        val bluetoothEnabled = bluetoothAdapter.isEnabled
+        val locationServicesSatisfied = isLocationServicesSatisfied()
+        _isScanning.value = HardwareScanStatePolicy.isActive(
+            userRequestedScanning = true,
+            bluetoothEnabled = bluetoothEnabled,
+            scanPermissionGranted = permissionGranted,
+            locationServicesSatisfied = locationServicesSatisfied
+        )
+
+        if (!permissionGranted || !bluetoothEnabled || !locationServicesSatisfied) {
+            pauseHardwareScan(
+                bluetoothEnabled = bluetoothEnabled,
+                locationServicesSatisfied = locationServicesSatisfied,
+                scanPermissionGranted = permissionGranted
+            )
             return
         }
 
@@ -708,6 +799,13 @@ class SmartGlassesDetector @Inject constructor(
         retryJob = null
         refreshBleScan()
         refreshClassicDiscoveryIfNeeded()
+    }
+
+    fun pauseHardwareKeepingSession() {
+        if (!userRequestedScanning.get()) {
+            return
+        }
+        pauseHardwareScan()
     }
 
     fun updateSensitivity(sensitivity: ScanSensitivity) {
@@ -729,11 +827,14 @@ class SmartGlassesDetector @Inject constructor(
         nearbyPruneJob?.cancel()
         classicDiscoveryJob?.cancel()
         classicDiscoveryRetryJob?.cancel()
+        connectedDeviceJob?.cancel()
         retryJob = null
         scanWatchdogJob = null
         nearbyPruneJob = null
         classicDiscoveryJob = null
         classicDiscoveryRetryJob = null
+        connectedDeviceJob = null
+        closeConnectedProfileProxies()
         pauseHardwareScan()
         unregisterClassicDiscoveryReceiver()
         unregisterBluetoothStateReceiver()
@@ -971,6 +1072,133 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
+    private fun ensureConnectedDeviceWatch() {
+        requestConnectedProfileProxies()
+        if (connectedDeviceJob?.isActive == true) {
+            return
+        }
+        connectedDeviceJob = diagnosticPersistenceScope.launch {
+            while (isActive) {
+                pollConnectedDevices()
+                delay(ConnectedDevicePolicy.POLL_INTERVAL_MS)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestConnectedProfileProxies() {
+        val adapter = bluetoothAdapter ?: return
+        if (!hasBluetoothConnectPermission()) {
+            return
+        }
+        for (profile in ConnectedDevicePolicy.proxyProfiles(Build.VERSION.SDK_INT)) {
+            val alreadyRequested = synchronized(connectedProfileLock) {
+                !requestedConnectedProfiles.add(profile)
+            }
+            if (alreadyRequested) {
+                continue
+            }
+            try {
+                if (!adapter.getProfileProxy(context, connectedProfileListener, profile)) {
+                    synchronized(connectedProfileLock) {
+                        requestedConnectedProfiles.remove(profile)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to request Bluetooth profile $profile", e)
+                synchronized(connectedProfileLock) {
+                    requestedConnectedProfiles.remove(profile)
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun pollConnectedDevices() {
+        if (
+            !ConnectedDevicePolicy.shouldPoll(
+                scanningRequested = userRequestedScanning.get(),
+                bluetoothEnabled = bluetoothAdapter?.isEnabled == true,
+                connectPermissionGranted = hasBluetoothConnectPermission()
+            )
+        ) {
+            return
+        }
+
+        requestConnectedProfileProxies()
+        val devices = LinkedHashMap<String, BluetoothDevice>()
+        val proxies = synchronized(connectedProfileLock) {
+            ArrayList(connectedProfileProxies.values)
+        }
+        proxies.forEach { proxy ->
+            try {
+                rememberConnectedDevices(devices, proxy.connectedDevices)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to read connected Bluetooth profile devices", e)
+            }
+        }
+        val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
+        if (bluetoothManager != null) {
+            for (profile in ConnectedDevicePolicy.managerProfiles()) {
+                try {
+                    rememberConnectedDevices(devices, bluetoothManager.getConnectedDevices(profile))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to read connected GATT devices for profile $profile", e)
+                }
+            }
+        }
+        if (devices.isEmpty()) {
+            return
+        }
+
+        val signals = devices.values.map { device ->
+            extractClassicSignal(
+                bluetoothDevice = device,
+                extraName = null,
+                extraRssi = Constants.UNKNOWN_RSSI_DBM,
+                deviceClass = resolveDeviceClass(device)
+            )
+        }
+        scanCallbackHandler.post {
+            signals.forEach { signal ->
+                handleDetectionSignal(signal)
+            }
+        }
+    }
+
+    private fun rememberConnectedDevices(
+        devices: MutableMap<String, BluetoothDevice>,
+        connected: List<BluetoothDevice>?
+    ) {
+        connected.orEmpty().forEach { device ->
+            val address = resolveDeviceAddress(device)
+            if (ConnectedDevicePolicy.shouldKeepAddress(address)) {
+                devices[address] = device
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun closeConnectedProfileProxies() {
+        val adapter = bluetoothAdapter
+        val proxies = synchronized(connectedProfileLock) {
+            val snapshot = ArrayList(connectedProfileProxies.entries)
+            connectedProfileProxies.clear()
+            requestedConnectedProfiles.clear()
+            snapshot
+        }
+        if (adapter == null) {
+            return
+        }
+        proxies.forEach { (profile, proxy) ->
+            try {
+                adapter.closeProfileProxy(profile, proxy)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to close Bluetooth profile $profile", e)
+            }
+        }
+    }
+
     private fun pruneSeenAdvertisers(nowMs: Long = System.currentTimeMillis()) {
         SeenAdvertiserPolicy.expiredAddresses(
             snapshots = seenAdvertisers,
@@ -1082,13 +1310,16 @@ class SmartGlassesDetector @Inject constructor(
         return bluetoothAdapter?.isEnabled == true
     }
 
-    private fun persistDiagnosticLog(log: DiagnosticLog) {
-        if (!log.hasPayload() || !diagnosticWriteGate.shouldWrite(log.deduplicationKey())) {
+    private fun persistDiagnosticLog(signal: DetectionSignal) {
+        if (!signal.hasDiagnosticPayload()) {
+            return
+        }
+        if (!diagnosticWriteGate.shouldWrite(signal.diagnosticDeduplicationKey())) {
             return
         }
 
         diagnosticPersistenceScope.launch {
-            diagnosticLogRepository.insertLog(log)
+            diagnosticLogRepository.insertLog(signal.toDiagnosticLog())
         }
     }
 
@@ -1140,17 +1371,8 @@ class SmartGlassesDetector @Inject constructor(
     }
 }
 
-private fun ByteArray.toHexString(): String {
-    val builder = StringBuilder(size * 2)
-    forEach { byte ->
-        builder.append(byte.toInt().and(0xFF).toString(16).uppercase().padStart(2, '0'))
-    }
-    return builder.toString()
-}
-
 internal data class ProcessedScanSignal(
-    val detectedDevice: SmartGlassesDevice?,
-    val diagnosticLog: DiagnosticLog
+    val detectedDevice: SmartGlassesDevice?
 )
 
 internal class ScanSignalProcessor(
@@ -1161,8 +1383,7 @@ internal class ScanSignalProcessor(
         sensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     ): ProcessedScanSignal {
         return ProcessedScanSignal(
-            detectedDevice = classifier.classify(signal, sensitivity),
-            diagnosticLog = signal.toDiagnosticLog()
+            detectedDevice = classifier.classify(signal, sensitivity)
         )
     }
 
@@ -1180,7 +1401,17 @@ internal fun DetectionSignal.hasDiagnosticPayload(): Boolean {
         companyIds.isNotEmpty() ||
         serviceUuids.isNotEmpty() ||
         advertisementDataHex.isNotBlank() ||
-        extraPayloadHex.isNotBlank()
+        extraPayloadHex.isNotBlank() ||
+        advertisementBytes.isNotEmpty() ||
+        extraPayloadBytes.isNotEmpty()
+}
+
+internal fun DetectionSignal.diagnosticDeduplicationKey(): String {
+    val normalizedAddress = address.trim().uppercase()
+    if (normalizedAddress.isNotEmpty()) {
+        return "address:$normalizedAddress"
+    }
+    return toDiagnosticLog().deduplicationKey()
 }
 
 internal fun DetectionSignal.toDiagnosticLog(

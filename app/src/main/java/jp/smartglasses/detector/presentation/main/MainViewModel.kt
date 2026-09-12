@@ -63,34 +63,27 @@ class MainViewModel @Inject constructor(
         settingsRepository.isScanning,
         bluetoothRepository.isScanning,
         ScanUiStatePolicy::isScanning
-    ).stateIn(viewModelScope, SharingStarted.Lazily, false)
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), false)
 
     val uiState = isScanning
         .map { scanning -> if (scanning) MainUiState.Scanning else MainUiState.Idle }
-        .stateIn(viewModelScope, SharingStarted.Lazily, MainUiState.Idle)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), MainUiState.Idle)
 
-    val todayCount = detectionLogRepository.getAllLogs()
-        .map { logs ->
-            val startOfDay = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
-            logs.count { log -> log.detectedAt >= startOfDay }
+    val todayCount = startOfDayMillis()
+        .flatMapLatest { startOfDay ->
+            detectionLogRepository.observeTodayCount(startOfDay)
         }
-        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), 0)
 
-    val recentDetections = detectionLogRepository.getAllLogs()
-        .map { logs -> logs.take(5) }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val recentDetections = detectionLogRepository.observeLatestLogs(RECENT_DETECTION_LIMIT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), emptyList())
 
     val nearbyDevices = bluetoothRepository.nearbyDevices
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), emptyList())
 
     val backgroundScanningEnabled = settingsRepository.backgroundEnabled
         .map { BackgroundScanSupport.isEnabled(it) }
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), false)
 
     private val scanBlockerRefresh = MutableStateFlow(0)
     val restorePrompt = combine(
@@ -116,7 +109,7 @@ class MainViewModel @Inject constructor(
                 emit(prompt)
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, ScanRestorePrompt.None)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBED_TIMEOUT_MS), ScanRestorePrompt.None)
 
     private var notificationPrompted = false
 
@@ -233,5 +226,27 @@ class MainViewModel @Inject constructor(
                 _event.send(MainEvent.ShowMessage(R.string.error_scan_stop))
             }
         }
+    }
+
+    private fun startOfDayMillis() = flow {
+        while (true) {
+            emit(currentStartOfDayMillis())
+            delay(START_OF_DAY_REFRESH_MS)
+        }
+    }
+
+    private fun currentStartOfDayMillis(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
+    companion object {
+        private const val RECENT_DETECTION_LIMIT = 5
+        private const val SUBSCRIBED_TIMEOUT_MS = 5_000L
+        private const val START_OF_DAY_REFRESH_MS = 60_000L
     }
 }

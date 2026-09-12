@@ -152,7 +152,36 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "豆包AI眼镜" } &&
                 catalog.nameDevices.any { device -> device.name == "Everysight Maverick" } &&
                 catalog.nameDevices.any { device -> device.name == "OpenGlass" } &&
-                catalog.nameDevices.any { device -> device.name == "XRAI Glass" }
+                catalog.nameDevices.any { device -> device.name == "XRAI Glass" } &&
+                catalog.nameDevices.any { device -> device.name == "HEY2_A1B2" } &&
+                catalog.nameDevices.any { device -> device.name == "AirScouter WD-200B" } &&
+                catalog.nameDevices.any { device -> device.name == "RETISSA ON" } &&
+                catalog.nameDevices.any { device -> device.name == "字幕眼镜-01" } &&
+                catalog.nameDevices.any { device -> device.name == "OnePlus Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "Memo Air Display" } &&
+                catalog.nameDevices.any { device -> device.name == ".lumen-A1B2" } &&
+                catalog.nameDevices.any { device -> device.name == "Nitrous Shift" } &&
+                catalog.nameDevices.any { device -> device.name == "Rokid Style" } &&
+                catalog.nameDevices.any { device -> device.name == "Lunettes intelligentes-01" } &&
+                catalog.nameDevices.any { device -> device.name == "AceSight VR" } &&
+                catalog.nameDevices.any { device -> device.name == "SightPlus" } &&
+                catalog.nameDevices.any { device -> device.name == "Recon Jet" } &&
+                catalog.nameDevices.any { device -> device.name == "Golden-i 5" } &&
+                catalog.nameDevices.any { device -> device.name == "Loomos AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "InfoLinker3" } &&
+                catalog.nameDevices.any { device -> device.name == "Oxsight Crystal" } &&
+                catalog.nameDevices.any { device -> device.name == "IMG301" } &&
+                catalog.nameDevices.any { device -> device.name == "Intelligent Eyewear" } &&
+                catalog.nameDevices.any { device -> device.name == "Datenbrille-01" } &&
+                catalog.nameDevices.any { device -> device.name == "AirVision M1" } &&
+                catalog.nameDevices.any { device -> device.name == "BleeqUp Ranger" } &&
+                catalog.nameDevices.any { device -> device.name == "Anko Camera Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "Amazfit Helio Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "JBL Soundgear Frames" } &&
+                catalog.nameDevices.any { device -> device.name == "Shokz AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "VIZO Z1" } &&
+                catalog.nameDevices.any { device -> device.name == "Infinix AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "GetD Glass" }
         )
 
         catalog.nameDevices.forEach { device ->
@@ -271,7 +300,11 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nonGlassesNames.contains("Even Realities R1") &&
                 catalog.nonGlassesNames.contains("Frame TV") &&
                 catalog.nonGlassesNames.contains("雷鸟TV") &&
-                catalog.nonGlassesNames.contains("华为手表")
+                catalog.nonGlassesNames.contains("华为手表") &&
+                catalog.nonGlassesNames.contains("Galaxy XR-01") &&
+                catalog.nonGlassesNames.contains("ThinkReality VRX") &&
+                catalog.nonGlassesNames.contains("Amazfit GTR 4") &&
+                catalog.nonGlassesNames.contains("Shokz OpenRun")
         )
 
         catalog.nonGlassesNames.forEach { name ->
