@@ -55,6 +55,10 @@ object ScanResumePolicy {
             !hardwareScanning
     }
 
+    fun shouldResetScanSession(alreadyRequested: Boolean): Boolean {
+        return !alreadyRequested
+    }
+
     fun shouldRestartAfterRecreation(
         persistedIntent: Boolean,
         backgroundEnabled: Boolean,

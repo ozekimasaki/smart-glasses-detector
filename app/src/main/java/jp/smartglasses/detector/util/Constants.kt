@@ -27,7 +27,8 @@ object Constants {
     internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
     internal const val CLASSIC_DISCOVERY_DELAY_MS = 15_000L
     internal const val CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
-    internal const val NEARBY_DEVICE_TTL_MS = 20_000L
+    // Classic inquiry は前面でも 2 分間隔のため、最後の信号から次の inquiry まで近くに残す
+    internal const val NEARBY_DEVICE_TTL_MS = CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS
     internal const val NEARBY_DEVICE_PRUNE_INTERVAL_MS = 5_000L
     internal const val DIAGNOSTIC_LOG_KEEP_COUNT = 500
     internal const val DIAGNOSTIC_LOG_WRITE_COOLDOWN_MS = 30_000L

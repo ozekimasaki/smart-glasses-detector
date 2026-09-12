@@ -295,4 +295,10 @@ class ScanResumePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `already requested scanning does not reset the scan session`() {
+        assertFalse(ScanResumePolicy.shouldResetScanSession(alreadyRequested = true))
+        assertTrue(ScanResumePolicy.shouldResetScanSession(alreadyRequested = false))
+    }
 }

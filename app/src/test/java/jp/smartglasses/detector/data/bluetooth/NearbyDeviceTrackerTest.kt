@@ -3,6 +3,7 @@ package jp.smartglasses.detector.data.bluetooth
 import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.Manufacturer
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.util.Constants
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,6 +64,22 @@ class NearbyDeviceTrackerTest {
 
         assertTrue(tracker.clear().isEmpty())
         assertTrue(tracker.snapshot().isEmpty())
+    }
+
+    @Test
+    fun `forget removes a nearby device by address`() {
+        val tracker = NearbyDeviceTracker(ttlMs = 20_000L, clock = { 1_000L })
+        tracker.record(device(address = "AA:01", rssi = -50, name = "Meta CID"))
+        tracker.record(device(address = "AA:02", rssi = -40, name = "Keep"))
+
+        val snapshot = tracker.forget("aa:01")
+
+        assertEquals(listOf("Keep"), snapshot.map { device -> device.name })
+    }
+
+    @Test
+    fun `nearby ttl covers a foreground classic inquiry interval`() {
+        assertTrue(Constants.NEARBY_DEVICE_TTL_MS >= Constants.CLASSIC_DISCOVERY_REFRESH_INTERVAL_MS)
     }
 
     private fun device(

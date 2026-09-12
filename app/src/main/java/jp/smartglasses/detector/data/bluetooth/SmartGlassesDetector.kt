@@ -39,6 +39,9 @@ import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
 import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
+import jp.smartglasses.detector.domain.service.ScanResumePolicy
+import jp.smartglasses.detector.domain.service.SeenAdvertiserPolicy
+import jp.smartglasses.detector.domain.service.SeenAdvertiserSnapshot
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -81,6 +84,7 @@ class SmartGlassesDetector @Inject constructor(
     private val nearbyDeviceTracker = NearbyDeviceTracker()
     private val classicInquiryAddresses = ConcurrentHashMap.newKeySet<String>()
     private val classicInquiryRssi = ConcurrentHashMap<String, Int>()
+    private val seenAdvertisers = ConcurrentHashMap<String, SeenAdvertiserSnapshot>()
     private val scanSignalProcessor = ScanSignalProcessor()
     private val diagnosticWriteGate = DiagnosticLogWriteGate()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
@@ -111,7 +115,7 @@ class SmartGlassesDetector @Inject constructor(
             val address = resolveDeviceAddress(bluetoothDevice)
             val scanningRequested = userRequestedScanning.get()
             if (action == BluetoothDevice.ACTION_FOUND && scanningRequested) {
-                rememberClassicInquiry(
+                rememberSeenAdvertiser(
                     address = address,
                     rssi = intent.getShortExtra(
                         BluetoothDevice.EXTRA_RSSI,
@@ -178,18 +182,7 @@ class SmartGlassesDetector @Inject constructor(
     
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val signal = extractSignal(result)
-            rememberClassicInquiry(signal.address, signal.rssi)
-            val processedSignal = scanSignalProcessor.process(signal, lastSensitivity)
-
-            val diagnosticLog = processedSignal.diagnosticLog
-            persistDiagnosticLog(diagnosticLog)
-
-            val device = processedSignal.detectedDevice
-            rememberNearbyDevice(device)
-            if (device != null && shouldEmitDetection(device)) {
-                _scannedDevices.trySend(device)
-            }
+            handleDetectionSignal(extractSignal(result))
         }
         
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
@@ -330,13 +323,79 @@ class SmartGlassesDetector @Inject constructor(
         return device.manufacturer.name.trim().lowercase()
     }
 
-    private fun rememberClassicInquiry(address: String, rssi: Int) {
+    private fun rememberSeenAdvertiser(
+        address: String,
+        rssi: Int,
+        companyIds: Set<Int> = emptySet(),
+        serviceUuids: List<String> = emptyList(),
+        appearance: Int? = null,
+        deviceClass: Int? = null,
+        deviceName: String? = null
+    ) {
         if (!ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(address)) {
             return
         }
         classicInquiryAddresses.add(address)
         if (rssi != Constants.UNKNOWN_RSSI_DBM) {
             classicInquiryRssi[address] = rssi
+        }
+        seenAdvertisers[address] = SeenAdvertiserPolicy.merge(
+            existing = seenAdvertisers[address],
+            rssi = rssi,
+            companyIds = companyIds,
+            serviceUuids = serviceUuids,
+            appearance = appearance,
+            deviceClass = deviceClass,
+            deviceName = deviceName
+        )
+    }
+
+    private fun rememberSeenAdvertiser(signal: DetectionSignal) {
+        rememberSeenAdvertiser(
+            address = signal.address,
+            rssi = signal.rssi,
+            companyIds = signal.companyIds,
+            serviceUuids = signal.serviceUuids,
+            appearance = signal.appearance,
+            deviceClass = signal.deviceClass,
+            deviceName = signal.deviceName
+        )
+    }
+
+    private fun enrichWithSeenAdvertiser(signal: DetectionSignal): DetectionSignal {
+        rememberSeenAdvertiser(signal)
+        val snapshot = seenAdvertisers[signal.address] ?: return signal
+        return signal.copy(
+            deviceName = snapshot.deviceName,
+            companyIds = snapshot.companyIds,
+            serviceUuids = snapshot.serviceUuids,
+            appearance = snapshot.appearance,
+            deviceClass = snapshot.deviceClass,
+            rssi = snapshot.rssi
+        )
+    }
+
+    private fun handleDetectionSignal(signal: DetectionSignal, action: String? = null) {
+        val enriched = enrichWithSeenAdvertiser(signal)
+        val processed = scanSignalProcessor.process(enriched, lastSensitivity)
+        persistDiagnosticLog(processed.diagnosticLog)
+
+        val detectedDevice = processed.detectedDevice
+        if (detectedDevice != null) {
+            rememberNearbyDevice(detectedDevice)
+            if (shouldEmitDetection(detectedDevice)) {
+                _scannedDevices.trySend(detectedDevice)
+            }
+            return
+        }
+        if (
+            SeenAdvertiserPolicy.shouldForgetNearbyAfterIdentityUpdate(
+                detected = false,
+                action = action,
+                hasUsableName = enriched.deviceName != null
+            )
+        ) {
+            _nearbyDevices.value = nearbyDeviceTracker.forget(enriched.address)
         }
     }
 
@@ -347,6 +406,7 @@ class SmartGlassesDetector @Inject constructor(
     private fun clearClassicInquiryMemory() {
         classicInquiryAddresses.clear()
         classicInquiryRssi.clear()
+        seenAdvertisers.clear()
     }
 
     @SuppressLint("MissingPermission")
@@ -360,7 +420,7 @@ class SmartGlassesDetector @Inject constructor(
         if (extraRssi != Constants.UNKNOWN_RSSI_DBM && address.isNotBlank()) {
             classicInquiryRssi[address] = extraRssi
         }
-        val signal = ClassicDiscoverySignal(
+        val baseSignal = ClassicDiscoverySignal(
             deviceName = resolveCachedDeviceName(bluetoothDevice),
             extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
             alias = resolveDeviceAlias(bluetoothDevice),
@@ -372,14 +432,7 @@ class SmartGlassesDetector @Inject constructor(
             deviceClass = intent.extractBluetoothClass()?.deviceClass
                 ?: resolveDeviceClass(bluetoothDevice)
         ).toDetectionSignal()
-        val processed = scanSignalProcessor.process(signal, lastSensitivity)
-        persistDiagnosticLog(processed.diagnosticLog)
-
-        val detectedDevice = processed.detectedDevice
-        rememberNearbyDevice(detectedDevice)
-        if (detectedDevice != null && shouldEmitDetection(detectedDevice)) {
-            _scannedDevices.trySend(detectedDevice)
-        }
+        handleDetectionSignal(baseSignal, action = intent.action)
     }
 
     @SuppressLint("MissingPermission")
@@ -578,23 +631,25 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         lastSensitivity = sensitivity
-        userRequestedScanning.set(true)
-        usingExtendedAdvertising = true
-        usingMatchAllFilter = true
-        classicDiscoveryStarted.set(false)
-        lastClassicDiscoveryStartedAt.set(0L)
-        clearClassicInquiryMemory()
+        val alreadyRequested = userRequestedScanning.getAndSet(true)
+        if (ScanResumePolicy.shouldResetScanSession(alreadyRequested)) {
+            usingExtendedAdvertising = true
+            usingMatchAllFilter = true
+            classicDiscoveryStarted.set(false)
+            lastClassicDiscoveryStartedAt.set(0L)
+            clearClassicInquiryMemory()
+            retryAttempt = 0
+            detectionCooldownGate.clear()
+            nearbyDeviceTracker.clear()
+            diagnosticWriteGate.clear()
+            _nearbyDevices.value = emptyList()
+        }
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = true,
             bluetoothEnabled = bluetoothAdapter.isEnabled,
             scanPermissionGranted = true,
             locationServicesSatisfied = isLocationServicesSatisfied()
         )
-        retryAttempt = 0
-        detectionCooldownGate.clear()
-        nearbyDeviceTracker.clear()
-        diagnosticWriteGate.clear()
-        _nearbyDevices.value = emptyList()
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
         ensureLocationModeReceiverRegistered()
@@ -606,7 +661,19 @@ class SmartGlassesDetector @Inject constructor(
             return
         }
 
-        startLeAndClassicScanning()
+        if (alreadyRequested) {
+            ensureHardwareScanning()
+        } else {
+            startLeAndClassicScanning()
+        }
+    }
+
+    fun ensureHardwareScanning() {
+        if (!userRequestedScanning.get()) {
+            return
+        }
+        refreshBleScan()
+        refreshClassicDiscoveryIfNeeded()
     }
 
     fun updateSensitivity(sensitivity: ScanSensitivity) {

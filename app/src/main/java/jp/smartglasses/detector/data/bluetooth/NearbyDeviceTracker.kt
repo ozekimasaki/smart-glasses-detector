@@ -25,6 +25,14 @@ internal class NearbyDeviceTracker(
         emptyList()
     }
 
+    fun forget(address: String): List<SmartGlassesDevice> = synchronized(lock) {
+        val normalizedAddress = address.trim().uppercase()
+        if (normalizedAddress.isNotEmpty()) {
+            devices.remove("address:$normalizedAddress")
+        }
+        snapshotLocked(clock())
+    }
+
     private fun snapshotLocked(now: Long): List<SmartGlassesDevice> {
         pruneExpiredEntries(now)
         return devices.values

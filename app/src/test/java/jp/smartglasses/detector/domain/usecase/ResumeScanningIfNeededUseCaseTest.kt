@@ -180,6 +180,7 @@ class ResumeScanningIfNeededUseCaseTest {
         override val nearbyDevices = MutableStateFlow(emptyList<SmartGlassesDevice>())
 
         override suspend fun startScanning() = Unit
+        override fun ensureHardwareScanning() = Unit
         override suspend fun stopScanning() = Unit
         override fun updateScanSensitivity(sensitivity: ScanSensitivity) = Unit
         override fun hasPermissions() = permissions

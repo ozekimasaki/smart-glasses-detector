@@ -12,6 +12,7 @@ interface BluetoothRepository {
     val nearbyDevices: Flow<List<SmartGlassesDevice>>
 
     suspend fun startScanning()
+    fun ensureHardwareScanning()
     suspend fun stopScanning()
     fun updateScanSensitivity(sensitivity: ScanSensitivity)
     fun hasPermissions(): Boolean

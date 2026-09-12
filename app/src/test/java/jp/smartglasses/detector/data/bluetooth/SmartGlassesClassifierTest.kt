@@ -1,6 +1,7 @@
 package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.domain.model.DetectionMethod
+import jp.smartglasses.detector.domain.service.SeenAdvertiserPolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
 import org.junit.Assert.assertEquals
@@ -1578,6 +1579,38 @@ class SmartGlassesClassifierTest {
         assertEquals("Meizu", meizu?.manufacturer?.name)
         assertNull(huaweiWatch)
         assertNull(huaweiWatchCid)
+    }
+
+    @Test
+    fun `unnamed meta company id is retracted after a delayed quest name`() {
+        val unnamed = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:76",
+                companyIds = setOf(0x01AB),
+                rssi = -55
+            )
+        )
+        val snapshot = SeenAdvertiserPolicy.merge(
+            existing = SeenAdvertiserPolicy.merge(
+                existing = null,
+                rssi = -55,
+                companyIds = setOf(0x01AB)
+            ),
+            rssi = Constants.UNKNOWN_RSSI_DBM,
+            deviceName = "Quest 3"
+        )
+        val delayedName = classifier.classify(
+            DetectionSignal(
+                deviceName = snapshot.deviceName,
+                address = "AA:BB:CC:DD:EE:76",
+                companyIds = snapshot.companyIds,
+                rssi = snapshot.rssi
+            )
+        )
+
+        assertEquals("Meta Platforms", unnamed?.manufacturer?.name)
+        assertNull(delayedName)
     }
 
     private fun asciiToHex(value: String): String {

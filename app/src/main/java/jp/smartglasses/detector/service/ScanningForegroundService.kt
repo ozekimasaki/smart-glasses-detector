@@ -507,7 +507,7 @@ class ScanningForegroundService : Service() {
                 ) {
                     Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")
                     try {
-                        bluetoothRepository.startScanning()
+                        bluetoothRepository.ensureHardwareScanning()
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to restart Bluetooth scanning", e)
                     }
