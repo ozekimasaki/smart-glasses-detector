@@ -346,6 +346,9 @@ class SmartGlassesDetector @Inject constructor(
 
     @SuppressLint("MissingPermission")
     private fun resolveDeviceAlias(device: BluetoothDevice): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return null
+        }
         if (!hasBluetoothConnectPermission()) {
             return null
         }
