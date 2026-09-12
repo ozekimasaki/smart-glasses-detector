@@ -329,8 +329,8 @@ class SmartGlassesDetector @Inject constructor(
         return device.manufacturer.name.trim().lowercase()
     }
 
-    private fun rememberClassicInquiry(address: String?, rssi: Int) {
-        if (address.isNullOrBlank()) {
+    private fun rememberClassicInquiry(address: String, rssi: Int) {
+        if (address.isBlank()) {
             return
         }
         classicInquiryAddresses.add(address)
@@ -339,8 +339,8 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
-    private fun wasSeenInClassicInquiry(address: String?): Boolean {
-        return !address.isNullOrBlank() && classicInquiryAddresses.contains(address)
+    private fun wasSeenInClassicInquiry(address: String): Boolean {
+        return address.isNotBlank() && classicInquiryAddresses.contains(address)
     }
 
     private fun clearClassicInquiryMemory() {
@@ -356,7 +356,7 @@ class SmartGlassesDetector @Inject constructor(
             BluetoothDevice.EXTRA_RSSI,
             Constants.UNKNOWN_RSSI_DBM.toShort()
         ).toInt()
-        if (extraRssi != Constants.UNKNOWN_RSSI_DBM && !address.isNullOrBlank()) {
+        if (extraRssi != Constants.UNKNOWN_RSSI_DBM && address.isNotBlank()) {
             classicInquiryRssi[address] = extraRssi
         }
         val signal = ClassicDiscoverySignal(
@@ -366,7 +366,7 @@ class SmartGlassesDetector @Inject constructor(
             address = address,
             rssi = ClassicDiscoveryPolicy.resolveRssi(
                 extraRssi = extraRssi,
-                previouslySeenRssi = address?.let(classicInquiryRssi::get)
+                previouslySeenRssi = classicInquiryRssi[address]
             ),
             deviceClass = intent.extractBluetoothClass()?.deviceClass
                 ?: resolveDeviceClass(bluetoothDevice)
