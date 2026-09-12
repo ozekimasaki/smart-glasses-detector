@@ -183,8 +183,8 @@ class ScanningForegroundService : Service() {
                     return@launch
                 }
 
-                bluetoothRepository.startScanning()
                 persistScanningState(true)
+                bluetoothRepository.startScanning()
                 startHealthCheck()
 
                 try {

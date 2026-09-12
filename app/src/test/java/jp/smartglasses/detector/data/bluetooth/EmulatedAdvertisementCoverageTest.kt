@@ -56,6 +56,14 @@ class EmulatedAdvertisementCoverageTest {
             "Halo official coded name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Halo 4F" }
         )
+        assertTrue(
+            "Mentra Live lowercase prefix should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "mentra_live_abc" }
+        )
+        assertTrue(
+            "Mentra Nex advertised prefix should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Nex1-77" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

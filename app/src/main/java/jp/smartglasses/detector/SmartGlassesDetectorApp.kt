@@ -15,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
+import jp.smartglasses.detector.data.bluetooth.ScanPermissionAppOpsMonitor
 import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.domain.usecase.ResumeScanningIfNeededUseCase
 import jp.smartglasses.detector.util.Constants
@@ -33,6 +34,7 @@ class SmartGlassesDetectorApp : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var foregroundResumeJob: Job? = null
+    private var scanPermissionMonitor: ScanPermissionAppOpsMonitor? = null
 
     private val resumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
@@ -66,6 +68,7 @@ class SmartGlassesDetectorApp : Application() {
             resumeIntentFilter(),
             ContextCompat.RECEIVER_EXPORTED
         )
+        startScanPermissionWatch()
         val processLifecycle = ProcessLifecycleOwner.get().lifecycle
         processLifecycle.addObserver(
             object : DefaultLifecycleObserver {
@@ -82,6 +85,22 @@ class SmartGlassesDetectorApp : Application() {
         if (processLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             resumeScanningInBackground("app process started in foreground", appInForeground = true)
             startForegroundResumeLoop()
+        }
+    }
+
+    private fun startScanPermissionWatch() {
+        if (scanPermissionMonitor != null) {
+            return
+        }
+
+        val monitor = ScanPermissionAppOpsMonitor(this) {
+            resumeScanningInBackground(
+                reason = "scan permission changed",
+                appInForeground = isAppInForeground()
+            )
+        }
+        if (monitor.start()) {
+            scanPermissionMonitor = monitor
         }
     }
 

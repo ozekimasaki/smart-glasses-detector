@@ -550,6 +550,21 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `even g2 serial suffix advertisement names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Even G2_12_L_ABCDEF",
+                address = "AA:BB:CC:DD:EE:24E",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Even Realities", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
     fun `st bluenrg generic uuid is not treated as even glasses`() {
         val detected = classifier.classify(
             DetectionSignal(
@@ -1091,6 +1106,21 @@ class SmartGlassesClassifierTest {
         assertEquals("Mentra", nex?.manufacturer?.name)
         assertEquals("Mentra", display?.manufacturer?.name)
         assertEquals(DetectionMethod.DEVICE_NAME, nex?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `mentra live lowercase advertised prefixes are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "mentra_live_abc",
+                address = "AA:BB:CC:DD:EE:44D",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("Mentra", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
     }
 
     @Test

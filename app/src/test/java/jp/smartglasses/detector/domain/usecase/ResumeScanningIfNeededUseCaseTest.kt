@@ -88,6 +88,20 @@ class ResumeScanningIfNeededUseCaseTest {
     }
 
     @Test
+    fun `does not start when scan permission is missing`() = runBlocking {
+        val controller = RecordingScanServiceController()
+        val useCase = ResumeScanningIfNeededUseCase(
+            settingsRepository = FakeSettingsRepository(scanning = true, background = true),
+            bluetoothRepository = FakeBluetoothRepository(permissions = false),
+            scanServiceController = controller
+        )
+
+        useCase(appInForeground = true)
+
+        assertEquals(0, controller.startCount)
+    }
+
+    @Test
     fun `does not start when bluetooth is off`() = runBlocking {
         val controller = RecordingScanServiceController()
         val useCase = ResumeScanningIfNeededUseCase(

@@ -481,6 +481,7 @@ object Constants {
                 "Mentra Nex",
                 "Nex1-",
                 "MENTRA_DISPLAY_",
+                "mentra_live",
                 "MENTRA_LIVE_BLE",
                 "MENTRA_LIVE_BT",
                 "XyBLE_",

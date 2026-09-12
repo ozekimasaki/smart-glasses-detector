@@ -2,7 +2,6 @@ package jp.smartglasses.detector.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AppOpsManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
@@ -81,7 +80,7 @@ class SmartGlassesDetector @Inject constructor(
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
     private val isLocationModeReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
-    private var scanPermissionOpWatcher: AppOpsManager.OnOpChangedListener? = null
+    private var scanPermissionMonitor: ScanPermissionAppOpsMonitor? = null
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var usingExtendedAdvertising = true
     private var usingMatchAllFilter = true
@@ -747,17 +746,13 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     private fun ensureScanPermissionWatch() {
-        if (scanPermissionOpWatcher != null) {
+        if (scanPermissionMonitor != null) {
             return
         }
 
-        val appOps = context.getSystemService(AppOpsManager::class.java) ?: return
-        val listener = AppOpsManager.OnOpChangedListener { _, packageName ->
-            if (packageName != null && packageName != context.packageName) {
-                return@OnOpChangedListener
-            }
+        val monitor = ScanPermissionAppOpsMonitor(context) {
             if (!userRequestedScanning.get()) {
-                return@OnOpChangedListener
+                return@ScanPermissionAppOpsMonitor
             }
             if (!hasRequiredScanPermission()) {
                 pauseHardwareScan(scanPermissionGranted = false)
@@ -768,41 +763,14 @@ class SmartGlassesDetector @Inject constructor(
                 startLeAndClassicScanning()
             }
         }
-        scanPermissionOpWatcher = listener
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                watchAppOp(appOps, Manifest.permission.BLUETOOTH_SCAN, listener)
-                watchAppOp(appOps, Manifest.permission.BLUETOOTH_CONNECT, listener)
-            } else {
-                appOps.startWatchingMode(
-                    AppOpsManager.OPSTR_FINE_LOCATION,
-                    context.packageName,
-                    listener
-                )
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to watch scan permission changes", e)
-            scanPermissionOpWatcher = null
+        if (monitor.start()) {
+            scanPermissionMonitor = monitor
         }
-    }
-
-    private fun watchAppOp(
-        appOps: AppOpsManager,
-        permission: String,
-        listener: AppOpsManager.OnOpChangedListener
-    ) {
-        val op = AppOpsManager.permissionToOp(permission) ?: return
-        appOps.startWatchingMode(op, context.packageName, listener)
     }
 
     private fun stopScanPermissionWatch() {
-        val listener = scanPermissionOpWatcher ?: return
-        scanPermissionOpWatcher = null
-        try {
-            context.getSystemService(AppOpsManager::class.java)?.stopWatchingMode(listener)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to stop watching scan permission changes", e)
-        }
+        scanPermissionMonitor?.stop()
+        scanPermissionMonitor = null
     }
     
     fun hasBleHardwareSupport(): Boolean {
