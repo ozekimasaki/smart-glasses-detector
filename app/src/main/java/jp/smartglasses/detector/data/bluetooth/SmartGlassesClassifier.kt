@@ -224,10 +224,7 @@ internal class SmartGlassesClassifier(
         val deviceName = signal.deviceName ?: return null
 
         for (rule in detectionRules) {
-            if (rule.namePatterns.none { pattern ->
-                    deviceName.contains(pattern, ignoreCase = true)
-                }
-            ) {
+            if (!rule.matchesDeviceName(deviceName)) {
                 continue
             }
 
@@ -288,6 +285,16 @@ internal class SmartGlassesClassifier(
             ),
             rssi = signal.rssi
         )
+    }
+
+    private fun DetectionRule.matchesDeviceName(deviceName: String): Boolean {
+        val byPattern = namePatterns.any { pattern ->
+            deviceName.contains(pattern, ignoreCase = true)
+        }
+        val byRegex = nameRegexes.any { regex ->
+            regex.containsMatchIn(deviceName)
+        }
+        return byPattern || byRegex
     }
 
     private fun DetectionRule.excludesName(deviceName: String?): Boolean {

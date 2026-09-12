@@ -4,6 +4,7 @@ internal data class DetectionRule(
     val manufacturerName: String,
     val companyIds: Set<Int> = emptySet(),
     val namePatterns: List<String> = emptyList(),
+    val nameRegexes: List<Regex> = emptyList(),
     val excludedNamePatterns: List<String> = emptyList(),
     val serviceUuids: Set<String> = emptySet(),
     val payloadPatterns: List<String> = emptyList(),
@@ -439,6 +440,10 @@ object Constants {
                 "Frame ",
                 "Frame Update",
                 "Halo-"
+            ),
+            // Halo 公式 BLE 仕様: "Halo XX"（XX は EUI-48 の第4バイト）
+            nameRegexes = listOf(
+                Regex("""(?i)\bHalo\s+[0-9A-Fa-f]{2}\b""")
             ),
             serviceUuids = setOf("7A230001-5475-A6A4-654C-8431F6AD49C4"),
             allowCompanyIdOnly = false

@@ -63,15 +63,37 @@ NAME_PATTERN_DEVICES = {
     46: "智能眼镜-A1",
     47: "AR99",
     48: "Mentra Display",
+    49: "Halo 4F",
 }
 
 UUID_DEVICES = {
     51: ("Rokid Glasses (Service UUID 0x9100)", 0x9100),
+    52: ("Snap Spectacles (Service UUID 0xFE45)", 0xFE45),
+    53: ("Meta Ray-Ban (Service UUID 0xFD5F)", 0xFD5F),
+}
+
+UUID128_DEVICES = {
+    71: ("Brilliant Labs Frame/Halo Lua", "7A230001-5475-A6A4-654C-8431F6AD49C4"),
+    72: ("Engo ActiveLook GATT", "0783B03E-8535-B5A0-7140-A304D2495CB7"),
+    73: ("HeyCyan / Nilox", "7905FFF0-B5CE-4E99-A40F-4B1E122D00D0"),
 }
 
 # メーカーデータ先頭の ASCII プロジェクト ID（MentraOS AR99 など）
 PAYLOAD_DEVICES = {
     61: ("Xingyi AR99 (payload AR99)", "AR99"),
+}
+
+APPEARANCE_DEVICES = {
+    81: ("GAP Appearance eyeglasses", 0x01C0),
+}
+
+# 分類器がスマートグラスとして検出しない対照サンプル（ユニットテスト専用）
+NON_GLASSES_NAME_DEVICES = {
+    91: "Halo Band",
+    92: "Quest 3",
+    93: "Echo Dot",
+    94: "AirPods Pro",
+    95: "Galaxy Buds2",
 }
 
 
@@ -195,6 +217,54 @@ def start_advertise_service_uuid(name, uuid16):
     print(f"  -> 送信中: {name} (Service UUID: 0x{uuid16:04X}, デバイス名なし)")
 
 
+def start_advertise_service_uuid128(name, uuid):
+    stop_advertise()
+    time.sleep(0.5)
+
+    run("sudo hciconfig hci0 up")
+    run('sudo hciconfig hci0 name "BLE Device"')
+
+    raw = bytes.fromhex(uuid.replace("-", ""))
+    le_hex = " ".join(f"{b:02X}" for b in raw[::-1])
+    total = 3 + 18
+    pad_len = max(0, 31 - total)
+    pad = " ".join(["00"] * pad_len) if pad_len else ""
+    adv_data = (
+        f"sudo hcitool -i hci0 cmd 0x08 0x0008 "
+        f"{total:02X} "
+        f"02 01 06 "
+        f"11 07 {le_hex} "
+        f"{pad}"
+    )
+    run(adv_data)
+    run("sudo hciconfig hci0 leadv 3")
+    print(f"  -> 送信中: {name} (Service UUID: {uuid}, デバイス名なし)")
+
+
+def start_advertise_appearance(name, appearance):
+    stop_advertise()
+    time.sleep(0.5)
+
+    run("sudo hciconfig hci0 up")
+    run('sudo hciconfig hci0 name "BLE Device"')
+
+    low = appearance & 0xFF
+    high = (appearance >> 8) & 0xFF
+    adv_data = (
+        f"sudo hcitool -i hci0 cmd 0x08 0x0008 "
+        f"07 "
+        f"02 01 06 "
+        f"03 19 {low:02X} {high:02X} "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00 00 00 00 00 "
+        f"00 00 00 00"
+    )
+    run(adv_data)
+    run("sudo hciconfig hci0 leadv 3")
+    print(f"  -> 送信中: {name} (Appearance: 0x{appearance:04X}, デバイス名なし)")
+
+
 def print_menu():
     print("\n" + "=" * 55)
     print("  BLE Smart Glasses Emulator")
@@ -209,9 +279,15 @@ def print_menu():
     print("\n--- Service UUID 検出テスト ---")
     for num, (name, uuid16) in UUID_DEVICES.items():
         print(f"  {num:2d}) {name}")
+    print("\n--- 128-bit Service UUID 検出テスト ---")
+    for num, (name, uuid) in UUID128_DEVICES.items():
+        print(f"  {num:2d}) {name}")
     print("\n--- 広告ペイロード検出テスト ---")
     for num, (name, payload) in PAYLOAD_DEVICES.items():
         print(f"  {num:2d}) {name} ({payload})")
+    print("\n--- GAP Appearance 検出テスト ---")
+    for num, (name, appearance) in APPEARANCE_DEVICES.items():
+        print(f"  {num:2d}) {name} (0x{appearance:04X})")
     print("\n--- コントロール ---")
     print("  88) 全メーカー順番にテスト (各20秒)")
     print("  99) アドバタイズ停止")
@@ -224,13 +300,33 @@ def auto_test_all():
     print(f"\n全メーカーを {duration} 秒ずつテストします...")
 
     for num, (name, cid) in COMPANY_ID_DEVICES.items():
-        print(f"\n[{num}/{len(COMPANY_ID_DEVICES) + len(NAME_PATTERN_DEVICES)}] {name}")
+        print(f"\n[Company ID {num}] {name}")
         start_advertise_company_id(name, cid, name.split("(")[0].strip())
         time.sleep(duration)
 
+    for num, name in NAME_PATTERN_DEVICES.items():
+        print(f"\n[Name {num}] {name}")
+        start_advertise_name_only(name)
+        time.sleep(duration)
+
     for num, (name, uuid16) in UUID_DEVICES.items():
-        print(f"\n[Service UUID] {name}")
+        print(f"\n[Service UUID {num}] {name}")
         start_advertise_service_uuid(name, uuid16)
+        time.sleep(duration)
+
+    for num, (name, uuid) in UUID128_DEVICES.items():
+        print(f"\n[Service UUID128 {num}] {name}")
+        start_advertise_service_uuid128(name, uuid)
+        time.sleep(duration)
+
+    for num, (name, payload) in PAYLOAD_DEVICES.items():
+        print(f"\n[Payload {num}] {name}")
+        start_advertise_ascii_manufacturer_payload(name, payload)
+        time.sleep(duration)
+
+    for num, (name, appearance) in APPEARANCE_DEVICES.items():
+        print(f"\n[Appearance {num}] {name}")
+        start_advertise_appearance(name, appearance)
         time.sleep(duration)
 
     stop_advertise()
@@ -278,9 +374,15 @@ def main():
         elif num in UUID_DEVICES:
             name, uuid16 = UUID_DEVICES[num]
             start_advertise_service_uuid(name, uuid16)
+        elif num in UUID128_DEVICES:
+            name, uuid = UUID128_DEVICES[num]
+            start_advertise_service_uuid128(name, uuid)
         elif num in PAYLOAD_DEVICES:
             name, payload = PAYLOAD_DEVICES[num]
             start_advertise_ascii_manufacturer_payload(name, payload)
+        elif num in APPEARANCE_DEVICES:
+            name, appearance = APPEARANCE_DEVICES[num]
+            start_advertise_appearance(name, appearance)
         elif num in NAME_PATTERN_DEVICES:
             dev_name = NAME_PATTERN_DEVICES[num]
             start_advertise_name_only(dev_name)

@@ -729,6 +729,14 @@ class SmartGlassesClassifierTest {
                         rssi = -50
                     )
                 )
+                rule.nameRegexes.isNotEmpty() -> classifier.classify(
+                    DetectionSignal(
+                        deviceName = "Halo 4F",
+                        address = "AA:BB:CC:DD:EE:21",
+                        companyIds = emptySet(),
+                        rssi = -50
+                    )
+                )
                 else -> null
             }
 
@@ -779,6 +787,12 @@ class SmartGlassesClassifierTest {
             "Brilliant Labs Frame official BLE UUID should be configured",
             brilliant.serviceUuids.any { uuid ->
                 uuid.equals("7A230001-5475-A6A4-654C-8431F6AD49C4", ignoreCase = true)
+            }
+        )
+        assertTrue(
+            "Brilliant Labs Halo XX official name format should be configured",
+            brilliant.nameRegexes.any { regex ->
+                regex.containsMatchIn("Halo 4F") && !regex.containsMatchIn("Halo Band")
             }
         )
     }
@@ -832,6 +846,45 @@ class SmartGlassesClassifierTest {
         assertEquals("Halliday", halliday?.manufacturer?.name)
         assertEquals("Brilliant Labs", frameName?.manufacturer?.name)
         assertEquals(DetectionMethod.DEVICE_NAME, frameName?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `brilliant halo official coded names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Halo 4F",
+                address = "AA:BB:CC:DD:EE:48",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals("Brilliant Labs", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `amazon halo band is not treated as brilliant halo`() {
+        val haloBand = classifier.classify(
+            DetectionSignal(
+                deviceName = "Halo Band",
+                address = "AA:BB:CC:DD:EE:49",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+        val amazonHalo = classifier.classify(
+            DetectionSignal(
+                deviceName = "Amazon Halo",
+                address = "AA:BB:CC:DD:EE:50",
+                companyIds = emptySet(),
+                rssi = -55
+            )
+        )
+
+        assertNull(haloBand)
+        assertNull(amazonHalo)
     }
 
     @Test
