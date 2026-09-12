@@ -198,6 +198,12 @@ class EmulatedAdvertisementCoverageTest {
     @Test
     fun `emulator non-glasses controls stay undetected`() {
         assertTrue(catalog.nonGlassesNames.size >= 4)
+        assertTrue(
+            "Even R1 controller ring should stay in the non-glasses catalog",
+            catalog.nonGlassesNames.contains("R1") &&
+                catalog.nonGlassesNames.contains("Even R1") &&
+                catalog.nonGlassesNames.contains("Even Realities R1")
+        )
 
         catalog.nonGlassesNames.forEach { name ->
             val detected = classifier.classify(
@@ -219,6 +225,8 @@ class EmulatedAdvertisementCoverageTest {
         return matchingRules.any { rule ->
             val excluded = rule.excludedNamePatterns.any { pattern ->
                 deviceName.contains(pattern, ignoreCase = true)
+            } || rule.excludedNameRegexes.any { regex ->
+                regex.containsMatchIn(deviceName)
             }
             when {
                 excluded -> false

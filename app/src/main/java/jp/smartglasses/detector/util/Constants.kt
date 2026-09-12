@@ -6,6 +6,7 @@ internal data class DetectionRule(
     val namePatterns: List<String> = emptyList(),
     val nameRegexes: List<Regex> = emptyList(),
     val excludedNamePatterns: List<String> = emptyList(),
+    val excludedNameRegexes: List<Regex> = emptyList(),
     val serviceUuids: Set<String> = emptySet(),
     val payloadPatterns: List<String> = emptyList(),
     val manufacturerDataSuffixes: Set<Int> = emptySet(),
@@ -449,6 +450,12 @@ object Constants {
             // Even G1/G2 公式広告: G1_12_L / G2_XX_L / G2_XX_R
             nameRegexes = listOf(
                 Regex("""(?i)\bG[123]_[0-9A-Za-z]+_[LR]\b""")
+            ),
+            // Even R1 はグラスではなくコントローラリング。CID 0x10F9 でも除外する。
+            // contains("R1") は AIR1 / G1_R1_L 等に当たるため使わない。
+            excludedNameRegexes = listOf(
+                Regex("""(?i)^R1$"""),
+                Regex("""(?i)\bEven(\s+Realities)?\s+R1\b""")
             )
         ),
         DetectionRule(

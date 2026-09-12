@@ -136,7 +136,7 @@ internal class SmartGlassesClassifier(
             val matched = signal.serviceUuids.any { signalUuid ->
                 rule.serviceUuids.any { ruleUuid -> BleUuid.matches(signalUuid, ruleUuid) }
             }
-            if (!matched) {
+            if (!matched || rule.excludesName(signal.deviceName)) {
                 continue
             }
 
@@ -174,7 +174,7 @@ internal class SmartGlassesClassifier(
                         ignoreCase = false
                     )
             }
-            if (!matched) {
+            if (!matched || rule.excludesName(signal.deviceName)) {
                 continue
             }
 
@@ -205,7 +205,7 @@ internal class SmartGlassesClassifier(
             val matched = rule.manufacturerDataSuffixes.any { suffix ->
                 AdvertisementParser.hasManufacturerDataSuffix(payloadHex, suffix)
             }
-            if (!matched) {
+            if (!matched || rule.excludesName(signal.deviceName)) {
                 continue
             }
 
@@ -226,7 +226,7 @@ internal class SmartGlassesClassifier(
         val deviceName = signal.deviceName ?: return null
 
         for (rule in detectionRules) {
-            if (!rule.matchesDeviceName(deviceName)) {
+            if (rule.excludesName(deviceName) || !rule.matchesDeviceName(deviceName)) {
                 continue
             }
 
@@ -250,8 +250,14 @@ internal class SmartGlassesClassifier(
             return null
         }
 
-        val attributedRule = detectionRules.firstOrNull { rule ->
+        val matchingRules = detectionRules.filter { rule ->
             signal.companyIds.any { companyId -> companyId in rule.companyIds }
+        }
+        if (matchingRules.isNotEmpty() && matchingRules.all { rule -> rule.excludesName(signal.deviceName) }) {
+            return null
+        }
+        val attributedRule = matchingRules.firstOrNull { rule ->
+            !rule.excludesName(signal.deviceName)
         }
 
         return SmartGlassesDevice(
@@ -302,12 +308,17 @@ internal class SmartGlassesClassifier(
     }
 
     private fun DetectionRule.excludesName(deviceName: String?): Boolean {
-        if (deviceName.isNullOrBlank() || excludedNamePatterns.isEmpty()) {
+        if (deviceName.isNullOrBlank()) {
+            return false
+        }
+        if (excludedNamePatterns.isEmpty() && excludedNameRegexes.isEmpty()) {
             return false
         }
 
         return excludedNamePatterns.any { pattern ->
             deviceName.contains(pattern, ignoreCase = true)
+        } || excludedNameRegexes.any { regex ->
+            regex.containsMatchIn(deviceName)
         }
     }
 

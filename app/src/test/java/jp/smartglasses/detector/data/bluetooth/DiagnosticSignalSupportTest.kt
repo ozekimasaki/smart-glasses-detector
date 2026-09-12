@@ -1,5 +1,6 @@
 package jp.smartglasses.detector.data.bluetooth
 
+import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.model.hasPayload
@@ -150,6 +151,22 @@ class DiagnosticSignalSupportTest {
 
         assertNotNull(processed.detectedDevice)
         assertEquals("Ray-Ban Meta", processed.diagnosticLog.advertisedName)
+    }
+
+    @Test
+    fun `classic delayed extra name classifies mentra nimo`() {
+        val processed = ScanSignalProcessor().process(
+            ClassicDiscoverySignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:99",
+                rssi = -55,
+                extraName = "NIMO-1234"
+            ).toDetectionSignal()
+        )
+
+        assertEquals("Mentra", processed.detectedDevice?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, processed.detectedDevice?.manufacturer?.detectionMethod)
+        assertEquals("NIMO-1234", processed.diagnosticLog.advertisedName)
     }
 
     @Test

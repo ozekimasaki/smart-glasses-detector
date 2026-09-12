@@ -1345,6 +1345,92 @@ class SmartGlassesClassifierTest {
         assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
     }
 
+    @Test
+    fun `even r1 controller ring is not treated as glasses`() {
+        val unnamedCompanyId = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:53",
+                companyIds = setOf(0x10F9),
+                rssi = -50
+            )
+        )
+        val r1 = classifier.classify(
+            DetectionSignal(
+                deviceName = "R1",
+                address = "AA:BB:CC:DD:EE:54",
+                companyIds = setOf(0x10F9),
+                rssi = -50
+            )
+        )
+        val evenR1 = classifier.classify(
+            DetectionSignal(
+                deviceName = "Even R1",
+                address = "AA:BB:CC:DD:EE:55",
+                companyIds = setOf(0x10F9),
+                rssi = -50
+            )
+        )
+        val evenRealitiesR1 = classifier.classify(
+            DetectionSignal(
+                deviceName = "Even Realities R1",
+                address = "AA:BB:CC:DD:EE:56",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val r1Appearance = classifier.classify(
+            DetectionSignal(
+                deviceName = "R1",
+                address = "AA:BB:CC:DD:EE:57",
+                companyIds = setOf(0x10F9),
+                rssi = -50,
+                appearance = 0x01C0
+            )
+        )
+        val g1WithR1Serial = classifier.classify(
+            DetectionSignal(
+                deviceName = "G1_R1_L",
+                address = "AA:BB:CC:DD:EE:58",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Even Realities", unnamedCompanyId?.manufacturer?.name)
+        assertNull(r1)
+        assertNull(evenR1)
+        assertNull(evenRealitiesR1)
+        assertNull(r1Appearance)
+        assertEquals("Even Realities", g1WithR1Serial?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, g1WithR1Serial?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `meta excluded accessory names are ignored even with glasses service uuid`() {
+        val band = classifier.classify(
+            DetectionSignal(
+                deviceName = "Meta Band 00JT",
+                address = "AA:BB:CC:DD:EE:59",
+                companyIds = emptySet(),
+                rssi = -50,
+                serviceUuids = listOf("0000fd5f-0000-1000-8000-00805f9b34fb")
+            )
+        )
+        val quest = classifier.classify(
+            DetectionSignal(
+                deviceName = "Quest 3",
+                address = "AA:BB:CC:DD:EE:60",
+                companyIds = emptySet(),
+                rssi = -50,
+                serviceUuids = listOf("0000FD5F-0000-1000-8000-00805F9B34FB")
+            )
+        )
+
+        assertNull(band)
+        assertNull(quest)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

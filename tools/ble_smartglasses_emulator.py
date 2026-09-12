@@ -106,6 +106,9 @@ NON_GLASSES_NAME_DEVICES = {
     94: "AirPods Pro",
     95: "Galaxy Buds2",
     96: "Meta Band 00JT",
+    97: "R1",
+    98: "Even R1",
+    99: "Even Realities R1",
 }
 
 
