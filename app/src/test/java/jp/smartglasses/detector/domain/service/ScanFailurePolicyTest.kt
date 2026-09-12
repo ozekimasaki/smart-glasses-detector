@@ -43,4 +43,46 @@ class ScanFailurePolicyTest {
         assertFalse(ScanFailurePolicy.isRecoverable(0))
         assertFalse(ScanFailurePolicy.shouldFallbackToLegacy(99))
     }
+
+    @Test
+    fun `bluetooth disabled is not a recoverable scan error`() {
+        assertFalse(
+            ScanFailurePolicy.shouldKeepScanning(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.isRecoverable(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED
+            )
+        )
+        assertFalse(
+            ScanFailurePolicy.shouldIgnore(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED
+            )
+        )
+    }
+
+    @Test
+    fun `stale bluetooth disabled failures do not pause after bluetooth returns`() {
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED,
+                bluetoothEnabled = true
+            )
+        )
+        assertTrue(
+            ScanFailurePolicy.shouldPauseScanning(
+                ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED,
+                bluetoothEnabled = false
+            )
+        )
+        assertTrue(ScanFailurePolicy.shouldPauseScanning(99, bluetoothEnabled = true))
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(
+                ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED,
+                bluetoothEnabled = true
+            )
+        )
+    }
 }

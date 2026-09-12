@@ -32,6 +32,7 @@ import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
+import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
@@ -112,7 +113,12 @@ class SmartGlassesDetector @Inject constructor(
                     }
                 }
                 BluetoothAdapter.STATE_OFF,
-                BluetoothAdapter.STATE_TURNING_OFF -> pauseHardwareScan()
+                BluetoothAdapter.STATE_TURNING_OFF -> {
+                    pauseHardwareScan(bluetoothEnabled = false)
+                    _scanFailures.trySend(
+                        BluetoothScanFailure(ScanFailurePolicy.SCAN_ENVIRONMENT_BLUETOOTH_DISABLED)
+                    )
+                }
             }
         }
     }
@@ -448,7 +454,11 @@ class SmartGlassesDetector @Inject constructor(
         usingExtendedAdvertising = true
         usingMatchAllFilter = true
         classicDiscoveryStarted.set(false)
-        _isScanning.value = true
+        _isScanning.value = HardwareScanStatePolicy.isActive(
+            userRequestedScanning = true,
+            bluetoothEnabled = bluetoothAdapter.isEnabled,
+            scanPermissionGranted = true
+        )
         retryAttempt = 0
         detectionCooldownGate.clear()
         nearbyDeviceTracker.clear()
@@ -501,8 +511,15 @@ class SmartGlassesDetector @Inject constructor(
     private fun startLeAndClassicScanning() {
         val adapter = bluetoothAdapter ?: return
         if (!userRequestedScanning.get() || !adapter.isEnabled || !hasRequiredScanPermission()) {
+            _isScanning.value = HardwareScanStatePolicy.isActive(
+                userRequestedScanning = userRequestedScanning.get(),
+                bluetoothEnabled = adapter.isEnabled,
+                scanPermissionGranted = hasRequiredScanPermission()
+            )
             return
         }
+
+        _isScanning.value = true
 
         val scanner = adapter.bluetoothLeScanner ?: run {
             Log.w(TAG, "Bluetooth LE scanner is unavailable.")
@@ -558,10 +575,12 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun pauseHardwareScan() {
-        if (!userRequestedScanning.get()) {
-            _isScanning.value = false
-        }
+    private fun pauseHardwareScan(bluetoothEnabled: Boolean? = null) {
+        _isScanning.value = HardwareScanStatePolicy.isActive(
+            userRequestedScanning = userRequestedScanning.get(),
+            bluetoothEnabled = bluetoothEnabled ?: (bluetoothAdapter?.isEnabled == true),
+            scanPermissionGranted = hasRequiredScanPermission()
+        )
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         } catch (e: Exception) {

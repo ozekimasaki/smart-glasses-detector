@@ -151,7 +151,12 @@ class ScanningForegroundService : Service() {
             val scanFailureCollectionJob = launch(start = CoroutineStart.UNDISPATCHED) {
                 bluetoothRepository.scanFailures.collect { failure ->
                     Log.e(TAG, "Bluetooth scan failed with error code ${failure.errorCode}")
-                    if (!ScanFailurePolicy.shouldKeepScanning(failure.errorCode)) {
+                    if (
+                        ScanFailurePolicy.shouldPauseScanning(
+                            failure.errorCode,
+                            bluetoothRepository.isBluetoothEnabled()
+                        )
+                    ) {
                         pauseScanningKeepingIntent()
                     }
                 }
