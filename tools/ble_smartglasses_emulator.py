@@ -112,6 +112,11 @@ NAME_PATTERN_DEVICES = {
     117: ".lumen-A1B2",
     118: "Nitrous Shift",
     119: "Rokid Style",
+    120: "Lunettes intelligentes-01",
+    121: "AceSight VR",
+    122: "SightPlus",
+    123: "Recon Jet",
+    124: "Golden-i 5",
 }
 
 UUID_DEVICES = {

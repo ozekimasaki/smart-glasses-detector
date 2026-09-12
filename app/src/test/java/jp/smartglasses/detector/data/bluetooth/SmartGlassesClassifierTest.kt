@@ -1140,7 +1140,10 @@ class SmartGlassesClassifierTest {
             "Brother",
             "QD Laser",
             "OnePlus",
-            ".lumen"
+            ".lumen",
+            "Recon",
+            "GiveVision",
+            "AceSight"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2206,6 +2209,84 @@ class SmartGlassesClassifierTest {
         assertEquals("Lucyd", nitrous?.manufacturer?.name)
         assertEquals("Rokid", rokidStyle?.manufacturer?.name)
         assertNull(hue)
+    }
+
+    @Test
+    fun `multilingual heuristic names and accessibility glasses are detected`() {
+        val french = classifier.classify(
+            DetectionSignal(
+                deviceName = "Lunettes intelligentes-01",
+                address = "AA:BB:CC:DD:EE:B1",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val spanish = classifier.classify(
+            DetectionSignal(
+                deviceName = "Gafas inteligentes",
+                address = "AA:BB:CC:DD:EE:B2",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val german = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smartbrille-9",
+                address = "AA:BB:CC:DD:EE:B3",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val aceSight = classifier.classify(
+            DetectionSignal(
+                deviceName = "AceSight VR",
+                address = "AA:BB:CC:DD:EE:B4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val sightPlus = classifier.classify(
+            DetectionSignal(
+                deviceName = "SightPlus",
+                address = "AA:BB:CC:DD:EE:B4B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val recon = classifier.classify(
+            DetectionSignal(
+                deviceName = "Recon Jet",
+                address = "AA:BB:CC:DD:EE:B5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val goldenI = classifier.classify(
+            DetectionSignal(
+                deviceName = "Golden-i 5",
+                address = "AA:BB:CC:DD:EE:B6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val sunglasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "lunettes de soleil",
+                address = "AA:BB:CC:DD:EE:B7",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, french?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, french?.manufacturer?.detectionMethod)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, spanish?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, german?.manufacturer?.name)
+        assertEquals("AceSight", aceSight?.manufacturer?.name)
+        assertEquals("GiveVision", sightPlus?.manufacturer?.name)
+        assertEquals("Recon", recon?.manufacturer?.name)
+        assertEquals("Kopin", goldenI?.manufacturer?.name)
+        assertNull(sunglasses)
     }
 
     private fun asciiToHex(value: String): String {

@@ -161,7 +161,12 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "Memo Air Display" } &&
                 catalog.nameDevices.any { device -> device.name == ".lumen-A1B2" } &&
                 catalog.nameDevices.any { device -> device.name == "Nitrous Shift" } &&
-                catalog.nameDevices.any { device -> device.name == "Rokid Style" }
+                catalog.nameDevices.any { device -> device.name == "Rokid Style" } &&
+                catalog.nameDevices.any { device -> device.name == "Lunettes intelligentes-01" } &&
+                catalog.nameDevices.any { device -> device.name == "AceSight VR" } &&
+                catalog.nameDevices.any { device -> device.name == "SightPlus" } &&
+                catalog.nameDevices.any { device -> device.name == "Recon Jet" } &&
+                catalog.nameDevices.any { device -> device.name == "Golden-i 5" }
         )
 
         catalog.nameDevices.forEach { device ->

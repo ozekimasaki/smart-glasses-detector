@@ -61,6 +61,17 @@ object Constants {
         Regex("""ARメガネ"""),
         Regex("""AR眼鏡"""),
         Regex("""撮影グラス"""),
+        Regex("""撮影眼鏡"""),
+        Regex("""カメラ眼鏡"""),
+        Regex("""智能太陽眼鏡"""),
+        Regex("""相機眼鏡"""),
+        Regex("""(?i)lunettes?\s+(?:connect[eé]es?|intelligentes?|\bia\b)"""),
+        Regex("""(?i)smartbrille"""),
+        Regex("""(?i)intelligente\s+brille"""),
+        Regex("""(?i)gafas\s+inteligentes"""),
+        Regex("""(?i)occhiali\s+intelligenti"""),
+        Regex("""(?i)[oó]culos\s+inteligentes"""),
+        Regex("""스마트선글라스"""),
         Regex("""翻译眼镜"""),
         Regex("""字幕眼镜"""),
         Regex("""智慧眼鏡"""),
@@ -132,6 +143,7 @@ object Constants {
                 "BT-40",
                 "BT-35",
                 "BT-30",
+                "BT-200",
                 "BT-300",
                 "BT-350",
                 "BT-2000"
@@ -343,7 +355,9 @@ object Constants {
                 "AirGo 3",
                 "AirGo3",
                 "AirGo A5",
-                "AirGo V2"
+                "AirGo V2",
+                "Golden-i",
+                "Golden-i 5"
             )
         ),
         DetectionRule(
@@ -678,6 +692,7 @@ object Constants {
         DetectionRule(
             manufacturerName = "eSight",
             namePatterns = listOf("eSight"),
+            excludedNamePatterns = listOf("AceSight", "Acesight"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -943,6 +958,36 @@ object Constants {
                 "lumen Glasses",
                 "lumen Glass"
             ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Recon",
+            namePatterns = listOf("Recon Jet", "ReconJet", "Recon Snow"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Laforge",
+            namePatterns = listOf("Laforge", "Laforge Shima"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Mira",
+            namePatterns = listOf("Mira Prism"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "GiveVision",
+            namePatterns = listOf("GiveVision", "SightPlus", "Sight Plus"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "AceSight",
+            namePatterns = listOf("AceSight", "Acesight"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Eyedaptic",
+            namePatterns = listOf("Eyedaptic", "Eyeron"),
             allowCompanyIdOnly = false
         )
     )
