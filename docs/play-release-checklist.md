@@ -4,7 +4,7 @@
 
 - `keystore.properties` と release keystore をローカルに用意する
 - `keystore.properties` が Git 管理対象でないことを確認する
-- 今回の公開版は `versionCode = 46` / `versionName = 1.1.36`
+- 今回の公開版は `versionCode = 47` / `versionName = 1.1.37`
 - `targetSdk` は 36（Android 16）。2026年8月31日以降の Play 提出要件に合わせる。`compileSdk` は 37 のまま。`targetSdk` を 37 に上げない
 - `app/src/main/res/values/strings.xml` の `privacy_policy_url` が公開ポリシー URL と一致していることを確認する
 
@@ -53,7 +53,7 @@ scripts\gradlew-safe.cmd assembleRelease
 
 ### 今回の版で入力する値
 
-- リリース名: `1.1.36`
+- リリース名: `1.1.37`
 - リリースノート見出し: `スマートグラス検出の対象拡大と探索の継続`
 - アプリ カテゴリ候補: `ツール`
 - 連絡先メールアドレス: 開発者が常時受信できる公開用アドレスを設定する

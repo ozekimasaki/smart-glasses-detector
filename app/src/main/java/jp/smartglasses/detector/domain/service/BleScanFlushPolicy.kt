@@ -15,4 +15,12 @@ object BleScanFlushPolicy {
             bluetoothEnabled &&
             scanPermissionGranted
     }
+
+    fun shouldFlushAfterClassicDiscoveryFinished(
+        action: String?,
+        scanningRequested: Boolean
+    ): Boolean {
+        return scanningRequested &&
+            action == ClassicDiscoveryPolicy.ACTION_DISCOVERY_FINISHED
+    }
 }

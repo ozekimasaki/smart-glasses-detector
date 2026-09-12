@@ -48,4 +48,26 @@ class BleScanFlushPolicyTest {
             )
         )
     }
+
+    @Test
+    fun `classic inquiry finished flushes advertisements starved during discovery`() {
+        assertTrue(
+            BleScanFlushPolicy.shouldFlushAfterClassicDiscoveryFinished(
+                action = ClassicDiscoveryPolicy.ACTION_DISCOVERY_FINISHED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            BleScanFlushPolicy.shouldFlushAfterClassicDiscoveryFinished(
+                action = ClassicDiscoveryPolicy.ACTION_DISCOVERY_FINISHED,
+                scanningRequested = false
+            )
+        )
+        assertFalse(
+            BleScanFlushPolicy.shouldFlushAfterClassicDiscoveryFinished(
+                action = ClassicDiscoveryPolicy.ACTION_FOUND,
+                scanningRequested = true
+            )
+        )
+    }
 }

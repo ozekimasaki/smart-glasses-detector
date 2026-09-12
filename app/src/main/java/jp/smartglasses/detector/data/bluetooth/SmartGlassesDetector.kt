@@ -188,6 +188,14 @@ class SmartGlassesDetector @Inject constructor(
                     pollConnectedDevices()
                 }
             }
+            if (
+                BleScanFlushPolicy.shouldFlushAfterClassicDiscoveryFinished(
+                    action = action,
+                    scanningRequested = scanningRequested
+                )
+            ) {
+                flushPendingBleScanResults()
+            }
             val bluetoothDevice = intent.extractBluetoothDevice() ?: return
             val address = resolveDeviceAddress(bluetoothDevice)
             val extraRssi = intent.getShortExtra(
