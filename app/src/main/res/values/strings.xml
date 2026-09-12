@@ -35,6 +35,7 @@
     <string name="settings_sensitivity_balanced_desc">バッテリーと精度のバランスが良い、おすすめの設定です</string>
     <string name="settings_sensitivity_high">精度重視</string>
     <string name="settings_sensitivity_high_desc">より広い範囲を検出します。バッテリーを多く使います</string>
+    <string name="settings_sensitivity_foreground_note">このアプリを開いているあいだは、より見つけやすい方法で自動的に探します。下の設定は、アプリを閉じたあとの探索に使います</string>
     <string name="settings_battery_optimization">バッテリー最適化設定を開く</string>
     <string name="settings_about">このアプリについて</string>
     <string name="settings_privacy">プライバシーポリシー</string>

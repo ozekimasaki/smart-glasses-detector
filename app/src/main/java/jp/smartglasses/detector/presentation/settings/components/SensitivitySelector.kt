@@ -36,6 +36,12 @@ fun SensitivitySelector(
             .selectableGroup(),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)
     ) {
+        Text(
+            text = stringResource(R.string.settings_sensitivity_foreground_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+        )
         SensitivityOption(
             label = stringResource(R.string.settings_sensitivity_balanced),
             description = stringResource(R.string.settings_sensitivity_balanced_desc),
