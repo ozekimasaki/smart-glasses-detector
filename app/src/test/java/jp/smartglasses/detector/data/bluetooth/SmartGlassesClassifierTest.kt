@@ -1190,7 +1190,12 @@ class SmartGlassesClassifierTest {
             "REKKIE",
             "RideOn",
             "RealMax",
-            "Toshiba"
+            "Toshiba",
+            "Almer",
+            "Goovis",
+            "Shadow Creator",
+            "DAQRI",
+            "Meganesuper"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2965,6 +2970,83 @@ class SmartGlassesClassifierTest {
         assertEquals("Toshiba", dynaEdge?.manufacturer?.name)
         assertEquals("OhO Sunshine", skyshot?.manufacturer?.name)
         assertNull(fashionGoggles)
+    }
+
+    @Test
+    fun `industrial and cinema glasses brands are detected`() {
+        val almer = classifier.classify(
+            DetectionSignal(
+                deviceName = "Almer Arc 2",
+                address = "AA:BB:CC:DD:EE:I1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val goovis = classifier.classify(
+            DetectionSignal(
+                deviceName = "GOOVIS Young",
+                address = "AA:BB:CC:DD:EE:I2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val shadow = classifier.classify(
+            DetectionSignal(
+                deviceName = "Shadow Creator",
+                address = "AA:BB:CC:DD:EE:I3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val daqri = classifier.classify(
+            DetectionSignal(
+                deviceName = "DAQRI Smart Glasses",
+                address = "AA:BB:CC:DD:EE:I4",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val meganesuper = classifier.classify(
+            DetectionSignal(
+                deviceName = "Meganesuper",
+                address = "AA:BB:CC:DD:EE:I5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val madGazeGlow = classifier.classify(
+            DetectionSignal(
+                deviceName = "Mad Gaze Glow",
+                address = "AA:BB:CC:DD:EE:I6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val vuzixStar = classifier.classify(
+            DetectionSignal(
+                deviceName = "Vuzix Star 1200",
+                address = "AA:BB:CC:DD:EE:I7",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val glowLamp = classifier.classify(
+            DetectionSignal(
+                deviceName = "Philips Hue Glow",
+                address = "AA:BB:CC:DD:EE:I8",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Almer", almer?.manufacturer?.name)
+        assertEquals("Goovis", goovis?.manufacturer?.name)
+        assertEquals("Shadow Creator", shadow?.manufacturer?.name)
+        assertEquals("DAQRI", daqri?.manufacturer?.name)
+        assertEquals("Meganesuper", meganesuper?.manufacturer?.name)
+        assertEquals("Mad Gaze", madGazeGlow?.manufacturer?.name)
+        assertEquals("Vuzix", vuzixStar?.manufacturer?.name)
+        assertNull(glowLamp)
     }
 
     private fun asciiToHex(value: String): String {

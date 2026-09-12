@@ -195,6 +195,13 @@ NAME_PATTERN_DEVICES = {
     210: "dynaEdge XR1",
     211: "OhO Skyshot",
     212: "Smart Goggles",
+    214: "Almer Arc 2",
+    215: "GOOVIS Young",
+    216: "Shadow Creator",
+    217: "DAQRI Smart Glasses",
+    218: "Meganesuper",
+    219: "Mad Gaze Glow",
+    220: "影创",
 }
 
 UUID_DEVICES = {

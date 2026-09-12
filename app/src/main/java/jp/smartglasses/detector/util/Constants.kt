@@ -220,6 +220,8 @@ object Constants {
                 "BT-45",
                 "BT-45C",
                 "BT-45CS",
+                "BT-40S",
+                "BT-35E",
                 "BT-40",
                 "BT-35",
                 "BT-30",
@@ -447,7 +449,9 @@ object Constants {
                 "Ultralite",
                 "Vuzix Z100",
                 "Vuzix LX1",
-                "Ultralite Pro"
+                "Ultralite Pro",
+                "Vuzix Star",
+                "Star 1200"
             )
         ),
         DetectionRule(
@@ -781,7 +785,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "Mad Gaze",
-            namePatterns = listOf("Mad Gaze", "MADGaze"),
+            namePatterns = listOf("Mad Gaze", "MADGaze", "Mad Gaze Glow", "MADGaze Glow"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -1483,6 +1487,36 @@ object Constants {
         DetectionRule(
             manufacturerName = "Toshiba",
             namePatterns = listOf("dynaEdge", "DynaEdge XR1", "dynaEdge XR"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Almer",
+            namePatterns = listOf("Almer", "Almer Arc", "Almer Arc 2"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Goovis",
+            namePatterns = listOf("Goovis", "GOOVIS"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Shadow Creator",
+            namePatterns = listOf(
+                "Shadow Creator",
+                "ShadowCreator",
+                "影创",
+                "Shadow Nano"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "DAQRI",
+            namePatterns = listOf("DAQRI", "Daqri"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Meganesuper",
+            namePatterns = listOf("Meganesuper", "Beyond Glasses"),
             allowCompanyIdOnly = false
         )
     )
