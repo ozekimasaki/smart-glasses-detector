@@ -52,7 +52,7 @@ android {
         versionCode = 48
         versionName = "1.1.38"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "jp.smartglasses.detector.HiltTestRunner"
     }
 
     buildTypes {
@@ -79,6 +79,9 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+    }
+    testOptions {
+        animationsDisabled = true
     }
 }
 
@@ -112,8 +115,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
