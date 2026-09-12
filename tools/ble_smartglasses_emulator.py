@@ -68,6 +68,7 @@ NAME_PATTERN_DEVICES = {
     54: "Xy_A",
     55: "Nex1-77",
     56: "mentra_live_abc",
+    57: "Nimo-A1B2",
 }
 
 UUID_DEVICES = {

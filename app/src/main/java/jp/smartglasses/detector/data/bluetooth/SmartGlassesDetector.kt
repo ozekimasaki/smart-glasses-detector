@@ -35,6 +35,7 @@ import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
+import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
 import jp.smartglasses.detector.util.ScanSensitivity
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,7 +62,8 @@ import javax.inject.Singleton
 class SmartGlassesDetector @Inject constructor(
     @ApplicationContext private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter?,
-    private val diagnosticLogRepository: DiagnosticLogRepository
+    private val diagnosticLogRepository: DiagnosticLogRepository,
+    private val scanEnvironmentSignals: ScanEnvironmentSignals
 ) {
     private val _scannedDevices = Channel<SmartGlassesDevice>(capacity = Channel.BUFFERED)
     val scannedDevices: Flow<SmartGlassesDevice> = _scannedDevices.receiveAsFlow()
@@ -77,6 +80,7 @@ class SmartGlassesDetector @Inject constructor(
     private val diagnosticWriteGate = DiagnosticLogWriteGate()
     private val isClassicDiscoveryReceiverRegistered = AtomicBoolean(false)
     private val classicDiscoveryStarted = AtomicBoolean(false)
+    private val lastClassicDiscoveryStartedAt = AtomicLong(0L)
     private val isBluetoothStateReceiverRegistered = AtomicBoolean(false)
     private val isLocationModeReceiverRegistered = AtomicBoolean(false)
     private val userRequestedScanning = AtomicBoolean(false)
@@ -111,6 +115,7 @@ class SmartGlassesDetector @Inject constructor(
 
             when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
                 BluetoothAdapter.STATE_ON -> {
+                    scanEnvironmentSignals.notifyChanged()
                     if (userRequestedScanning.get()) {
                         classicDiscoveryStarted.set(false)
                         startLeAndClassicScanning()
@@ -133,6 +138,7 @@ class SmartGlassesDetector @Inject constructor(
                 return
             }
             if (isLocationServicesSatisfied()) {
+                scanEnvironmentSignals.notifyChanged()
                 if (userRequestedScanning.get()) {
                     startLeAndClassicScanning()
                 }
@@ -432,8 +438,12 @@ class SmartGlassesDetector @Inject constructor(
 
     @SuppressLint("MissingPermission")
     private fun startClassicDiscovery() {
-        val adapter = bluetoothAdapter ?: return
+        val adapter = bluetoothAdapter ?: run {
+            classicDiscoveryStarted.set(false)
+            return
+        }
         if (!hasRequiredScanPermission() || !adapter.isEnabled) {
+            classicDiscoveryStarted.set(false)
             return
         }
 
@@ -443,9 +453,13 @@ class SmartGlassesDetector @Inject constructor(
             }
             if (!adapter.startDiscovery()) {
                 Log.w(TAG, "Bluetooth Classic discovery did not start.")
+                classicDiscoveryStarted.set(false)
+                return
             }
+            lastClassicDiscoveryStartedAt.set(System.currentTimeMillis())
         } catch (e: SecurityException) {
             Log.w(TAG, "Failed to start Bluetooth Classic discovery", e)
+            classicDiscoveryStarted.set(false)
         }
     }
 
@@ -478,6 +492,7 @@ class SmartGlassesDetector @Inject constructor(
         usingExtendedAdvertising = true
         usingMatchAllFilter = true
         classicDiscoveryStarted.set(false)
+        lastClassicDiscoveryStartedAt.set(0L)
         _isScanning.value = HardwareScanStatePolicy.isActive(
             userRequestedScanning = true,
             bluetoothEnabled = bluetoothAdapter.isEnabled,
@@ -533,6 +548,7 @@ class SmartGlassesDetector @Inject constructor(
         detectionCooldownGate.clear()
         diagnosticWriteGate.clear()
         classicDiscoveryStarted.set(false)
+        lastClassicDiscoveryStartedAt.set(0L)
         _nearbyDevices.value = nearbyDeviceTracker.clear()
     }
 
@@ -609,6 +625,19 @@ class SmartGlassesDetector @Inject constructor(
         scanner.startScan(null, settings, scanCallback)
     }
 
+    private fun refreshClassicDiscoveryIfNeeded() {
+        if (
+            ClassicDiscoveryPolicy.shouldRefreshClassicDiscovery(
+                lastStartedAtMs = lastClassicDiscoveryStartedAt.get(),
+                nowMs = System.currentTimeMillis(),
+                intervalMs = ClassicDiscoveryPolicy.refreshIntervalMs(isAppInForeground())
+            )
+        ) {
+            classicDiscoveryStarted.set(false)
+        }
+        startClassicDiscoveryIfNeeded()
+    }
+
     @SuppressLint("MissingPermission")
     private fun pauseHardwareScan(
         bluetoothEnabled: Boolean? = null,
@@ -621,6 +650,7 @@ class SmartGlassesDetector @Inject constructor(
             scanPermissionGranted = scanPermissionGranted ?: hasRequiredScanPermission(),
             locationServicesSatisfied = locationServicesSatisfied ?: isLocationServicesSatisfied()
         )
+        scanEnvironmentSignals.notifyChanged()
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         } catch (e: Exception) {
@@ -666,6 +696,7 @@ class SmartGlassesDetector @Inject constructor(
                 delay(BleScanRefreshPolicy.intervalMs(isAppInForeground()))
                 if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true && isLocationServicesSatisfied()) {
                     refreshBleScan()
+                    refreshClassicDiscoveryIfNeeded()
                 }
             }
         }
@@ -760,6 +791,7 @@ class SmartGlassesDetector @Inject constructor(
                     BluetoothScanFailure(ScanFailurePolicy.SCAN_ENVIRONMENT_PERMISSION_DENIED)
                 )
             } else if (!_isScanning.value) {
+                scanEnvironmentSignals.notifyChanged()
                 startLeAndClassicScanning()
             }
         }

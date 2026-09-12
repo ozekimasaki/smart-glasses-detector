@@ -64,6 +64,10 @@ class EmulatedAdvertisementCoverageTest {
             "Mentra Nex advertised prefix should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Nex1-77" }
         )
+        assertTrue(
+            "NIMO classic name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Nimo-A1B2" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

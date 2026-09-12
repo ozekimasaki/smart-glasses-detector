@@ -8,6 +8,7 @@ import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
+import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanRestorePrompt
 import jp.smartglasses.detector.domain.service.ScanStartPolicy
 import jp.smartglasses.detector.domain.service.ScanStartRequirement
@@ -46,7 +47,8 @@ class MainViewModel @Inject constructor(
     private val startScanningUseCase: StartScanningUseCase,
     private val stopScanningUseCase: StopScanningUseCase,
     private val detectionLogRepository: DetectionLogRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    scanEnvironmentSignals: ScanEnvironmentSignals
 ) : ViewModel() {
     private val _event = Channel<MainEvent>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
@@ -88,8 +90,9 @@ class MainViewModel @Inject constructor(
     val restorePrompt = combine(
         settingsRepository.isScanning,
         bluetoothRepository.isScanning,
+        scanEnvironmentSignals.revision,
         scanBlockerRefresh
-    ) { persistedIntent, _, _ ->
+    ) { persistedIntent, _, _, _ ->
         ScanUiStatePolicy.restorePrompt(
             persistedIntent = persistedIntent,
             hasScanPermissions = bluetoothRepository.hasPermissions(),

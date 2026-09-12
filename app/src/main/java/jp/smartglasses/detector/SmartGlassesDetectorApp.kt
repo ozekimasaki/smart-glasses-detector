@@ -16,6 +16,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import jp.smartglasses.detector.data.bluetooth.ScanPermissionAppOpsMonitor
+import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.domain.usecase.ResumeScanningIfNeededUseCase
 import jp.smartglasses.detector.util.Constants
@@ -31,6 +32,9 @@ import javax.inject.Inject
 class SmartGlassesDetectorApp : Application() {
     @Inject
     lateinit var resumeScanningIfNeeded: ResumeScanningIfNeededUseCase
+
+    @Inject
+    lateinit var scanEnvironmentSignals: ScanEnvironmentSignals
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var foregroundResumeJob: Job? = null
@@ -50,6 +54,7 @@ class SmartGlassesDetectorApp : Application() {
             val pendingResult = goAsync()
             applicationScope.launch {
                 try {
+                    scanEnvironmentSignals.notifyChanged()
                     resumeScanningIfNeeded(appInForeground = isAppInForeground())
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to resume scanning after ${intent?.action}", e)
@@ -94,6 +99,7 @@ class SmartGlassesDetectorApp : Application() {
         }
 
         val monitor = ScanPermissionAppOpsMonitor(this) {
+            scanEnvironmentSignals.notifyChanged()
             resumeScanningInBackground(
                 reason = "scan permission changed",
                 appInForeground = isAppInForeground()
