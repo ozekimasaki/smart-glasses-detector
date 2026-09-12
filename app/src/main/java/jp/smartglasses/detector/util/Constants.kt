@@ -20,6 +20,7 @@ object Constants {
     internal const val COOLDOWN_SAME_DEVICE_MS = 30_000L
     internal const val COOLDOWN_SAME_MANUFACTURER_MS = 15_000L
     internal const val BLE_SCAN_REFRESH_INTERVAL_MS = 4 * 60 * 1000L
+    internal const val BLE_SCAN_FOREGROUND_REFRESH_INTERVAL_MS = 45_000L
     internal const val SCAN_HEALTH_CHECK_INTERVAL_MS = 15_000L
     internal const val CLASSIC_DISCOVERY_DELAY_MS = 15_000L
     internal const val NEARBY_DEVICE_TTL_MS = 20_000L
@@ -143,6 +144,8 @@ object Constants {
             namePatterns = listOf(
                 "HUAWEI Eyewear 2",
                 "HUAWEI Eyewear",
+                "HUAWEI Vision Glass",
+                "Huawei Vision Glass",
                 "OWNDAYS",
                 "HW1001",
                 "HW1002",
@@ -355,7 +358,7 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "LAWAKEN",
-            namePatterns = listOf("LAWAKEN", "LAWKAN"),
+            namePatterns = listOf("LAWAKEN", "LAWKAN", "李未可"),
             allowCompanyIdOnly = false
         ),
         DetectionRule(

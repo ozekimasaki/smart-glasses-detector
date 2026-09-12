@@ -68,6 +68,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.DetectionLog
@@ -375,6 +377,11 @@ private fun ScanActionButton(
         transitionSpec = { fadeIn(tween(350)) togetherWith fadeOut(tween(350)) },
         label = "action_btn"
     ) { scanning ->
+        val actionDescription = if (scanning) {
+            "${stringResource(R.string.main_stop_button)}。${stringResource(R.string.main_stop_description)}"
+        } else {
+            "${stringResource(R.string.main_start_button)}。${stringResource(R.string.main_start_description)}"
+        }
         if (scanning) {
             val infiniteTransition = rememberInfiniteTransition(label = "ripple")
             val ripple1Scale by infiniteTransition.animateFloat(
@@ -411,6 +418,7 @@ private fun ScanActionButton(
                         color = MaterialTheme.colorScheme.outline,
                         shape = RoundedCornerShape(16.dp)
                     )
+                    .semantics { contentDescription = actionDescription }
                     .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -462,6 +470,7 @@ private fun ScanActionButton(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(BrandOrange)
+                    .semantics { contentDescription = actionDescription }
                     .clickable(role = Role.Button, onClick = onClick)
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically

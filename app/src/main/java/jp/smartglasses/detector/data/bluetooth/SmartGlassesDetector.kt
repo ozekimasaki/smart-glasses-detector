@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -18,6 +19,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.util.size
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jp.smartglasses.detector.domain.model.BluetoothScanFailure
 import jp.smartglasses.detector.domain.model.DiagnosticLog
@@ -25,6 +28,7 @@ import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.model.hasPayload
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.util.Constants
@@ -521,7 +525,11 @@ class SmartGlassesDetector @Inject constructor(
         scanner: BluetoothLeScanner,
         extendedAdvertising: Boolean
     ) {
-        scanner.startScan(null, buildScanSettings(lastSensitivity, extendedAdvertising), scanCallback)
+        scanner.startScan(
+            matchAllScanFilters(),
+            buildScanSettings(lastSensitivity, extendedAdvertising),
+            scanCallback
+        )
     }
 
     @SuppressLint("MissingPermission")
@@ -571,7 +579,7 @@ class SmartGlassesDetector @Inject constructor(
         scanWatchdogJob?.cancel()
         scanWatchdogJob = diagnosticPersistenceScope.launch {
             while (isActive) {
-                delay(Constants.BLE_SCAN_REFRESH_INTERVAL_MS)
+                delay(BleScanRefreshPolicy.intervalMs(isAppInForeground()))
                 if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
                     refreshBleScan()
                 }
@@ -671,6 +679,14 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         return builder.build()
+    }
+
+    private fun matchAllScanFilters(): List<ScanFilter> {
+        return listOf(ScanFilter.Builder().build())
+    }
+
+    private fun isAppInForeground(): Boolean {
+        return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 
     companion object {

@@ -902,6 +902,36 @@ class SmartGlassesClassifierTest {
         assertEquals("Mentra", detected?.manufacturer?.name)
     }
 
+    @Test
+    fun `lawaken chinese brand names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "李未可-A1",
+                address = "AA:BB:CC:DD:EE:46",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("LAWAKEN", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `huawei vision glass names are detected`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "HUAWEI Vision Glass",
+                address = "AA:BB:CC:DD:EE:47",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("Huawei", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

@@ -34,7 +34,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
-        tools:targetApi="33"
+        android:intentMatchingFlags="enforceIntentFilter"
+        tools:targetApi="36"
         android:theme="@style/Theme.スマートグラス検出">
         <activity
             android:name=".MainActivity"
