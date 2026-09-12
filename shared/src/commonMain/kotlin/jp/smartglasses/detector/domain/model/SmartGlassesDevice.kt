@@ -1,11 +1,13 @@
 package jp.smartglasses.detector.domain.model
 
+import jp.smartglasses.detector.util.currentTimeMillis
+
 data class SmartGlassesDevice(
     val name: String,
     val address: String,
     val manufacturer: Manufacturer,
     val rssi: Int,
-    val detectedAt: Long = System.currentTimeMillis()
+    val detectedAt: Long = currentTimeMillis()
 ) {
     val distance: Distance
         get() = when {

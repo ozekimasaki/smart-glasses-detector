@@ -2,7 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.util.DetectionRule
 
-internal class DetectionRuleIndex(
+class DetectionRuleIndex(
     private val rules: List<DetectionRule>
 ) {
     private data class IndexedRule(

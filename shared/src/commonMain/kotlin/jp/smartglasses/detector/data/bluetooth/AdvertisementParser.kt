@@ -1,6 +1,6 @@
 package jp.smartglasses.detector.data.bluetooth
 
-internal data class ParsedAdvertisement(
+data class ParsedAdvertisement(
     val appearance: Int? = null,
     val completeName: String? = null,
     val shortName: String? = null,
@@ -20,7 +20,7 @@ internal data class ParsedAdvertisement(
     }
 }
 
-internal object AdvertisementParser {
+object AdvertisementParser {
     const val AD_TYPE_SHORT_NAME = 0x08
     const val AD_TYPE_COMPLETE_NAME = 0x09
     const val AD_TYPE_APPEARANCE = 0x19
@@ -177,7 +177,7 @@ internal object AdvertisementParser {
             chars[index++] = HEX_DIGITS[value ushr 4]
             chars[index++] = HEX_DIGITS[value and 0x0F]
         }
-        return String(chars)
+        return chars.concatToString()
     }
 
     fun encodeManufacturerSpecificTlv(companyId: Int, payload: ByteArray = byteArrayOf()): String {
@@ -196,7 +196,7 @@ internal object AdvertisementParser {
         encoded[2] = (companyId and 0xFF).toByte()
         encoded[3] = ((companyId shr 8) and 0xFF).toByte()
         if (payloadSize > 0) {
-            System.arraycopy(payload, 0, encoded, 4, payloadSize)
+            payload.copyInto(encoded, destinationOffset = 4, endIndex = payloadSize)
         }
         return encoded
     }
@@ -297,7 +297,7 @@ internal object AdvertisementParser {
                 serviceUuids += parseUuid128List(data, start, end)
             }
             AD_TYPE_SERVICE_DATA_16BIT -> if (end - start >= 2) {
-                serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, start)))
+                serviceUuids += BleUuid.normalize(hex4(unsignedLe16(data, start)))
             }
             AD_TYPE_SERVICE_DATA_32BIT -> if (end - start >= 4) {
                 serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, start)))
@@ -352,7 +352,7 @@ internal object AdvertisementParser {
         val uuids = mutableListOf<String>()
         var offset = start
         while (offset + 2 <= end) {
-            uuids += BleUuid.normalize("%04X".format(unsignedLe16(data, offset)))
+            uuids += BleUuid.normalize(hex4(unsignedLe16(data, offset)))
             offset += 2
         }
         return uuids
@@ -389,12 +389,16 @@ internal object AdvertisementParser {
             chars[index++] = HEX_DIGITS[value ushr 4]
             chars[index++] = HEX_DIGITS[value and 0x0F]
         }
-        return BleUuid.normalize(String(chars))
+        return BleUuid.normalize(chars.concatToString())
     }
 
     private fun unsignedLe16(data: ByteArray, offset: Int): Int {
         return (data[offset].toInt() and 0xFF) or
             ((data[offset + 1].toInt() and 0xFF) shl 8)
+    }
+
+    private fun hex4(value: Int): String {
+        return value.toString(16).uppercase().padStart(4, '0')
     }
 
     private fun hex8(value: Long): String {

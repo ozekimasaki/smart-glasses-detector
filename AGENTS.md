@@ -6,10 +6,11 @@
 
 - **アプリ名 / 表示名**: スマートグラス検出
 - **パッケージ名 / `applicationId`**: `jp.smartglasses.detector`
-- **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できる Android アプリ
+- **目的**: BLE 広告を監視して近くのスマートグラスを検出し、通知・履歴・診断ログで確認できるアプリ（Android / iOS）
 - **`minSdk`**: 26 (Android 8.0) / **`targetSdk`** / **`compileSdk`**: 36 / 37（Android 16 / API 37）
+- **iOS**: 17+ / Bundle ID `jp.smartglasses.detector`（`iosApp/`）
 - **`versionCode` / `versionName`**: `app/build.gradle.kts` で管理（現行 48 / 1.1.38）
-- 単一モジュール構成（`:app`）
+- モジュール: `:shared`（KMP 検出頭脳）+ `:app`（Android）+ `iosApp/`（SwiftUI）
 
 ## アーキテクチャ
 
@@ -22,6 +23,7 @@ presentation/ → domain/ → data/
 - **presentation/**: Jetpack Compose UI と ViewModel
 - **domain/**: model / repository interface / usecase / service interface
 - **data/**: repository 実装、BLE、Room、DataStore、エクスポート
+- `:shared`: 分類器・広告解析・検出ルール（Android / iOS で共有）
 - DI は Hilt（`SingletonComponent`）。`@AndroidEntryPoint` / `@HiltViewModel` を使用。
 
 ## エントリポイント
@@ -30,6 +32,7 @@ presentation/ → domain/ → data/
 - `MainActivity.kt`: `@AndroidEntryPoint` な `ComponentActivity`。`AppNavigation()` で Compose の `NavHost` を構築
 - `service/ScanningForegroundService.kt`: BLE 探索を継続するフォアグラウンドサービス
 - `AndroidManifest.xml`: 権限、`MainActivity`、`ScanningForegroundService`（`foregroundServiceType="connectedDevice"`）、`BootReceiver`、`FileProvider` を宣言
+- `iosApp/`: SwiftUI。CoreBluetooth が `SmartGlassesDetection`（`:shared`）を呼ぶ
 
 ## ディレクトリ構成（`app/src/main/java/jp/smartglasses/detector/`）
 
@@ -46,9 +49,8 @@ domain/
                # GetDetectionHistoryUseCase, UpdateSettingsUseCase,
                # ResumeScanningIfNeededUseCase, ClearStoredDetectionDataUseCase
 data/
-  bluetooth/   # SmartGlassesDetector, SmartGlassesClassifier,
-               # AdvertisementParser, BleUuid, DetectionCooldownGate,
-               # BluetoothRepositoryImpl
+  bluetooth/   # SmartGlassesDetector, DetectionCooldownGate,
+               # BluetoothRepositoryImpl（分類器は :shared）
   database/    # AppDatabase(Room), DetectionLog(Dao/Entity), DiagnosticLog(Dao/Entity)
   preferences/ # AppPreferences (DataStore ラッパー)
   repository/  # DetectionLogRepositoryImpl, DiagnosticLogRepositoryImpl,
@@ -82,9 +84,9 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 ./gradlew assembleRelease
 ./gradlew bundleRelease
 
-# ユニットテスト（app/src/test, JUnit4）
-./gradlew test
-./gradlew testDebugUnitTest
+# ユニットテスト（:shared commonTest + app/src/test）
+./gradlew :shared:jvmTest
+./gradlew :app:testDebugUnitTest
 
 # 計測テスト（app/src/androidTest, 要エミュレータ/実機）
 ./gradlew connectedAndroidTest
@@ -108,7 +110,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 - レイヤー依存は `presentation → domain → data` の一方向を維持する。`domain` はフレームワーク非依存の interface / model を置く。
 - DI は Hilt を使用。新しい依存は該当する `di/` モジュール（`AppModule` / `BluetoothModule` / `DatabaseModule` / `RepositoryModule`）で提供・バインドする。
 - UI は Jetpack Compose + Material 3。テーマは `ui/theme/` を使用する。
-- 検出対象メーカーやクールダウン等の定数は `util/Constants.kt`（`SMART_GLASSES_DETECTION_RULES`、`COOLDOWN_*`）に集約する。RSSI 下限は `DetectionRssiPolicy` が感度と照合クラスごとに決める。
+- 検出対象メーカーやクールダウン等の定数は `shared/.../util/Constants.kt`（`SMART_GLASSES_DETECTION_RULES`、`COOLDOWN_*`）に集約する。RSSI 下限は `DetectionRssiPolicy` が感度と照合クラスごとに決める。
 - 設定キーとデフォルト値は `data/preferences/AppPreferences.kt` に定義（DataStore Preferences）。
 
 ## 注意点
@@ -121,6 +123,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。検出記録と調査ログは設定画面 / 記録画面から削除できる。
 7. **接続中機器**: 広告を止めたグラスを拾うため、A2DP / Headset / LE Audio / GATT の接続中デバイスも分類する。ヘッドホン Class だけでは検出しない。
 8. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
+9. **iOS**: 前面は無フィルタ BLE スキャン、背景はカタログ Service UUID のみ（Apple の制限）。位置情報キーは付けない。Xcode ビルドは [`docs/ios-build.md`](docs/ios-build.md)。
 
 ## ドキュメント
 
@@ -128,3 +131,4 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 - ビルド環境（Windows ラッパー）: [`docs/build-environment.md`](docs/build-environment.md)
 - 署名手順: [`docs/github-release-signing.md`](docs/github-release-signing.md)
 - Play 公開チェック: [`docs/play-release-checklist.md`](docs/play-release-checklist.md)
+- iOS ビルド: [`docs/ios-build.md`](docs/ios-build.md)
