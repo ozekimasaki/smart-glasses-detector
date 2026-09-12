@@ -57,7 +57,8 @@ object ClassicDiscoveryPolicy {
     fun shouldApplyInquiryUpdate(
         action: String?,
         scanningRequested: Boolean,
-        alreadySeenAddress: Boolean
+        alreadySeenAddress: Boolean,
+        deviceClass: Int? = null
     ): Boolean {
         if (!scanningRequested) {
             return false
@@ -65,9 +66,10 @@ object ClassicDiscoveryPolicy {
 
         return when (action) {
             ACTION_FOUND -> true
-            // Classic inquiry または BLE 広告で一度見た機器の遅延名前 / Class 更新
-            ACTION_NAME_CHANGED,
-            ACTION_CLASS_CHANGED -> alreadySeenAddress
+            // Classic inquiry または BLE 広告で一度見た機器の遅延名前
+            ACTION_NAME_CHANGED -> alreadySeenAddress
+            ACTION_CLASS_CHANGED ->
+                alreadySeenAddress || BluetoothDeviceClassPolicy.isGlassesDeviceClass(deviceClass)
             else -> false
         }
     }

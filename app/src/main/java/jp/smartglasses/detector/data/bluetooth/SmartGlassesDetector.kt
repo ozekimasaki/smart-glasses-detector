@@ -121,25 +121,38 @@ class SmartGlassesDetector @Inject constructor(
             val bluetoothDevice = intent.extractBluetoothDevice() ?: return
             val address = resolveDeviceAddress(bluetoothDevice)
             val scanningRequested = userRequestedScanning.get()
+            val extraRssi = intent.getShortExtra(
+                BluetoothDevice.EXTRA_RSSI,
+                Constants.UNKNOWN_RSSI_DBM.toShort()
+            ).toInt()
+            val extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
+            val deviceClass = intent.extractBluetoothClass()?.deviceClass
+                ?: resolveDeviceClass(bluetoothDevice)
             if (action == BluetoothDevice.ACTION_FOUND && scanningRequested) {
                 rememberSeenAdvertiser(
                     address = address,
-                    rssi = intent.getShortExtra(
-                        BluetoothDevice.EXTRA_RSSI,
-                        Constants.UNKNOWN_RSSI_DBM.toShort()
-                    ).toInt()
+                    rssi = extraRssi
                 )
             }
             if (
                 !ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                     action = action,
                     scanningRequested = scanningRequested,
-                    alreadySeenAddress = wasSeenInClassicInquiry(address)
+                    alreadySeenAddress = wasSeenInClassicInquiry(address),
+                    deviceClass = deviceClass
                 )
             ) {
                 return
             }
-            handleClassicDiscoveryResult(intent)
+            val signal = extractClassicSignal(
+                bluetoothDevice = bluetoothDevice,
+                extraName = extraName,
+                extraRssi = extraRssi,
+                deviceClass = deviceClass
+            )
+            scanCallbackHandler.post {
+                handleDetectionSignal(signal, action = action)
+            }
         }
     }
 
@@ -471,29 +484,27 @@ class SmartGlassesDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun handleClassicDiscoveryResult(intent: Intent) {
-        val bluetoothDevice = intent.extractBluetoothDevice() ?: return
+    private fun extractClassicSignal(
+        bluetoothDevice: BluetoothDevice,
+        extraName: String?,
+        extraRssi: Int,
+        deviceClass: Int?
+    ): DetectionSignal {
         val address = resolveDeviceAddress(bluetoothDevice)
-        val extraRssi = intent.getShortExtra(
-            BluetoothDevice.EXTRA_RSSI,
-            Constants.UNKNOWN_RSSI_DBM.toShort()
-        ).toInt()
         if (extraRssi != Constants.UNKNOWN_RSSI_DBM && address.isNotBlank()) {
             classicInquiryRssi[address] = extraRssi
         }
-        val baseSignal = ClassicDiscoverySignal(
+        return ClassicDiscoverySignal(
             deviceName = resolveCachedDeviceName(bluetoothDevice),
-            extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
+            extraName = extraName,
             alias = resolveDeviceAlias(bluetoothDevice),
             address = address,
             rssi = ClassicDiscoveryPolicy.resolveRssi(
                 extraRssi = extraRssi,
                 previouslySeenRssi = classicInquiryRssi[address]
             ),
-            deviceClass = intent.extractBluetoothClass()?.deviceClass
-                ?: resolveDeviceClass(bluetoothDevice)
+            deviceClass = deviceClass
         ).toDetectionSignal()
-        handleDetectionSignal(baseSignal, action = intent.action)
     }
 
     @SuppressLint("MissingPermission")

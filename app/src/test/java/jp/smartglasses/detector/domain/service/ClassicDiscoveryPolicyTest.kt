@@ -102,6 +102,30 @@ class ClassicDiscoveryPolicyTest {
                 alreadySeenAddress = false
             )
         )
+        assertTrue(
+            ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                action = ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED,
+                scanningRequested = true,
+                alreadySeenAddress = false,
+                deviceClass = BluetoothDeviceClassPolicy.WEARABLE_GLASSES
+            )
+        )
+        assertTrue(
+            ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                action = ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED,
+                scanningRequested = true,
+                alreadySeenAddress = false,
+                deviceClass = BluetoothDeviceClassPolicy.AUDIO_VIDEO_GLASSES
+            )
+        )
+        assertFalse(
+            ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
+                action = ClassicDiscoveryPolicy.ACTION_CLASS_CHANGED,
+                scanningRequested = true,
+                alreadySeenAddress = false,
+                deviceClass = 0x0418
+            )
+        )
         assertFalse(
             ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                 action = ClassicDiscoveryPolicy.ACTION_NAME_CHANGED,

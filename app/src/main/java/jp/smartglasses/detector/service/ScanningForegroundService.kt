@@ -541,6 +541,15 @@ class ScanningForegroundService : Service() {
             )
         ) {
             Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
+            if (
+                !ScanResumePolicy.shouldKeepForegroundServiceDuringEnvironmentPause(
+                    backgroundEnabled = backgroundScanningEnabled,
+                    appInForeground = isAppInForeground()
+                )
+            ) {
+                pauseScanningKeepingIntent()
+                return
+            }
             if (bluetoothRepository.isHardwareScanRunning.first()) {
                 pauseHardwareKeepingSession()
             } else {
