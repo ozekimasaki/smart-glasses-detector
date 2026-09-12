@@ -2,6 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
@@ -38,6 +39,7 @@ import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanFlushPolicy
+import jp.smartglasses.detector.domain.service.BleScanPendingIntentPolicy
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
@@ -126,6 +128,22 @@ class SmartGlassesDetector @Inject constructor(
         Process.THREAD_PRIORITY_FOREGROUND
     ).apply { start() }
     private val scanCallbackHandler = Handler(scanCallbackThread.looper)
+    private val scanResultPendingIntent: PendingIntent by lazy {
+        val intent = Intent(BleScanPendingIntentPolicy.ACTION_SCAN_RESULTS).apply {
+            setClassName(context.packageName, BleScanPendingIntentPolicy.RECEIVER_CLASS_NAME)
+            setPackage(context.packageName)
+        }
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            flags = flags or PendingIntent.FLAG_MUTABLE
+        }
+        PendingIntent.getBroadcast(
+            context,
+            BleScanPendingIntentPolicy.REQUEST_CODE,
+            intent,
+            flags
+        )
+    }
     private val connectedProfileListener = object : BluetoothProfile.ServiceListener {
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
             synchronized(connectedProfileLock) {
@@ -338,6 +356,28 @@ class SmartGlassesDetector @Inject constructor(
     
     fun detectSmartGlasses(result: ScanResult): SmartGlassesDevice? {
         return scanSignalProcessor.detectDevice(extractSignal(copyBleAdvertisement(result)), lastSensitivity)
+    }
+
+    @SuppressLint("MissingPermission")
+    fun ingestScanResults(results: List<ScanResult>) {
+        if (results.isEmpty()) {
+            return
+        }
+        val snapshots = ArrayList<CopiedBleAdvertisement>(results.size)
+        results.forEach { result ->
+            snapshots += copyBleAdvertisement(result)
+        }
+        scanCallbackHandler.post {
+            snapshots.forEach { snapshot ->
+                handleDetectionSignal(extractSignal(snapshot))
+            }
+        }
+    }
+
+    fun reportScanFailure(errorCode: Int) {
+        scanCallbackHandler.post {
+            handleScanFailed(errorCode)
+        }
     }
 
     private data class CopiedBleAdvertisement(
@@ -1010,7 +1050,7 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         try {
-            scanner.stopScan(scanCallback)
+            stopLeScans(scanner)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop previous BLE scan before restart", e)
         }
@@ -1050,7 +1090,7 @@ class SmartGlassesDetector @Inject constructor(
         val settings = buildScanSettings(lastSensitivity, extendedAdvertising)
         if (usingMatchAllFilter) {
             try {
-                scanner.startScan(matchAllScanFilters(), settings, scanCallback)
+                startLeScanSession(scanner, matchAllScanFilters(), settings)
                 return
             } catch (e: IllegalArgumentException) {
                 when (
@@ -1073,7 +1113,55 @@ class SmartGlassesDetector @Inject constructor(
                 }
             }
         }
-        scanner.startScan(null, settings, scanCallback)
+        startLeScanSession(scanner, null, settings)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startLeScanSession(
+        scanner: BluetoothLeScanner,
+        filters: List<ScanFilter>?,
+        settings: ScanSettings
+    ) {
+        scanner.startScan(filters, settings, scanCallback)
+        startPendingIntentScan(scanner, filters, settings)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startPendingIntentScan(
+        scanner: BluetoothLeScanner,
+        filters: List<ScanFilter>?,
+        settings: ScanSettings
+    ) {
+        if (!BleScanPendingIntentPolicy.shouldStart(userRequestedScanning.get())) {
+            return
+        }
+        try {
+            scanner.stopScan(scanResultPendingIntent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop previous process-surviving BLE scan", e)
+        }
+        try {
+            scanner.startScan(filters, settings, scanResultPendingIntent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to start process-surviving BLE scan", e)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopLeScans(scanner: BluetoothLeScanner?) {
+        if (scanner == null) {
+            return
+        }
+        try {
+            scanner.stopScan(scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop BLE scan", e)
+        }
+        try {
+            scanner.stopScan(scanResultPendingIntent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop process-surviving BLE scan", e)
+        }
     }
 
     private fun refreshClassicDiscoveryIfNeeded() {
@@ -1102,11 +1190,7 @@ class SmartGlassesDetector @Inject constructor(
         )
         _hardwareScanRunning.value = false
         scanEnvironmentSignals.notifyChanged()
-        try {
-            bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to stop BLE scan", e)
-        }
+        stopLeScans(bluetoothAdapter?.bluetoothLeScanner)
         classicDiscoveryJob?.cancel()
         classicDiscoveryJob = null
         classicDiscoveryRetryJob?.cancel()
@@ -1127,7 +1211,7 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         try {
-            bluetoothAdapter.bluetoothLeScanner?.stopScan(scanCallback)
+            stopLeScans(bluetoothAdapter.bluetoothLeScanner)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to refresh BLE scan", e)
         }
@@ -1307,6 +1391,7 @@ class SmartGlassesDetector @Inject constructor(
         val connectedDevices = ArrayList(devices.values)
         scanCallbackHandler.post {
             connectedDevices.forEach { device ->
+                requestUuidRefreshIfNeeded(device)
                 handleDetectionSignal(
                     extractClassicSignal(
                         bluetoothDevice = device,
