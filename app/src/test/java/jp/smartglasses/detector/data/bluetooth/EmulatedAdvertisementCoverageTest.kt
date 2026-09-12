@@ -152,7 +152,12 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "豆包AI眼镜" } &&
                 catalog.nameDevices.any { device -> device.name == "Everysight Maverick" } &&
                 catalog.nameDevices.any { device -> device.name == "OpenGlass" } &&
-                catalog.nameDevices.any { device -> device.name == "XRAI Glass" }
+                catalog.nameDevices.any { device -> device.name == "XRAI Glass" } &&
+                catalog.nameDevices.any { device -> device.name == "HEY2_A1B2" } &&
+                catalog.nameDevices.any { device -> device.name == "AirScouter WD-200B" } &&
+                catalog.nameDevices.any { device -> device.name == "RETISSA ON" } &&
+                catalog.nameDevices.any { device -> device.name == "字幕眼镜-01" } &&
+                catalog.nameDevices.any { device -> device.name == "OnePlus Glasses" }
         )
 
         catalog.nameDevices.forEach { device ->

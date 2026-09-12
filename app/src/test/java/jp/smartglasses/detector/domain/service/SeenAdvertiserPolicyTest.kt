@@ -163,4 +163,33 @@ class SeenAdvertiserPolicyTest {
         )
         assertEquals(1_000L, fresh.lastSeenAtMs)
     }
+
+    @Test
+    fun `later empty advertisements keep an earlier manufacturer payload`() {
+        val payloadHex = "0201060FFF8E0554455354"
+        val merged = SeenAdvertiserPolicy.merge(
+            existing = SeenAdvertiserPolicy.merge(
+                existing = null,
+                rssi = -105,
+                companyIds = setOf(0x058E),
+                advertisementDataHex = payloadHex
+            ),
+            rssi = -55,
+            advertisementDataHex = ""
+        )
+
+        assertEquals(-55, merged.rssi)
+        assertEquals(payloadHex, merged.advertisementDataHex)
+        assertEquals(setOf(0x058E), merged.companyIds)
+    }
+
+    @Test
+    fun `shorter duplicate hex does not erase a longer advertisement`() {
+        val merged = SeenAdvertiserPolicy.mergeAdvertisementHex(
+            existing = "0201060FFF8E05META",
+            incoming = "020106"
+        )
+
+        assertEquals("0201060FFF8E05META", merged)
+    }
 }

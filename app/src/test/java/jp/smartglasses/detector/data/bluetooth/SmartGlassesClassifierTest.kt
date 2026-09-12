@@ -1136,7 +1136,10 @@ class SmartGlassesClassifierTest {
             "Doubao",
             "Everysight",
             "OpenGlass",
-            "XRAI"
+            "XRAI",
+            "Brother",
+            "QD Laser",
+            "OnePlus"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2026,6 +2029,132 @@ class SmartGlassesClassifierTest {
 
         assertEquals("Meta Platforms", unnamed?.manufacturer?.name)
         assertNull(delayedName)
+    }
+
+    @Test
+    fun `weak first packet payload is still detected after a later empty advertisement`() {
+        val advertisement = "020106" + AdvertisementParser.encodeManufacturerSpecificTlv(
+            companyId = 0x1234,
+            payload = "GLASS_01".encodeToByteArray()
+        )
+        val weak = DetectionSignal(
+            deviceName = null,
+            address = "AA:BB:CC:DD:EE:90",
+            companyIds = emptySet(),
+            rssi = -105,
+            advertisementDataHex = advertisement
+        )
+        assertNull(classifier.classify(weak))
+
+        val snapshot = SeenAdvertiserPolicy.merge(
+            existing = SeenAdvertiserPolicy.merge(
+                existing = null,
+                rssi = weak.rssi,
+                companyIds = weak.companyIds,
+                advertisementDataHex = weak.advertisementDataHex
+            ),
+            rssi = -55,
+            advertisementDataHex = ""
+        )
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = snapshot.deviceName,
+                address = "AA:BB:CC:DD:EE:90",
+                companyIds = snapshot.companyIds,
+                rssi = snapshot.rssi,
+                advertisementDataHex = snapshot.advertisementDataHex
+            )
+        )
+
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `leion hey2 coded names and 2026 translation glasses are detected`() {
+        val hey2 = classifier.classify(
+            DetectionSignal(
+                deviceName = "HEY2_A1B2",
+                address = "AA:BB:CC:DD:EE:91",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val leionHey = classifier.classify(
+            DetectionSignal(
+                deviceName = "Leion Hey2",
+                address = "AA:BB:CC:DD:EE:92",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val captions = classifier.classify(
+            DetectionSignal(
+                deviceName = "字幕眼镜-01",
+                address = "AA:BB:CC:DD:EE:93",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val airScouter = classifier.classify(
+            DetectionSignal(
+                deviceName = "AirScouter WD-200B",
+                address = "AA:BB:CC:DD:EE:94",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val retissa = classifier.classify(
+            DetectionSignal(
+                deviceName = "RETISSA ON",
+                address = "AA:BB:CC:DD:EE:95",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val onePlus = classifier.classify(
+            DetectionSignal(
+                deviceName = "OnePlus Glasses",
+                address = "AA:BB:CC:DD:EE:96",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val they2 = classifier.classify(
+            DetectionSignal(
+                deviceName = "THEY2",
+                address = "AA:BB:CC:DD:EE:97",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val qinheng = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:98",
+                companyIds = setOf(0x07D7),
+                rssi = -50
+            )
+        )
+        val cosonic = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:99",
+                companyIds = setOf(0x0FBA),
+                rssi = -50
+            )
+        )
+
+        assertEquals("LLVision", hey2?.manufacturer?.name)
+        assertEquals("LLVision", leionHey?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, captions?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, captions?.manufacturer?.detectionMethod)
+        assertEquals("Brother", airScouter?.manufacturer?.name)
+        assertEquals("QD Laser", retissa?.manufacturer?.name)
+        assertEquals("OnePlus", onePlus?.manufacturer?.name)
+        assertNull(they2)
+        assertNull(qinheng)
+        assertNull(cosonic)
     }
 
     private fun asciiToHex(value: String): String {

@@ -336,7 +336,9 @@ class SmartGlassesDetector @Inject constructor(
         serviceUuids: List<String> = emptyList(),
         appearance: Int? = null,
         deviceClass: Int? = null,
-        deviceName: String? = null
+        deviceName: String? = null,
+        advertisementDataHex: String = "",
+        extraPayloadHex: String = ""
     ) {
         if (!ClassicDiscoveryPolicy.shouldRememberSeenAdvertiser(address)) {
             return
@@ -353,6 +355,8 @@ class SmartGlassesDetector @Inject constructor(
             appearance = appearance,
             deviceClass = deviceClass,
             deviceName = deviceName,
+            advertisementDataHex = advertisementDataHex,
+            extraPayloadHex = extraPayloadHex,
             nowMs = System.currentTimeMillis()
         )
     }
@@ -365,7 +369,9 @@ class SmartGlassesDetector @Inject constructor(
             serviceUuids = signal.serviceUuids,
             appearance = signal.appearance,
             deviceClass = signal.deviceClass,
-            deviceName = signal.deviceName
+            deviceName = signal.deviceName,
+            advertisementDataHex = signal.advertisementDataHex,
+            extraPayloadHex = signal.extraPayloadHex
         )
     }
 
@@ -378,7 +384,9 @@ class SmartGlassesDetector @Inject constructor(
             serviceUuids = snapshot.serviceUuids,
             appearance = snapshot.appearance,
             deviceClass = snapshot.deviceClass,
-            rssi = snapshot.rssi
+            rssi = snapshot.rssi,
+            advertisementDataHex = snapshot.advertisementDataHex,
+            extraPayloadHex = snapshot.extraPayloadHex
         )
     }
 

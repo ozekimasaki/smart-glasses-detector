@@ -9,10 +9,14 @@ data class SeenAdvertiserSnapshot(
     val appearance: Int? = null,
     val deviceClass: Int? = null,
     val deviceName: String? = null,
+    val advertisementDataHex: String = "",
+    val extraPayloadHex: String = "",
     val lastSeenAtMs: Long = 0L
 )
 
 object SeenAdvertiserPolicy {
+    const val MAX_ADVERTISEMENT_HEX_CHARS = 1024
+
     fun merge(
         existing: SeenAdvertiserSnapshot?,
         rssi: Int,
@@ -21,6 +25,8 @@ object SeenAdvertiserPolicy {
         appearance: Int? = null,
         deviceClass: Int? = null,
         deviceName: String? = null,
+        advertisementDataHex: String = "",
+        extraPayloadHex: String = "",
         nowMs: Long = 0L
     ): SeenAdvertiserSnapshot {
         return SeenAdvertiserSnapshot(
@@ -37,12 +43,36 @@ object SeenAdvertiserPolicy {
                 deviceName,
                 existing?.deviceName
             ),
+            advertisementDataHex = mergeAdvertisementHex(
+                existing?.advertisementDataHex.orEmpty(),
+                advertisementDataHex
+            ),
+            extraPayloadHex = mergeAdvertisementHex(
+                existing?.extraPayloadHex.orEmpty(),
+                extraPayloadHex
+            ),
             lastSeenAtMs = if (nowMs > 0L) {
                 nowMs
             } else {
                 existing?.lastSeenAtMs ?: 0L
             }
         )
+    }
+
+    fun mergeAdvertisementHex(
+        existing: String,
+        incoming: String,
+        maxChars: Int = MAX_ADVERTISEMENT_HEX_CHARS
+    ): String {
+        val kept = when {
+            incoming.isBlank() -> existing
+            existing.isBlank() -> incoming
+            existing.contains(incoming) || incoming.contains(existing) -> {
+                if (incoming.length >= existing.length) incoming else existing
+            }
+            else -> existing + incoming
+        }
+        return if (kept.length <= maxChars) kept else kept.take(maxChars)
     }
 
     fun isExpired(lastSeenAtMs: Long, nowMs: Long, ttlMs: Long): Boolean {

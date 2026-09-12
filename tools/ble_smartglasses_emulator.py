@@ -103,6 +103,11 @@ NAME_PATTERN_DEVICES = {
     108: "Everysight Maverick",
     109: "OpenGlass",
     110: "XRAI Glass",
+    111: "HEY2_A1B2",
+    112: "AirScouter WD-200B",
+    113: "RETISSA ON",
+    114: "字幕眼镜-01",
+    115: "OnePlus Glasses",
 }
 
 UUID_DEVICES = {

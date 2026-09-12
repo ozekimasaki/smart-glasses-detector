@@ -45,17 +45,25 @@ object Constants {
         Regex("""(?i)camera[\s-]?glass"""),
         Regex("""(?i)(?:ai|smart)[\s-]?sunglass"""),
         Regex("""(?i)(?:ai|ar|xr|mr|smart)[\s-]?eyewear"""),
+        Regex("""(?i)caption[\s-]?glass"""),
+        Regex("""(?i)subtitle[\s-]?glass"""),
+        Regex("""(?i)translation[\s-]?glass"""),
+        Regex("""(?i)interpreter[\s-]?glass"""),
         Regex("""スマートグラス"""),
         Regex("""スマートメガネ"""),
         Regex("""スマート眼鏡"""),
         Regex("""スマートアイウェア"""),
+        Regex("""字幕グラス"""),
+        Regex("""翻訳グラス"""),
+        Regex("""通訳グラス"""),
         Regex("""AIメガネ"""),
         Regex("""AI眼鏡"""),
         Regex("""ARメガネ"""),
         Regex("""AR眼鏡"""),
         Regex("""撮影グラス"""),
-        Regex("""翻訳グラス"""),
         Regex("""翻译眼镜"""),
+        Regex("""字幕眼镜"""),
+        Regex("""智慧眼鏡"""),
         Regex("""智能墨镜"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
@@ -123,7 +131,10 @@ object Constants {
                 "BT-45CS",
                 "BT-40",
                 "BT-35",
-                "BT-30"
+                "BT-30",
+                "BT-300",
+                "BT-350",
+                "BT-2000"
             )
         ),
         DetectionRule(
@@ -520,7 +531,7 @@ object Constants {
             ),
             // Even G1/G2 公式広告: G1_12_L / G2_XX_L / G2_XX_R
             nameRegexes = listOf(
-                Regex("""(?i)\bG[123]_[0-9A-Za-z]+_[LR]\b""")
+                Regex("""(?i)\bG[123]_[0-9A-Za-z]+_[LR](?:_[0-9A-Za-z]+)?\b""")
             ),
             // Even R1 はグラスではなくコントローラリング。CID 0x10F9 でも除外する。
             // contains("R1") は AIR1 / G1_R1_L 等に当たるため使わない。
@@ -610,7 +621,19 @@ object Constants {
         ),
         DetectionRule(
             manufacturerName = "LLVision",
-            namePatterns = listOf("LLVision", "Leion"),
+            namePatterns = listOf(
+                "LLVision",
+                "Leion",
+                "Leion Hey",
+                "Leion Hey2",
+                "Leion Hey 2",
+                "Leion Pi",
+                "Leion Go"
+            ),
+            // FCC 2AKLNG36A0 の広告名が HEY2_XXXX だけの場合の保険
+            nameRegexes = listOf(
+                Regex("""(?i)^HEY2(?:[\s_\-]|$)""")
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -630,7 +653,9 @@ object Constants {
                 "RealWear",
                 "Navigator-",
                 "Navigator 500",
-                "Navigator 520"
+                "Navigator 520",
+                "HMT-1",
+                "HMT-1Z1"
             ),
             allowCompanyIdOnly = false
         ),
@@ -881,6 +906,26 @@ object Constants {
                 "XRAI Glass",
                 "XRAI Glasses",
                 "XRAI"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Brother",
+            namePatterns = listOf("AirScouter"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "QD Laser",
+            namePatterns = listOf("RETISSA", "QD Laser"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "OnePlus",
+            namePatterns = listOf(
+                "OnePlus Glass",
+                "OnePlus Glasses",
+                "一加眼镜",
+                "一加眼鏡"
             ),
             allowCompanyIdOnly = false
         )
