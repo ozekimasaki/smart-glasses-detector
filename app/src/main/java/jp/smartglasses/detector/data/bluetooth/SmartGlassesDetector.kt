@@ -126,6 +126,9 @@ class SmartGlassesDetector @Inject constructor(
             synchronized(connectedProfileLock) {
                 connectedProfileProxies[profile] = proxy
             }
+            diagnosticPersistenceScope.launch {
+                pollConnectedDevices()
+            }
         }
 
         override fun onServiceDisconnected(profile: Int) {
