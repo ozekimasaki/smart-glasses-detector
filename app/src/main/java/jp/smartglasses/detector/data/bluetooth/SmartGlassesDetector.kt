@@ -487,7 +487,10 @@ class SmartGlassesDetector @Inject constructor(
             ),
             parsedAdvertisement = parsedAdvertisement,
             appearance = parsedAdvertisement.appearance,
-            deviceClass = resolveDeviceClass(snapshot.device)
+            deviceClass = BluetoothDeviceClassPolicy.preferGlassesDeviceClass(
+                resolveDeviceClass(snapshot.device),
+                parsedAdvertisement.deviceClass
+            )
         )
     }
 

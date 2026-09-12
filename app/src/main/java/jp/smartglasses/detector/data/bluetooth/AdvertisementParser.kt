@@ -5,7 +5,8 @@ internal data class ParsedAdvertisement(
     val completeName: String? = null,
     val shortName: String? = null,
     val serviceUuids: List<String> = emptyList(),
-    val companyIds: Set<Int> = emptySet()
+    val companyIds: Set<Int> = emptySet(),
+    val deviceClass: Int? = null
 ) {
     fun merge(other: ParsedAdvertisement): ParsedAdvertisement {
         return ParsedAdvertisement(
@@ -13,7 +14,8 @@ internal data class ParsedAdvertisement(
             completeName = completeName ?: other.completeName,
             shortName = shortName ?: other.shortName,
             serviceUuids = BleUuid.merge(serviceUuids, other.serviceUuids),
-            companyIds = companyIds + other.companyIds
+            companyIds = companyIds + other.companyIds,
+            deviceClass = deviceClass ?: other.deviceClass
         )
     }
 }
@@ -35,6 +37,7 @@ internal object AdvertisementParser {
     const val AD_TYPE_SERVICE_DATA_32BIT = 0x20
     const val AD_TYPE_SERVICE_DATA_128BIT = 0x21
     const val AD_TYPE_BROADCAST_NAME = 0x30
+    const val AD_TYPE_CLASS_OF_DEVICE = 0x0D
     const val AD_TYPE_MANUFACTURER_SPECIFIC = 0xFF
 
     const val APPEARANCE_EYEGLASSES_MIN = 0x01C0
@@ -57,6 +60,7 @@ internal object AdvertisementParser {
         var appearance: Int? = null
         var completeName: String? = null
         var shortName: String? = null
+        var deviceClass: Int? = null
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
 
@@ -69,6 +73,7 @@ internal object AdvertisementParser {
                 appearance = { value -> appearance = appearance ?: value },
                 completeName = { value -> completeName = completeName ?: value },
                 shortName = { value -> shortName = shortName ?: value },
+                deviceClass = { value -> deviceClass = deviceClass ?: value },
                 serviceUuids = serviceUuids,
                 companyIds = companyIds
             )
@@ -79,7 +84,8 @@ internal object AdvertisementParser {
             completeName = completeName,
             shortName = shortName,
             serviceUuids = serviceUuids.toList(),
-            companyIds = companyIds
+            companyIds = companyIds,
+            deviceClass = deviceClass
         )
     }
 
@@ -87,6 +93,7 @@ internal object AdvertisementParser {
         var appearance: Int? = null
         var completeName: String? = null
         var shortName: String? = null
+        var deviceClass: Int? = null
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
 
@@ -99,6 +106,7 @@ internal object AdvertisementParser {
                 appearance = { value -> appearance = appearance ?: value },
                 completeName = { value -> completeName = completeName ?: value },
                 shortName = { value -> shortName = shortName ?: value },
+                deviceClass = { value -> deviceClass = deviceClass ?: value },
                 serviceUuids = serviceUuids,
                 companyIds = companyIds
             )
@@ -109,7 +117,8 @@ internal object AdvertisementParser {
             completeName = completeName,
             shortName = shortName,
             serviceUuids = serviceUuids.toList(),
-            companyIds = companyIds
+            companyIds = companyIds,
+            deviceClass = deviceClass
         )
     }
 
@@ -262,11 +271,13 @@ internal object AdvertisementParser {
         appearance: (Int) -> Unit,
         completeName: (String) -> Unit,
         shortName: (String) -> Unit,
+        deviceClass: (Int) -> Unit,
         serviceUuids: MutableSet<String>,
         companyIds: MutableSet<Int>
     ) {
         when (type) {
             AD_TYPE_APPEARANCE -> parseAppearance(data, start, end)?.let(appearance)
+            AD_TYPE_CLASS_OF_DEVICE -> parseClassOfDevice(data, start, end)?.let(deviceClass)
             AD_TYPE_COMPLETE_NAME,
             AD_TYPE_BROADCAST_NAME -> decodeUtf8(data, start, end)?.let(completeName)
             AD_TYPE_SHORT_NAME -> decodeUtf8(data, start, end)?.let(shortName)
@@ -326,6 +337,15 @@ internal object AdvertisementParser {
             return null
         }
         return unsignedLe16(data, start)
+    }
+
+    private fun parseClassOfDevice(data: ByteArray, start: Int, end: Int): Int? {
+        if (end - start < 3) {
+            return null
+        }
+        return (data[start].toInt() and 0xFF) or
+            ((data[start + 1].toInt() and 0xFF) shl 8) or
+            ((data[start + 2].toInt() and 0xFF) shl 16)
     }
 
     private fun parseUuid16List(data: ByteArray, start: Int, end: Int): List<String> {

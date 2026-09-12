@@ -261,6 +261,38 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `ble advertised glasses class of device is detected without a name`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06COD",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementBytes = byteArrayOf(0x04, 0x0D, 0x14, 0x07, 0x00)
+            )
+        )
+
+        assertNotNull(detected)
+        assertEquals(DetectionMethod.APPEARANCE, detected?.manufacturer?.detectionMethod)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, detected?.manufacturer?.name)
+    }
+
+    @Test
+    fun `ble advertised headphone class of device is not treated as glasses`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:06HP",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementBytes = byteArrayOf(0x04, 0x0D, 0x18, 0x04, 0x00)
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
     fun `weak heuristic names stay ignored at the old balanced floor`() {
         val detected = classifier.classify(
             DetectionSignal(

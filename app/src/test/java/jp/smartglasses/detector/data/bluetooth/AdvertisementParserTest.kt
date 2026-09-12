@@ -65,6 +65,53 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses little endian wearable glasses class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x14, 0x07, 0x00)
+        )
+
+        assertEquals(0x0714, parsed.deviceClass)
+    }
+
+    @Test
+    fun `parses little endian audio video glasses class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x50, 0x04, 0x00)
+        )
+
+        assertEquals(0x0450, parsed.deviceClass)
+    }
+
+    @Test
+    fun `service class bits remain in advertised class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x14, 0x07, 0x20)
+        )
+
+        assertEquals(0x200714, parsed.deviceClass)
+    }
+
+    @Test
+    fun `truncated class of device records are ignored`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x03, 0x0D, 0x14, 0x07)
+        )
+
+        assertNull(parsed.deviceClass)
+    }
+
+    @Test
+    fun `parses class of device from advertising data map`() {
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(
+            mapOf(
+                AdvertisementParser.AD_TYPE_CLASS_OF_DEVICE to byteArrayOf(0x14, 0x07, 0x00)
+            )
+        )
+
+        assertEquals(0x0714, parsed.deviceClass)
+    }
+
+    @Test
     fun `ascii payload extracts printable manufacturer strings`() {
         val ascii = AdvertisementParser.asciiFromHex(
             "020106" + "META_RB_GLASS".encodeToByteArray().joinToString("") { byte ->

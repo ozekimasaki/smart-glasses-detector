@@ -47,6 +47,10 @@ internal class SmartGlassesClassifier(
         val resolved = signal.copy(
             deviceName = resolvedName,
             appearance = resolvedAppearance,
+            deviceClass = BluetoothDeviceClassPolicy.preferGlassesDeviceClass(
+                signal.deviceClass,
+                parsedAdvertisement.deviceClass
+            ),
             serviceUuids = BleUuid.merge(signal.serviceUuids, parsedAdvertisement.serviceUuids),
             companyIds = signal.companyIds + parsedAdvertisement.companyIds,
             parsedAdvertisement = parsedAdvertisement
