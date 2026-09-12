@@ -316,7 +316,7 @@ class SmartGlassesDetector @Inject constructor(
 
     private fun extractSignal(result: ScanResult): DetectionSignal {
         val scanRecord = result.scanRecord
-        val advertisementBytes = scanRecord?.bytes?.copyOf() ?: byteArrayOf()
+        val advertisementBytes = AdvertisementCopy.copyBytes(scanRecord?.bytes)
         val parsedAdvertisement = parseAdvertisement(scanRecord, advertisementBytes)
         return DetectionSignal(
             deviceName = BluetoothAdvertisedNamePolicy.resolve(
@@ -337,7 +337,7 @@ class SmartGlassesDetector @Inject constructor(
                 )
             ),
             advertisementBytes = advertisementBytes,
-            extraPayloadBytes = scanRecord?.let(::extractManufacturerPayloadBytes) ?: byteArrayOf(),
+            extraPayloadBytes = scanRecord?.let(::extractCopiedExtraPayload) ?: byteArrayOf(),
             parsedAdvertisement = parsedAdvertisement,
             appearance = parsedAdvertisement.appearance,
             deviceClass = resolveDeviceClass(result.device)
@@ -353,10 +353,7 @@ class SmartGlassesDetector @Inject constructor(
             return fromBytes
         }
 
-        val snapshot = HashMap<Int, ByteArray>(scanRecord.advertisingDataMap.size)
-        for ((type, data) in scanRecord.advertisingDataMap) {
-            snapshot[type] = data.copyOf()
-        }
+        val snapshot = AdvertisementCopy.copyMap(scanRecord.advertisingDataMap)
         return fromBytes.merge(AdvertisementParser.parseAdvertisingDataMap(snapshot))
     }
 
@@ -369,30 +366,23 @@ class SmartGlassesDetector @Inject constructor(
         return companyIds
     }
 
-    private fun extractManufacturerPayloadBytes(scanRecord: ScanRecord): ByteArray {
+    private fun extractCopiedExtraPayload(scanRecord: ScanRecord): ByteArray {
+        return AdvertisementCopy.extraPayload(
+            manufacturerEntries = extractCopiedManufacturerEntries(scanRecord),
+            serviceDataValues = scanRecord.serviceData?.values.orEmpty()
+        )
+    }
+
+    private fun extractCopiedManufacturerEntries(
+        scanRecord: ScanRecord
+    ): List<Pair<Int, ByteArray>> {
         val manufacturerSpecificData = scanRecord.manufacturerSpecificData
-        if (manufacturerSpecificData.size == 0) {
-            return byteArrayOf()
-        }
-
-        var totalSize = 0
-        val parts = ArrayList<ByteArray>(manufacturerSpecificData.size)
+        val entries = ArrayList<Pair<Int, ByteArray>>(manufacturerSpecificData.size)
         for (index in 0 until manufacturerSpecificData.size) {
-            val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(
-                companyId = manufacturerSpecificData.keyAt(index),
-                payload = (manufacturerSpecificData.valueAt(index) ?: byteArrayOf()).copyOf()
-            )
-            parts += encoded
-            totalSize += encoded.size
+            entries += manufacturerSpecificData.keyAt(index) to
+                (manufacturerSpecificData.valueAt(index) ?: byteArrayOf())
         }
-
-        val merged = ByteArray(totalSize)
-        var offset = 0
-        for (part in parts) {
-            System.arraycopy(part, 0, merged, offset, part.size)
-            offset += part.size
-        }
-        return merged
+        return entries
     }
 
     private fun shouldEmitDetection(device: SmartGlassesDevice): Boolean {

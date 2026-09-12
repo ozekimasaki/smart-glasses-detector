@@ -57,7 +57,19 @@ class ConnectedDevicePolicyTest {
             ),
             ConnectedDevicePolicy.proxyProfiles(sdkInt = 31)
         )
+        assertEquals(
+            listOf(
+                ConnectedDevicePolicy.PROFILE_HEADSET,
+                ConnectedDevicePolicy.PROFILE_A2DP,
+                ConnectedDevicePolicy.PROFILE_HID_HOST,
+                ConnectedDevicePolicy.PROFILE_LE_AUDIO,
+                ConnectedDevicePolicy.PROFILE_VOLUME_CONTROL,
+                ConnectedDevicePolicy.PROFILE_CSIP_SET_COORDINATOR
+            ),
+            ConnectedDevicePolicy.proxyProfiles(sdkInt = 33)
+        )
         assertEquals(31, ConnectedDevicePolicy.SDK_LE_AUDIO)
+        assertEquals(33, ConnectedDevicePolicy.SDK_VOLUME_CONTROL)
         assertEquals(15_000L, ConnectedDevicePolicy.POLL_INTERVAL_MS)
     }
 
@@ -125,6 +137,20 @@ class ConnectedDevicePolicyTest {
                 scanningRequested = true
             )
         )
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyProfileConnected(
+                action = ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED,
+                connectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
         assertFalse(
             ConnectedDevicePolicy.shouldApplyProfileConnected(
                 action = ConnectedDevicePolicy.ACTION_HEADSET_CONNECTION_STATE_CHANGED,
@@ -165,7 +191,9 @@ class ConnectedDevicePolicyTest {
                 ConnectedDevicePolicy.ACTION_A2DP_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_HEADSET_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
-                ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED
+                ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED
             ),
             ConnectedDevicePolicy.connectionBroadcastActions()
         )

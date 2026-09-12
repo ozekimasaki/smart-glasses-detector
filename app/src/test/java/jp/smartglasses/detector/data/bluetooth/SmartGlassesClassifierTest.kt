@@ -772,6 +772,20 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `hearing aids are not treated as smart glasses even with glass in the name`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Glass Hearing Aid",
+                address = "AA:BB:CC:DD:EE:19B",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
     fun `unknown classic rssi still allows name detection`() {
         val detected = classifier.classify(
             DetectionSignal(

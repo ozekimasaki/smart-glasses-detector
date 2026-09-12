@@ -13,7 +13,10 @@ object ConnectedDevicePolicy {
     const val PROFILE_GATT = 7
     const val PROFILE_GATT_SERVER = 8
     const val PROFILE_LE_AUDIO = 22
+    const val PROFILE_VOLUME_CONTROL = 23
+    const val PROFILE_CSIP_SET_COORDINATOR = 25
     const val SDK_LE_AUDIO = 31
+    const val SDK_VOLUME_CONTROL = 33
     const val POLL_INTERVAL_MS = 15_000L
     const val STATE_DISCONNECTED = 0
     const val STATE_CONNECTED = 2
@@ -26,13 +29,19 @@ object ConnectedDevicePolicy {
         "android.bluetooth.input.profile.action.CONNECTION_STATE_CHANGED"
     const val ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED =
         "android.bluetooth.action.LE_AUDIO_CONNECTION_STATE_CHANGED"
+    const val ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED =
+        "android.bluetooth.volume-control.profile.action.CONNECTION_STATE_CHANGED"
+    const val ACTION_CSIS_CONNECTION_STATE_CHANGED =
+        "android.bluetooth.action.CSIS_CONNECTION_STATE_CHANGED"
     const val EXTRA_STATE = "android.bluetooth.profile.extra.STATE"
 
     val PROFILE_CONNECTION_ACTIONS = setOf(
         ACTION_A2DP_CONNECTION_STATE_CHANGED,
         ACTION_HEADSET_CONNECTION_STATE_CHANGED,
         ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
-        ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED
+        ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
+        ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
+        ACTION_CSIS_CONNECTION_STATE_CHANGED
     )
 
     fun connectionBroadcastActions(): List<String> {
@@ -41,7 +50,9 @@ object ConnectedDevicePolicy {
             ACTION_A2DP_CONNECTION_STATE_CHANGED,
             ACTION_HEADSET_CONNECTION_STATE_CHANGED,
             ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
-            ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED
+            ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
+            ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
+            ACTION_CSIS_CONNECTION_STATE_CHANGED
         )
     }
 
@@ -57,6 +68,10 @@ object ConnectedDevicePolicy {
         val profiles = mutableListOf(PROFILE_HEADSET, PROFILE_A2DP, PROFILE_HID_HOST)
         if (sdkInt >= SDK_LE_AUDIO) {
             profiles += PROFILE_LE_AUDIO
+        }
+        if (sdkInt >= SDK_VOLUME_CONTROL) {
+            profiles += PROFILE_VOLUME_CONTROL
+            profiles += PROFILE_CSIP_SET_COORDINATOR
         }
         return profiles
     }

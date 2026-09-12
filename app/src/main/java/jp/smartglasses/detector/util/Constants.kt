@@ -205,7 +205,8 @@ object Constants {
         Regex("""(?i)oculus"""),
         Regex("""(?i)galaxy\s*xr"""),
         Regex("""(?i)project\s*moohan"""),
-        Regex("""(?i)thinkreality\s*vrx""")
+        Regex("""(?i)thinkreality\s*vrx"""),
+        Regex("""(?i)hearing[\s-]?aid""")
         )
     }
 
