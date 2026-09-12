@@ -32,6 +32,12 @@ object ScanFailurePolicy {
         return errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED
     }
 
+    fun shouldDropPendingIntentScan(errorCode: Int): Boolean {
+        return errorCode == SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES ||
+            errorCode == SCAN_FAILED_SCANNING_TOO_FREQUENTLY ||
+            errorCode == SCAN_FAILED_INTERNAL_ERROR
+    }
+
     fun shouldTryCompatibilityFallback(errorCode: Int): Boolean {
         return errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED ||
             errorCode == SCAN_FAILED_INTERNAL_ERROR

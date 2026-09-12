@@ -2,7 +2,7 @@ package jp.smartglasses.detector.data.bluetooth
 
 import jp.smartglasses.detector.util.DetectionRule
 
-internal class DetectionRuleIndex(
+class DetectionRuleIndex(
     private val rules: List<DetectionRule>
 ) {
     private data class IndexedRule(
@@ -17,9 +17,9 @@ internal class DetectionRuleIndex(
     private val companyIdOnlyByCompanyId = HashMap<Int, MutableList<IndexedRule>>()
     private val byCompanyId = HashMap<Int, MutableList<IndexedRule>>()
     private val byNormalizedUuid = HashMap<String, MutableList<IndexedRule>>()
-    private val payloadRules = ArrayList<IndexedRule>()
-    private val suffixRules = ArrayList<IndexedRule>()
-    private val nameRules = ArrayList<IndexedRule>()
+    private val payloadRuleList = ArrayList<DetectionRule>()
+    private val suffixRuleList = ArrayList<DetectionRule>()
+    private val nameRuleList = ArrayList<DetectionRule>()
 
     init {
         for (indexedRule in indexed) {
@@ -34,13 +34,13 @@ internal class DetectionRuleIndex(
                 byNormalizedUuid.getOrPut(BleUuid.normalize(uuid)) { ArrayList() }.add(indexedRule)
             }
             if (rule.payloadPatterns.isNotEmpty()) {
-                payloadRules += indexedRule
+                payloadRuleList += rule
             }
             if (rule.manufacturerDataSuffixes.isNotEmpty()) {
-                suffixRules += indexedRule
+                suffixRuleList += rule
             }
             if (rule.namePatterns.isNotEmpty() || rule.nameRegexes.isNotEmpty()) {
-                nameRules += indexedRule
+                nameRuleList += rule
             }
         }
     }
@@ -57,11 +57,11 @@ internal class DetectionRuleIndex(
         return select(normalizedUuids) { uuid -> byNormalizedUuid[uuid] }
     }
 
-    fun payloadRules(): List<DetectionRule> = payloadRules.map { indexedRule -> indexedRule.rule }
+    fun payloadRules(): List<DetectionRule> = payloadRuleList
 
-    fun suffixRules(): List<DetectionRule> = suffixRules.map { indexedRule -> indexedRule.rule }
+    fun suffixRules(): List<DetectionRule> = suffixRuleList
 
-    fun nameRules(): List<DetectionRule> = nameRules.map { indexedRule -> indexedRule.rule }
+    fun nameRules(): List<DetectionRule> = nameRuleList
 
     private fun <T> select(
         keys: Collection<T>,

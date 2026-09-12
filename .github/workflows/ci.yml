@@ -20,6 +20,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
@@ -45,7 +46,7 @@ jobs:
       - name: Unit test
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest --stacktrace
+          ./gradlew :shared:jvmTest :app:testDebugUnitTest --stacktrace
 
       - name: Debug assemble and lint
         run: |

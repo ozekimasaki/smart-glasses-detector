@@ -4,6 +4,7 @@ import jp.smartglasses.detector.domain.model.DetectionMethod
 import jp.smartglasses.detector.domain.model.DiagnosticLog
 import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.model.hasPayload
+import jp.smartglasses.detector.util.Constants
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -165,6 +166,21 @@ class DiagnosticSignalSupportTest {
         assertEquals("Mentra", processed.detectedDevice?.manufacturer?.name)
         assertEquals(DetectionMethod.DEVICE_NAME, processed.detectedDevice?.manufacturer?.detectionMethod)
         assertEquals("NIMO-1234", signal.toDiagnosticLog().advertisedName)
+    }
+
+    @Test
+    fun `classic connected sdp uuid classifies rokid without advertisement bytes`() {
+        val signal = ClassicDiscoverySignal(
+            deviceName = null,
+            address = "AA:BB:CC:DD:EE:9A",
+            rssi = Constants.UNKNOWN_RSSI_DBM,
+            serviceUuids = listOf("00009100-0000-1000-8000-00805F9B34FB")
+        ).toDetectionSignal()
+        val processed = ScanSignalProcessor().process(signal)
+
+        assertEquals("Rokid", processed.detectedDevice?.manufacturer?.name)
+        assertEquals(DetectionMethod.SERVICE_UUID, processed.detectedDevice?.manufacturer?.detectionMethod)
+        assertEquals("00009100-0000-1000-8000-00805F9B34FB", signal.toDiagnosticLog().serviceUuids)
     }
 
     @Test

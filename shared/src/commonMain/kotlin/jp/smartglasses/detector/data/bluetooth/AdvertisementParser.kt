@@ -1,11 +1,12 @@
 package jp.smartglasses.detector.data.bluetooth
 
-internal data class ParsedAdvertisement(
+data class ParsedAdvertisement(
     val appearance: Int? = null,
     val completeName: String? = null,
     val shortName: String? = null,
     val serviceUuids: List<String> = emptyList(),
-    val companyIds: Set<Int> = emptySet()
+    val companyIds: Set<Int> = emptySet(),
+    val deviceClass: Int? = null
 ) {
     fun merge(other: ParsedAdvertisement): ParsedAdvertisement {
         return ParsedAdvertisement(
@@ -13,12 +14,13 @@ internal data class ParsedAdvertisement(
             completeName = completeName ?: other.completeName,
             shortName = shortName ?: other.shortName,
             serviceUuids = BleUuid.merge(serviceUuids, other.serviceUuids),
-            companyIds = companyIds + other.companyIds
+            companyIds = companyIds + other.companyIds,
+            deviceClass = deviceClass ?: other.deviceClass
         )
     }
 }
 
-internal object AdvertisementParser {
+object AdvertisementParser {
     const val AD_TYPE_SHORT_NAME = 0x08
     const val AD_TYPE_COMPLETE_NAME = 0x09
     const val AD_TYPE_APPEARANCE = 0x19
@@ -28,10 +30,14 @@ internal object AdvertisementParser {
     const val AD_TYPE_COMPLETE_32BIT_UUIDS = 0x05
     const val AD_TYPE_INCOMPLETE_128BIT_UUIDS = 0x06
     const val AD_TYPE_COMPLETE_128BIT_UUIDS = 0x07
+    const val AD_TYPE_SOLICITATION_16BIT_UUIDS = 0x14
+    const val AD_TYPE_SOLICITATION_128BIT_UUIDS = 0x15
+    const val AD_TYPE_SOLICITATION_32BIT_UUIDS = 0x1F
     const val AD_TYPE_SERVICE_DATA_16BIT = 0x16
     const val AD_TYPE_SERVICE_DATA_32BIT = 0x20
     const val AD_TYPE_SERVICE_DATA_128BIT = 0x21
     const val AD_TYPE_BROADCAST_NAME = 0x30
+    const val AD_TYPE_CLASS_OF_DEVICE = 0x0D
     const val AD_TYPE_MANUFACTURER_SPECIFIC = 0xFF
 
     const val APPEARANCE_EYEGLASSES_MIN = 0x01C0
@@ -54,6 +60,7 @@ internal object AdvertisementParser {
         var appearance: Int? = null
         var completeName: String? = null
         var shortName: String? = null
+        var deviceClass: Int? = null
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
 
@@ -66,6 +73,7 @@ internal object AdvertisementParser {
                 appearance = { value -> appearance = appearance ?: value },
                 completeName = { value -> completeName = completeName ?: value },
                 shortName = { value -> shortName = shortName ?: value },
+                deviceClass = { value -> deviceClass = deviceClass ?: value },
                 serviceUuids = serviceUuids,
                 companyIds = companyIds
             )
@@ -76,7 +84,8 @@ internal object AdvertisementParser {
             completeName = completeName,
             shortName = shortName,
             serviceUuids = serviceUuids.toList(),
-            companyIds = companyIds
+            companyIds = companyIds,
+            deviceClass = deviceClass
         )
     }
 
@@ -84,6 +93,7 @@ internal object AdvertisementParser {
         var appearance: Int? = null
         var completeName: String? = null
         var shortName: String? = null
+        var deviceClass: Int? = null
         val serviceUuids = linkedSetOf<String>()
         val companyIds = mutableSetOf<Int>()
 
@@ -96,6 +106,7 @@ internal object AdvertisementParser {
                 appearance = { value -> appearance = appearance ?: value },
                 completeName = { value -> completeName = completeName ?: value },
                 shortName = { value -> shortName = shortName ?: value },
+                deviceClass = { value -> deviceClass = deviceClass ?: value },
                 serviceUuids = serviceUuids,
                 companyIds = companyIds
             )
@@ -106,7 +117,8 @@ internal object AdvertisementParser {
             completeName = completeName,
             shortName = shortName,
             serviceUuids = serviceUuids.toList(),
-            companyIds = companyIds
+            companyIds = companyIds,
+            deviceClass = deviceClass
         )
     }
 
@@ -165,7 +177,7 @@ internal object AdvertisementParser {
             chars[index++] = HEX_DIGITS[value ushr 4]
             chars[index++] = HEX_DIGITS[value and 0x0F]
         }
-        return String(chars)
+        return chars.concatToString()
     }
 
     fun encodeManufacturerSpecificTlv(companyId: Int, payload: ByteArray = byteArrayOf()): String {
@@ -184,7 +196,7 @@ internal object AdvertisementParser {
         encoded[2] = (companyId and 0xFF).toByte()
         encoded[3] = ((companyId shr 8) and 0xFF).toByte()
         if (payloadSize > 0) {
-            System.arraycopy(payload, 0, encoded, 4, payloadSize)
+            payload.copyInto(encoded, destinationOffset = 4, endIndex = payloadSize)
         }
         return encoded
     }
@@ -259,28 +271,33 @@ internal object AdvertisementParser {
         appearance: (Int) -> Unit,
         completeName: (String) -> Unit,
         shortName: (String) -> Unit,
+        deviceClass: (Int) -> Unit,
         serviceUuids: MutableSet<String>,
         companyIds: MutableSet<Int>
     ) {
         when (type) {
             AD_TYPE_APPEARANCE -> parseAppearance(data, start, end)?.let(appearance)
+            AD_TYPE_CLASS_OF_DEVICE -> parseClassOfDevice(data, start, end)?.let(deviceClass)
             AD_TYPE_COMPLETE_NAME,
             AD_TYPE_BROADCAST_NAME -> decodeUtf8(data, start, end)?.let(completeName)
             AD_TYPE_SHORT_NAME -> decodeUtf8(data, start, end)?.let(shortName)
             AD_TYPE_INCOMPLETE_16BIT_UUIDS,
-            AD_TYPE_COMPLETE_16BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_16BIT_UUIDS,
+            AD_TYPE_SOLICITATION_16BIT_UUIDS -> {
                 serviceUuids += parseUuid16List(data, start, end)
             }
             AD_TYPE_INCOMPLETE_32BIT_UUIDS,
-            AD_TYPE_COMPLETE_32BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_32BIT_UUIDS,
+            AD_TYPE_SOLICITATION_32BIT_UUIDS -> {
                 serviceUuids += parseUuid32List(data, start, end)
             }
             AD_TYPE_INCOMPLETE_128BIT_UUIDS,
-            AD_TYPE_COMPLETE_128BIT_UUIDS -> {
+            AD_TYPE_COMPLETE_128BIT_UUIDS,
+            AD_TYPE_SOLICITATION_128BIT_UUIDS -> {
                 serviceUuids += parseUuid128List(data, start, end)
             }
             AD_TYPE_SERVICE_DATA_16BIT -> if (end - start >= 2) {
-                serviceUuids += BleUuid.normalize("%04X".format(unsignedLe16(data, start)))
+                serviceUuids += BleUuid.normalize(hex4(unsignedLe16(data, start)))
             }
             AD_TYPE_SERVICE_DATA_32BIT -> if (end - start >= 4) {
                 serviceUuids += BleUuid.normalize(hex8(unsignedLe32(data, start)))
@@ -322,11 +339,20 @@ internal object AdvertisementParser {
         return unsignedLe16(data, start)
     }
 
+    private fun parseClassOfDevice(data: ByteArray, start: Int, end: Int): Int? {
+        if (end - start < 3) {
+            return null
+        }
+        return (data[start].toInt() and 0xFF) or
+            ((data[start + 1].toInt() and 0xFF) shl 8) or
+            ((data[start + 2].toInt() and 0xFF) shl 16)
+    }
+
     private fun parseUuid16List(data: ByteArray, start: Int, end: Int): List<String> {
         val uuids = mutableListOf<String>()
         var offset = start
         while (offset + 2 <= end) {
-            uuids += BleUuid.normalize("%04X".format(unsignedLe16(data, offset)))
+            uuids += BleUuid.normalize(hex4(unsignedLe16(data, offset)))
             offset += 2
         }
         return uuids
@@ -363,12 +389,16 @@ internal object AdvertisementParser {
             chars[index++] = HEX_DIGITS[value ushr 4]
             chars[index++] = HEX_DIGITS[value and 0x0F]
         }
-        return BleUuid.normalize(String(chars))
+        return BleUuid.normalize(chars.concatToString())
     }
 
     private fun unsignedLe16(data: ByteArray, offset: Int): Int {
         return (data[offset].toInt() and 0xFF) or
             ((data[offset + 1].toInt() and 0xFF) shl 8)
+    }
+
+    private fun hex4(value: Int): String {
+        return value.toString(16).uppercase().padStart(4, '0')
     }
 
     private fun hex8(value: Long): String {

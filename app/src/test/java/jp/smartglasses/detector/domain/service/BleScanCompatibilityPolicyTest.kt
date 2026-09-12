@@ -39,6 +39,55 @@ class BleScanCompatibilityPolicyTest {
     }
 
     @Test
+    fun `drops the surviving scan before disabling extended advertising`() {
+        assertEquals(
+            BleScanCompatibilityStep.DROP_PENDING_INTENT_SCAN,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = true,
+                usingExtendedAdvertising = true,
+                usingPendingIntentScan = true,
+                errorCode = ScanFailurePolicy.SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+            )
+        )
+        assertEquals(
+            BleScanCompatibilityStep.DROP_PENDING_INTENT_SCAN,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = true,
+                usingExtendedAdvertising = true,
+                usingPendingIntentScan = true,
+                errorCode = ScanFailurePolicy.SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
+            )
+        )
+        assertEquals(
+            BleScanCompatibilityStep.DROP_PENDING_INTENT_SCAN,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = true,
+                usingExtendedAdvertising = true,
+                usingPendingIntentScan = true,
+                errorCode = ScanFailurePolicy.SCAN_FAILED_INTERNAL_ERROR
+            )
+        )
+        assertEquals(
+            BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = true,
+                usingExtendedAdvertising = true,
+                usingPendingIntentScan = true,
+                errorCode = ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED
+            )
+        )
+        assertEquals(
+            BleScanCompatibilityStep.NONE,
+            BleScanCompatibilityPolicy.nextStep(
+                usingMatchAllFilter = true,
+                usingExtendedAdvertising = true,
+                usingPendingIntentScan = false,
+                errorCode = ScanFailurePolicy.SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+            )
+        )
+    }
+
+    @Test
     fun `restores the match-all filter on the next scheduled refresh`() {
         assertTrue(
             BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(

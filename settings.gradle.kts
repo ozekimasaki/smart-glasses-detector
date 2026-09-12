@@ -23,4 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "SmartGlassesDetector"
+include(":shared")
 include(":app")

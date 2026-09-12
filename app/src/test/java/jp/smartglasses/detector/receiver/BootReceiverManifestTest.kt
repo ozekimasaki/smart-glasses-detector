@@ -20,6 +20,15 @@ class BootReceiverManifestTest {
         assertTrue(manifest.contains("com.htc.intent.action.QUICKBOOT_POWERON"))
     }
 
+    @Test
+    fun `pending intent scan receiver survives process death`() {
+        val manifest = locateManifest().readText()
+
+        assertTrue(manifest.contains(".receiver.BleScanResultReceiver"))
+        assertTrue(manifest.contains("jp.smartglasses.detector.action.BLE_SCAN_RESULTS"))
+        assertTrue(manifest.contains("android:exported=\"false\""))
+    }
+
     private fun locateManifest(): File {
         val userDir = System.getProperty("user.dir")
             ?: error("user.dir is missing")

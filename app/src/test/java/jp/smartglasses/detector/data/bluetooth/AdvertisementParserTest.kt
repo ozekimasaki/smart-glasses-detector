@@ -65,6 +65,53 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses little endian wearable glasses class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x14, 0x07, 0x00)
+        )
+
+        assertEquals(0x0714, parsed.deviceClass)
+    }
+
+    @Test
+    fun `parses little endian audio video glasses class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x50, 0x04, 0x00)
+        )
+
+        assertEquals(0x0450, parsed.deviceClass)
+    }
+
+    @Test
+    fun `service class bits remain in advertised class of device`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x04, 0x0D, 0x14, 0x07, 0x20)
+        )
+
+        assertEquals(0x200714, parsed.deviceClass)
+    }
+
+    @Test
+    fun `truncated class of device records are ignored`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x03, 0x0D, 0x14, 0x07)
+        )
+
+        assertNull(parsed.deviceClass)
+    }
+
+    @Test
+    fun `parses class of device from advertising data map`() {
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(
+            mapOf(
+                AdvertisementParser.AD_TYPE_CLASS_OF_DEVICE to byteArrayOf(0x14, 0x07, 0x00)
+            )
+        )
+
+        assertEquals(0x0714, parsed.deviceClass)
+    }
+
+    @Test
     fun `ascii payload extracts printable manufacturer strings`() {
         val ascii = AdvertisementParser.asciiFromHex(
             "020106" + "META_RB_GLASS".encodeToByteArray().joinToString("") { byte ->
@@ -97,6 +144,59 @@ class AdvertisementParserTest {
     fun `parses 16-bit service uuids from advertisement`() {
         val parsed = AdvertisementParser.parse(
             byteArrayOf(0x03, 0x03, 0x5F, 0xFD.toByte())
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses 16-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x03, 0x14, 0x5F, 0xFD.toByte())
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses 32-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(0x05, 0x1F, 0x5F, 0xFD.toByte(), 0x00, 0x00)
+        )
+
+        assertEquals(
+            listOf("0000FD5F-0000-1000-8000-00805F9B34FB"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses 128-bit service solicitation uuids`() {
+        val parsed = AdvertisementParser.parse(
+            byteArrayOf(
+                0x11, 0x15,
+                0xD0.toByte(), 0x00, 0x2D, 0x12, 0x1E, 0x4B, 0x0F, 0xA4.toByte(),
+                0x99.toByte(), 0x4E, 0xCE.toByte(), 0xB5.toByte(),
+                0xF0.toByte(), 0xFF.toByte(), 0x05, 0x79
+            )
+        )
+
+        assertEquals(
+            listOf("7905FFF0-B5CE-4E99-A40F-4B1E122D00D0"),
+            parsed.serviceUuids
+        )
+    }
+
+    @Test
+    fun `parses solicitation uuids from advertising data map`() {
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(
+            mapOf(AdvertisementParser.AD_TYPE_SOLICITATION_16BIT_UUIDS to byteArrayOf(0x5F, 0xFD.toByte()))
         )
 
         assertEquals(

@@ -16,4 +16,14 @@ object BluetoothDeviceClassPolicy {
         val masked = value and DEVICE_CLASS_MASK
         return masked == WEARABLE_GLASSES || masked == AUDIO_VIDEO_GLASSES
     }
+
+    fun preferGlassesDeviceClass(primary: Int?, fallback: Int?): Int? {
+        if (isGlassesDeviceClass(primary)) {
+            return primary
+        }
+        if (isGlassesDeviceClass(fallback)) {
+            return fallback
+        }
+        return primary ?: fallback
+    }
 }

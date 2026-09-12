@@ -25,3 +25,9 @@ keystore.properties
 .cxx
 local.properties
 __pycache__/
+xcuserdata/
+*.xcuserstate
+DerivedData/
+iosApp/build/
+/shared/build/
+/app/build/
