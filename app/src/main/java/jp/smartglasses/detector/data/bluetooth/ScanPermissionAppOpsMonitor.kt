@@ -1,6 +1,5 @@
 package jp.smartglasses.detector.data.bluetooth
 
-import android.Manifest
 import android.app.AppOpsManager
 import android.content.Context
 import android.os.Build
@@ -17,8 +16,8 @@ internal object ScanPermissionAppOps {
         }
 
         return listOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
+            "android.permission.BLUETOOTH_SCAN",
+            "android.permission.BLUETOOTH_CONNECT"
         )
     }
 }
