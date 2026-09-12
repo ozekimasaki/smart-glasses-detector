@@ -202,6 +202,31 @@ NAME_PATTERN_DEVICES = {
     218: "Meganesuper",
     219: "Mad Gaze Glow",
     220: "影创",
+    221: "GOSIGHT P1",
+    222: "Plunthorn",
+    223: "亮风台 H100",
+    224: "0glasses RealX",
+    225: "TeleScouter",
+    226: "DataGlass 4",
+    227: "Olympus MEG 4.0",
+    228: "Lumus Maximus",
+    229: "LetinAR PinMR",
+    230: "Avegant Sky",
+    231: "Zebra HD4000",
+    232: "Trimble XR10",
+    233: "Royole Moon",
+    234: "AMZISH",
+    235: "Dusk",
+    236: "RayNeo iO",
+    237: "雷鸟iO",
+    238: "HUAWEI VR Glass",
+    239: "Project Aria",
+    240: "Rokid X-Craft",
+    241: "RedMagic Glass",
+    242: "WD-200B",
+    243: "Telepathy One",
+    244: "HiAR H100",
+    245: "Cinemizer OLED",
 }
 
 UUID_DEVICES = {
@@ -250,6 +275,8 @@ NON_GLASSES_NAME_DEVICES = {
     205: "INAIR Pod",
     206: "Garmin Fenix 8",
     213: "Ski Goggles",
+    246: "Philips Hue Dusk",
+    247: "RedMagic 9 Pro",
 }
 
 

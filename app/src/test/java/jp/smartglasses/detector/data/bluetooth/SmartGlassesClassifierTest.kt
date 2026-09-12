@@ -1195,7 +1195,22 @@ class SmartGlassesClassifierTest {
             "Goovis",
             "Shadow Creator",
             "DAQRI",
-            "Meganesuper"
+            "Meganesuper",
+            "GOSIGHT",
+            "Plunthorn",
+            "HiAR",
+            "0glasses",
+            "NEC",
+            "Shimadzu",
+            "Olympus",
+            "Lumus",
+            "LetinAR",
+            "Avegant",
+            "Zebra",
+            "Trimble",
+            "Royole",
+            "AMZISH",
+            "Zeiss"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -3047,6 +3062,250 @@ class SmartGlassesClassifierTest {
         assertEquals("Mad Gaze", madGazeGlow?.manufacturer?.name)
         assertEquals("Vuzix", vuzixStar?.manufacturer?.name)
         assertNull(glowLamp)
+    }
+
+    @Test
+    fun `ampere dusk advertised pairing name is detected`() {
+        val dusk = classifier.classify(
+            DetectionSignal(
+                deviceName = "Dusk",
+                address = "AA:BB:CC:DD:EE:J1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val duskLite = classifier.classify(
+            DetectionSignal(
+                deviceName = "Dusk Lite",
+                address = "AA:BB:CC:DD:EE:J2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hueDusk = classifier.classify(
+            DetectionSignal(
+                deviceName = "Philips Hue Dusk",
+                address = "AA:BB:CC:DD:EE:J3",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("Ampere", dusk?.manufacturer?.name)
+        assertEquals("Ampere", duskLite?.manufacturer?.name)
+        assertNull(hueDusk)
+    }
+
+    @Test
+    fun `confirmed 2026 and industrial glasses names are detected`() {
+        val gosight = classifier.classify(
+            DetectionSignal(
+                deviceName = "GOSIGHT P1",
+                address = "AA:BB:CC:DD:EE:K1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val plunthorn = classifier.classify(
+            DetectionSignal(
+                deviceName = "Plunthorn AI Smart Glasses",
+                address = "AA:BB:CC:DD:EE:K2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hiar = classifier.classify(
+            DetectionSignal(
+                deviceName = "亮风台 H100",
+                address = "AA:BB:CC:DD:EE:K3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val hiarWord = classifier.classify(
+            DetectionSignal(
+                deviceName = "HiAR H100",
+                address = "AA:BB:CC:DD:EE:K4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val zeroGlasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "0glasses RealX",
+                address = "AA:BB:CC:DD:EE:K5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val teleScouter = classifier.classify(
+            DetectionSignal(
+                deviceName = "TeleScouter",
+                address = "AA:BB:CC:DD:EE:K6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val dataGlass = classifier.classify(
+            DetectionSignal(
+                deviceName = "DataGlass 4",
+                address = "AA:BB:CC:DD:EE:K7",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val olympus = classifier.classify(
+            DetectionSignal(
+                deviceName = "Olympus MEG 4.0",
+                address = "AA:BB:CC:DD:EE:K8",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val lumus = classifier.classify(
+            DetectionSignal(
+                deviceName = "Lumus Maximus",
+                address = "AA:BB:CC:DD:EE:K9",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val letinar = classifier.classify(
+            DetectionSignal(
+                deviceName = "LetinAR PinMR",
+                address = "AA:BB:CC:DD:EE:KA",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val avegant = classifier.classify(
+            DetectionSignal(
+                deviceName = "Avegant Sky",
+                address = "AA:BB:CC:DD:EE:KB",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val zebra = classifier.classify(
+            DetectionSignal(
+                deviceName = "Zebra HD4000",
+                address = "AA:BB:CC:DD:EE:KC",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val trimble = classifier.classify(
+            DetectionSignal(
+                deviceName = "Trimble XR10",
+                address = "AA:BB:CC:DD:EE:KD",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val royole = classifier.classify(
+            DetectionSignal(
+                deviceName = "Royole Moon",
+                address = "AA:BB:CC:DD:EE:KE",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val amzish = classifier.classify(
+            DetectionSignal(
+                deviceName = "AMZISH",
+                address = "AA:BB:CC:DD:EE:KF",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val cinemizer = classifier.classify(
+            DetectionSignal(
+                deviceName = "Cinemizer OLED",
+                address = "AA:BB:CC:DD:EE:KG",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val rayNeoIo = classifier.classify(
+            DetectionSignal(
+                deviceName = "雷鸟iO",
+                address = "AA:BB:CC:DD:EE:KH",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val xCraft = classifier.classify(
+            DetectionSignal(
+                deviceName = "X-CRAFT-01",
+                address = "AA:BB:CC:DD:EE:KI",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val aria = classifier.classify(
+            DetectionSignal(
+                deviceName = "Project Aria",
+                address = "AA:BB:CC:DD:EE:KJ",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val huaweiVr = classifier.classify(
+            DetectionSignal(
+                deviceName = "HUAWEI VR Glass",
+                address = "AA:BB:CC:DD:EE:KK",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val redMagicGlass = classifier.classify(
+            DetectionSignal(
+                deviceName = "RedMagic Glass",
+                address = "AA:BB:CC:DD:EE:KL",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val redMagicPhone = classifier.classify(
+            DetectionSignal(
+                deviceName = "RedMagic 9 Pro",
+                address = "AA:BB:CC:DD:EE:KM",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+        val hiArea = classifier.classify(
+            DetectionSignal(
+                deviceName = "HiArea Sensor",
+                address = "AA:BB:CC:DD:EE:KN",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals("GOSIGHT", gosight?.manufacturer?.name)
+        assertEquals("Plunthorn", plunthorn?.manufacturer?.name)
+        assertEquals("HiAR", hiar?.manufacturer?.name)
+        assertEquals("HiAR", hiarWord?.manufacturer?.name)
+        assertEquals("0glasses", zeroGlasses?.manufacturer?.name)
+        assertEquals("NEC", teleScouter?.manufacturer?.name)
+        assertEquals("Shimadzu", dataGlass?.manufacturer?.name)
+        assertEquals("Olympus", olympus?.manufacturer?.name)
+        assertEquals("Lumus", lumus?.manufacturer?.name)
+        assertEquals("LetinAR", letinar?.manufacturer?.name)
+        assertEquals("Avegant", avegant?.manufacturer?.name)
+        assertEquals("Zebra", zebra?.manufacturer?.name)
+        assertEquals("Trimble", trimble?.manufacturer?.name)
+        assertEquals("Royole", royole?.manufacturer?.name)
+        assertEquals("AMZISH", amzish?.manufacturer?.name)
+        assertEquals("Zeiss", cinemizer?.manufacturer?.name)
+        assertEquals("TCL", rayNeoIo?.manufacturer?.name)
+        assertEquals("Rokid", xCraft?.manufacturer?.name)
+        assertEquals("Meta Platforms", aria?.manufacturer?.name)
+        assertEquals("Huawei", huaweiVr?.manufacturer?.name)
+        assertEquals("Nubia", redMagicGlass?.manufacturer?.name)
+        assertNull(redMagicPhone)
+        assertNull(hiArea)
     }
 
     private fun asciiToHex(value: String): String {
