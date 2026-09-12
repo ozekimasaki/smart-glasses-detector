@@ -65,17 +65,48 @@ object Constants {
         Regex("""カメラ眼鏡"""),
         Regex("""智能太陽眼鏡"""),
         Regex("""相機眼鏡"""),
-        Regex("""(?i)lunettes?\s+(?:connect[eé]es?|intelligentes?|\bia\b)"""),
+        Regex("""(?i)lunettes?\s+(?:connect[eé]es?|intelligentes?|\bia\b|\bar\b)"""),
         Regex("""(?i)smartbrille"""),
+        Regex("""(?i)smarte\s+brillen?"""),
         Regex("""(?i)intelligente\s+brille"""),
-        Regex("""(?i)gafas\s+inteligentes"""),
+        Regex("""(?i)datenbrille"""),
+        Regex("""(?i)gafas\s+(?:inteligentes|\bar\b)"""),
         Regex("""(?i)occhiali\s+intelligenti"""),
         Regex("""(?i)[oó]culos\s+inteligentes"""),
+        Regex("""(?i)slimme\s+bril"""),
+        Regex("""(?i)smarta\s+glasögon"""),
+        Regex("""(?i)smarte\s+briller"""),
+        Regex("""(?i)inteligentne\s+okulary"""),
+        Regex("""(?i)akıllı\s+gözlük"""),
+        Regex("""умные\s+очки"""),
+        Regex("""(?i)kính\s+thông\s+minh"""),
+        Regex("""(?i)kacamata\s+pintar"""),
+        Regex("""(?i)älylasit"""),
+        Regex("""(?i)okosszemüveg"""),
+        Regex("""(?i)chytré\s+brýle"""),
+        Regex("""แว่นตาอัจฉริยะ"""),
+        Regex("""(?i)wearable[\s-]?glass"""),
+        Regex("""(?i)low[\s-]?vision[\s-]?glass"""),
+        Regex("""(?i)assistive[\s-]?glass"""),
         Regex("""스마트선글라스"""),
+        Regex("""카메라안경"""),
+        Regex("""웨어러블글래스"""),
+        Regex("""AR글래스"""),
+        Regex("""AI글래스"""),
         Regex("""翻译眼镜"""),
+        Regex("""同传眼镜"""),
         Regex("""字幕眼镜"""),
         Regex("""智慧眼鏡"""),
+        Regex("""智能太阳镜"""),
+        Regex("""智能AR眼镜"""),
+        Regex("""AI智能眼镜"""),
         Regex("""智能墨镜"""),
+        Regex("""ウェアラブルグラス"""),
+        Regex("""スマートめがね"""),
+        Regex("""視覚支援グラス"""),
+        Regex("""翻訳眼鏡"""),
+        Regex("""通訳眼鏡"""),
+        Regex("""ロービジョングラス"""),
         Regex("""ARグラス"""),
         Regex("""XRグラス"""),
         Regex("""MRグラス"""),
@@ -119,7 +150,10 @@ object Constants {
         Regex("""(?i)smart[\s-]?band"""),
         Regex("""(?i)smart[\s-]?ring"""),
         Regex("""(?i)\bquest\b"""),
-        Regex("""(?i)oculus""")
+        Regex("""(?i)oculus"""),
+        Regex("""(?i)galaxy\s*xr"""),
+        Regex("""(?i)project\s*moohan"""),
+        Regex("""(?i)thinkreality\s*vrx""")
     )
 
     // メーカーデータの ASCII に GLASS / EYEWEAR が載っている無名広告（未知メーカー）
@@ -146,7 +180,11 @@ object Constants {
                 "BT-200",
                 "BT-300",
                 "BT-350",
-                "BT-2000"
+                "BT-2000",
+                "BT-2200",
+                "BT-2210",
+                "BT-3000",
+                "BT-100"
             )
         ),
         DetectionRule(
@@ -167,7 +205,12 @@ object Constants {
                 "Google Glass",
                 "Glass EE",
                 "Glass Enterprise",
-                "Android XR",
+                "Android XR Glass",
+                "Android XR Glasses",
+                "Android XR Eyewear",
+                "Intelligent Eyewear",
+                "Gentle Monster Glass",
+                "Gentle Monster Eyewear",
                 "Warby Parker",
                 "Warby"
             ),
@@ -209,6 +252,7 @@ object Constants {
                 "RayBan Display",
                 "Ray-Ban Stories",
                 "RayBan Stories",
+                "Meta Orion",
                 "Blayzer",
                 "Scriber"
             ),
@@ -258,10 +302,12 @@ object Constants {
                 "Legion Glass",
                 "ThinkReality",
                 "ThinkReality A3",
-                "ThinkReality VRX",
                 "Lenovo Glass",
                 "Vision AI Glass",
                 "Legion Glasses"
+            ),
+            excludedNamePatterns = listOf(
+                "ThinkReality VRX"
             )
         ),
         DetectionRule(
@@ -394,7 +440,12 @@ object Constants {
         DetectionRule(
             manufacturerName = "Oppo",
             companyIds = setOf(0x079A),
-            namePatterns = listOf("Air Glass", "Oppo Glass"),
+            namePatterns = listOf(
+                "Air Glass",
+                "Oppo Glass",
+                "Oppo Glasses",
+                "OPPO Air Glass"
+            ),
             allowCompanyIdOnly = false
         ),
         DetectionRule(
@@ -403,9 +454,14 @@ object Constants {
             namePatterns = listOf(
                 "Galaxy Glass",
                 "Galaxy Glasses",
-                "Galaxy XR",
+                "Galaxy Eyewear",
                 "Samsung Glass",
-                "Samsung XR"
+                "Samsung Eyewear",
+                "Samsung XR Glass"
+            ),
+            excludedNamePatterns = listOf(
+                "Galaxy XR",
+                "Project Moohan"
             ),
             allowCompanyIdOnly = false
         ),
@@ -480,7 +536,10 @@ object Constants {
                 "INMO GO3",
                 "INMO GO 3",
                 "INMOGO",
-                "映莫"
+                "INMO Wave",
+                "IMG301",
+                "映莫",
+                "影目"
             ),
             allowCompanyIdOnly = false
         ),
@@ -736,6 +795,8 @@ object Constants {
             namePatterns = listOf(
                 "Honor Glass",
                 "Honor Glasses",
+                "Honor Magic Glass",
+                "Honor Choice Glass",
                 "荣耀眼镜",
                 "荣耀智能眼镜",
                 "荣耀AI眼镜"
@@ -988,6 +1049,63 @@ object Constants {
         DetectionRule(
             manufacturerName = "Eyedaptic",
             namePatterns = listOf("Eyedaptic", "Eyeron"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Loomos",
+            namePatterns = listOf(
+                "Loomos",
+                "SHARGE Loomos",
+                "Loomos Glass",
+                "Loomos Glasses"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Westunitis",
+            namePatterns = listOf(
+                "InfoLinker",
+                "InfoLinker2",
+                "InfoLinker3",
+                "Westunitis",
+                "WESTUNITIS"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Oxsight",
+            namePatterns = listOf(
+                "Oxsight",
+                "OXSIGHT",
+                "Oxsight Crystal",
+                "Oxsight Onyx",
+                "Oxsight Prisma"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Julbo",
+            namePatterns = listOf(
+                "Julbo Evad",
+                "Evad-1",
+                "Evad 1",
+                "Julbo A.Look"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Telepathy",
+            namePatterns = listOf("Telepathy Jumper", "Telepathy Walker"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Ocutrx",
+            namePatterns = listOf("Ocutrx", "Oculenz"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Vision Buddy",
+            namePatterns = listOf("Vision Buddy"),
             allowCompanyIdOnly = false
         )
     )

@@ -32,6 +32,29 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `parses bluetooth 5 broadcast name as complete name`() {
+        val name = "Loomos"
+        val nameBytes = name.encodeToByteArray()
+        val record = byteArrayOf((nameBytes.size + 1).toByte(), 0x30) + nameBytes
+
+        val parsed = AdvertisementParser.parse(record)
+
+        assertEquals("Loomos", parsed.completeName)
+    }
+
+    @Test
+    fun `complete local name wins over broadcast name`() {
+        val complete = "Even G2_12_L".encodeToByteArray()
+        val broadcast = "Loomos".encodeToByteArray()
+        val record = byteArrayOf((complete.size + 1).toByte(), 0x09) + complete +
+            byteArrayOf((broadcast.size + 1).toByte(), 0x30) + broadcast
+
+        val parsed = AdvertisementParser.parse(record)
+
+        assertEquals("Even G2_12_L", parsed.completeName)
+    }
+
+    @Test
     fun `phone appearance is not eyeglasses`() {
         val parsed = AdvertisementParser.parse(
             byteArrayOf(0x03, 0x19, 0x40, 0x00)

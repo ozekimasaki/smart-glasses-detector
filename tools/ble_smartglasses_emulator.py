@@ -56,7 +56,7 @@ NAME_PATTERN_DEVICES = {
     39: "Frame-1A2B",
     40: "Even G2_12_L_ABCDEF",
     41: "INMOAIR3_A1B2",
-    42: "Galaxy XR-01",
+    42: "Galaxy Glasses-01",
     43: "Frame 4F",
     44: "HALLIDAYGP101",
     45: "Even G3_12_L",
@@ -117,6 +117,22 @@ NAME_PATTERN_DEVICES = {
     122: "SightPlus",
     123: "Recon Jet",
     124: "Golden-i 5",
+    125: "Loomos AI Glasses",
+    126: "InfoLinker3",
+    127: "Oxsight Crystal",
+    128: "Telepathy Jumper",
+    129: "影目GO3",
+    130: "IMG301",
+    131: "Datenbrille-01",
+    132: "умные очки-01",
+    133: "Intelligent Eyewear",
+    134: "Julbo Evad-1",
+    135: "Ocutrx Oculenz",
+    136: "Vision Buddy",
+    137: "Honor Magic Glass",
+    138: "Meta Orion",
+    139: "ウェアラブルグラス",
+    140: "智能太阳镜",
 }
 
 UUID_DEVICES = {
@@ -155,6 +171,9 @@ NON_GLASSES_NAME_DEVICES = {
     100: "Frame TV",
     101: "雷鸟TV",
     102: "华为手表",
+    141: "Galaxy XR-01",
+    142: "ThinkReality VRX",
+    143: "Project Moohan",
 }
 
 

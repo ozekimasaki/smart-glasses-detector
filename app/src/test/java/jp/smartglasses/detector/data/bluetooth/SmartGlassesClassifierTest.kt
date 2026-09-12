@@ -1143,7 +1143,14 @@ class SmartGlassesClassifierTest {
             ".lumen",
             "Recon",
             "GiveVision",
-            "AceSight"
+            "AceSight",
+            "Loomos",
+            "Westunitis",
+            "Oxsight",
+            "Julbo",
+            "Telepathy",
+            "Ocutrx",
+            "Vision Buddy"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -1215,6 +1222,14 @@ class SmartGlassesClassifierTest {
                 rssi = -60
             )
         )
+        val galaxyGlasses = classifier.classify(
+            DetectionSignal(
+                deviceName = "Galaxy Glasses-01",
+                address = "AA:BB:CC:DD:EE:31B",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
         val evenG3 = classifier.classify(
             DetectionSignal(
                 deviceName = "Even G3_12_L",
@@ -1257,7 +1272,8 @@ class SmartGlassesClassifierTest {
         )
 
         assertEquals("INMO", inmo?.manufacturer?.name)
-        assertEquals("Samsung", galaxyXr?.manufacturer?.name)
+        assertNull(galaxyXr)
+        assertEquals("Samsung", galaxyGlasses?.manufacturer?.name)
         assertEquals("Even Realities", evenG3?.manufacturer?.name)
         assertEquals("Halliday", halliday?.manufacturer?.name)
         assertEquals("Brilliant Labs", frameName?.manufacturer?.name)
@@ -2287,6 +2303,131 @@ class SmartGlassesClassifierTest {
         assertEquals("Recon", recon?.manufacturer?.name)
         assertEquals("Kopin", goldenI?.manufacturer?.name)
         assertNull(sunglasses)
+    }
+
+    @Test
+    fun `loomos infolinker oxsight and extra heuristics are detected`() {
+        val loomos = classifier.classify(
+            DetectionSignal(
+                deviceName = "Loomos AI Glasses",
+                address = "AA:BB:CC:DD:EE:C1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val infoLinker = classifier.classify(
+            DetectionSignal(
+                deviceName = "InfoLinker3",
+                address = "AA:BB:CC:DD:EE:C2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val oxsight = classifier.classify(
+            DetectionSignal(
+                deviceName = "Oxsight Crystal",
+                address = "AA:BB:CC:DD:EE:C3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val julbo = classifier.classify(
+            DetectionSignal(
+                deviceName = "Julbo Evad-1",
+                address = "AA:BB:CC:DD:EE:C4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val inmo = classifier.classify(
+            DetectionSignal(
+                deviceName = "IMG301",
+                address = "AA:BB:CC:DD:EE:C5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val yingmu = classifier.classify(
+            DetectionSignal(
+                deviceName = "影目GO3",
+                address = "AA:BB:CC:DD:EE:C6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val orion = classifier.classify(
+            DetectionSignal(
+                deviceName = "Meta Orion",
+                address = "AA:BB:CC:DD:EE:C7",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val googleEyewear = classifier.classify(
+            DetectionSignal(
+                deviceName = "Intelligent Eyewear",
+                address = "AA:BB:CC:DD:EE:C8",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val datenbrille = classifier.classify(
+            DetectionSignal(
+                deviceName = "Datenbrille-01",
+                address = "AA:BB:CC:DD:EE:C9",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val russian = classifier.classify(
+            DetectionSignal(
+                deviceName = "умные очки-01",
+                address = "AA:BB:CC:DD:EE:CA",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val wearable = classifier.classify(
+            DetectionSignal(
+                deviceName = "ウェアラブルグラス",
+                address = "AA:BB:CC:DD:EE:CB",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val vrx = classifier.classify(
+            DetectionSignal(
+                deviceName = "ThinkReality VRX",
+                address = "AA:BB:CC:DD:EE:CC",
+                companyIds = setOf(0x02C5),
+                rssi = -50
+            )
+        )
+        val broadcastHex = "07304C6F6F6D6F73"
+        val fromBroadcast = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:CD",
+                companyIds = emptySet(),
+                rssi = -60,
+                advertisementDataHex = broadcastHex
+            )
+        )
+
+        assertEquals("Loomos", loomos?.manufacturer?.name)
+        assertEquals("Westunitis", infoLinker?.manufacturer?.name)
+        assertEquals("Oxsight", oxsight?.manufacturer?.name)
+        assertEquals("Julbo", julbo?.manufacturer?.name)
+        assertEquals("INMO", inmo?.manufacturer?.name)
+        assertEquals("INMO", yingmu?.manufacturer?.name)
+        assertEquals("Meta Platforms", orion?.manufacturer?.name)
+        assertEquals("Google", googleEyewear?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, datenbrille?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, datenbrille?.manufacturer?.detectionMethod)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, russian?.manufacturer?.name)
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, wearable?.manufacturer?.name)
+        assertNull(vrx)
+        assertEquals("Loomos", fromBroadcast?.manufacturer?.name)
     }
 
     private fun asciiToHex(value: String): String {

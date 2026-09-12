@@ -166,7 +166,13 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "AceSight VR" } &&
                 catalog.nameDevices.any { device -> device.name == "SightPlus" } &&
                 catalog.nameDevices.any { device -> device.name == "Recon Jet" } &&
-                catalog.nameDevices.any { device -> device.name == "Golden-i 5" }
+                catalog.nameDevices.any { device -> device.name == "Golden-i 5" } &&
+                catalog.nameDevices.any { device -> device.name == "Loomos AI Glasses" } &&
+                catalog.nameDevices.any { device -> device.name == "InfoLinker3" } &&
+                catalog.nameDevices.any { device -> device.name == "Oxsight Crystal" } &&
+                catalog.nameDevices.any { device -> device.name == "IMG301" } &&
+                catalog.nameDevices.any { device -> device.name == "Intelligent Eyewear" } &&
+                catalog.nameDevices.any { device -> device.name == "Datenbrille-01" }
         )
 
         catalog.nameDevices.forEach { device ->
@@ -285,7 +291,9 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nonGlassesNames.contains("Even Realities R1") &&
                 catalog.nonGlassesNames.contains("Frame TV") &&
                 catalog.nonGlassesNames.contains("雷鸟TV") &&
-                catalog.nonGlassesNames.contains("华为手表")
+                catalog.nonGlassesNames.contains("华为手表") &&
+                catalog.nonGlassesNames.contains("Galaxy XR-01") &&
+                catalog.nonGlassesNames.contains("ThinkReality VRX")
         )
 
         catalog.nonGlassesNames.forEach { name ->

@@ -31,6 +31,7 @@ internal object AdvertisementParser {
     const val AD_TYPE_SERVICE_DATA_16BIT = 0x16
     const val AD_TYPE_SERVICE_DATA_32BIT = 0x20
     const val AD_TYPE_SERVICE_DATA_128BIT = 0x21
+    const val AD_TYPE_BROADCAST_NAME = 0x30
     const val AD_TYPE_MANUFACTURER_SPECIFIC = 0xFF
 
     const val APPEARANCE_EYEGLASSES_MIN = 0x01C0
@@ -56,6 +57,7 @@ internal object AdvertisementParser {
             when (type) {
                 AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
                 AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
+                AD_TYPE_BROADCAST_NAME -> completeName = completeName ?: decodeUtf8(data)
                 AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
                 AD_TYPE_INCOMPLETE_16BIT_UUIDS,
                 AD_TYPE_COMPLETE_16BIT_UUIDS -> {
@@ -104,6 +106,7 @@ internal object AdvertisementParser {
             when (type) {
                 AD_TYPE_APPEARANCE -> appearance = appearance ?: parseAppearance(data)
                 AD_TYPE_COMPLETE_NAME -> completeName = completeName ?: decodeUtf8(data)
+                AD_TYPE_BROADCAST_NAME -> completeName = completeName ?: decodeUtf8(data)
                 AD_TYPE_SHORT_NAME -> shortName = shortName ?: decodeUtf8(data)
                 AD_TYPE_INCOMPLETE_16BIT_UUIDS,
                 AD_TYPE_COMPLETE_16BIT_UUIDS -> {
