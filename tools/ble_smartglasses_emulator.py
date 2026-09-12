@@ -136,6 +136,18 @@ NAME_PATTERN_DEVICES = {
     145: "Oakley Airwave",
     146: "星纪AR",
     147: "HUDグラス",
+    148: "AirVision M1",
+    149: "BleeqUp Ranger",
+    150: "BlackSheep G2 Pro AI",
+    151: "Kwenrun ChatGPT",
+    152: "IOOIOO",
+    153: "BooaBei",
+    154: "EarlySincere",
+    155: "Anko Camera Glasses",
+    156: "Meta Starfire",
+    157: "X By XREAL a01+",
+    158: "米家眼镜",
+    159: "GlobeEar",
 }
 
 UUID_DEVICES = {

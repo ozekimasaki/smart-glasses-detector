@@ -172,7 +172,10 @@ class EmulatedAdvertisementCoverageTest {
                 catalog.nameDevices.any { device -> device.name == "Oxsight Crystal" } &&
                 catalog.nameDevices.any { device -> device.name == "IMG301" } &&
                 catalog.nameDevices.any { device -> device.name == "Intelligent Eyewear" } &&
-                catalog.nameDevices.any { device -> device.name == "Datenbrille-01" }
+                catalog.nameDevices.any { device -> device.name == "Datenbrille-01" } &&
+                catalog.nameDevices.any { device -> device.name == "AirVision M1" } &&
+                catalog.nameDevices.any { device -> device.name == "BleeqUp Ranger" } &&
+                catalog.nameDevices.any { device -> device.name == "Anko Camera Glasses" }
         )
 
         catalog.nameDevices.forEach { device ->

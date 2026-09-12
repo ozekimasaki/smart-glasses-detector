@@ -1150,7 +1150,15 @@ class SmartGlassesClassifierTest {
             "Julbo",
             "Telepathy",
             "Ocutrx",
-            "Vision Buddy"
+            "Vision Buddy",
+            "ASUS",
+            "BleeqUp",
+            "BlackSheep",
+            "Kwenrun",
+            "IOOIOO",
+            "BooaBei",
+            "EarlySincere",
+            "Anko"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2456,6 +2464,70 @@ class SmartGlassesClassifierTest {
         assertEquals("Meizu", starvAr?.manufacturer?.name)
         assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, hud?.manufacturer?.name)
         assertEquals(DetectionMethod.HEURISTIC, hud?.manufacturer?.detectionMethod)
+        val airVision = classifier.classify(
+            DetectionSignal(
+                deviceName = "AirVision M1",
+                address = "AA:BB:CC:DD:EE:D1",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val bleeqUp = classifier.classify(
+            DetectionSignal(
+                deviceName = "BleeqUp Ranger",
+                address = "AA:BB:CC:DD:EE:D2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val blackSheep = classifier.classify(
+            DetectionSignal(
+                deviceName = "BlackSheep G2 Pro AI",
+                address = "AA:BB:CC:DD:EE:D3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val kwenrun = classifier.classify(
+            DetectionSignal(
+                deviceName = "Kwenrun ChatGPT AI Smart Glasses",
+                address = "AA:BB:CC:DD:EE:D4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val starfire = classifier.classify(
+            DetectionSignal(
+                deviceName = "Meta Starfire",
+                address = "AA:BB:CC:DD:EE:D5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val xByXreal = classifier.classify(
+            DetectionSignal(
+                deviceName = "X By XREAL a01+",
+                address = "AA:BB:CC:DD:EE:D6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val anko = classifier.classify(
+            DetectionSignal(
+                deviceName = "Anko Camera Glasses",
+                address = "AA:BB:CC:DD:EE:D7",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+
+        assertEquals("ASUS", airVision?.manufacturer?.name)
+        assertEquals("BleeqUp", bleeqUp?.manufacturer?.name)
+        assertEquals("BlackSheep", blackSheep?.manufacturer?.name)
+        assertEquals("Kwenrun", kwenrun?.manufacturer?.name)
+        assertEquals("Meta Platforms", starfire?.manufacturer?.name)
+        assertEquals("XREAL", xByXreal?.manufacturer?.name)
+        assertEquals("Anko", anko?.manufacturer?.name)
     }
 
     private fun asciiToHex(value: String): String {

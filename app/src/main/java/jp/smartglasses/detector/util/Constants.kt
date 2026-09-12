@@ -254,6 +254,9 @@ object Constants {
                 "Ray-Ban Stories",
                 "RayBan Stories",
                 "Meta Orion",
+                "Meta Adventurer",
+                "Meta Fury",
+                "Meta Starfire",
                 "Blayzer",
                 "Scriber"
             ),
@@ -437,7 +440,10 @@ object Constants {
                 "Xiaomi AI Glass",
                 "小米眼镜",
                 "小米智能眼镜",
-                "小米AI眼镜"
+                "小米AI眼镜",
+                "米家眼镜",
+                "Mijia Audio Glass",
+                "Mijia Smart Audio"
             ),
             allowCompanyIdOnly = false
         ),
@@ -500,7 +506,8 @@ object Constants {
                 "XREAL Aura",
                 "XREAL R1",
                 "ROG R1",
-                "ROG XREAL"
+                "ROG XREAL",
+                "X By XREAL"
             ),
             allowCompanyIdOnly = false
         ),
@@ -581,7 +588,9 @@ object Constants {
                 "VITURE Luma Pro",
                 "VITURE Luma Ultra",
                 "VITURE Pro",
-                "VITURE Neckband"
+                "VITURE Neckband",
+                "VITURE Helix",
+                "VITURE Pro 2"
             ),
             allowCompanyIdOnly = false
         ),
@@ -872,7 +881,9 @@ object Constants {
                 "OhO Edge",
                 "OHO Edge",
                 "OhO Brave",
-                "OhO Globe"
+                "OhO Globe",
+                "GlobeEar",
+                "Globe Ear"
             ),
             allowCompanyIdOnly = false
         ),
@@ -1110,6 +1121,67 @@ object Constants {
         DetectionRule(
             manufacturerName = "Vision Buddy",
             namePatterns = listOf("Vision Buddy"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "ASUS",
+            namePatterns = listOf(
+                "AirVision",
+                "AirVision M1",
+                "ASUS AirVision"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "BleeqUp",
+            namePatterns = listOf(
+                "BleeqUp",
+                "BleeqUp Ranger",
+                "BleeqUp Rover"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "BlackSheep",
+            namePatterns = listOf(
+                "BlackSheep",
+                "Black Sheep Glass",
+                "BlackSheep G2",
+                "BlackSheep G3",
+                "AG11 Audio",
+                "AG18 Smart",
+                "QY Pro2"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Kwenrun",
+            namePatterns = listOf("Kwenrun"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "IOOIOO",
+            namePatterns = listOf("IOOIOO"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "BooaBei",
+            namePatterns = listOf("BooaBei"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "EarlySincere",
+            namePatterns = listOf("EarlySincere"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Anko",
+            namePatterns = listOf("Anko Camera", "Anko Camera Glass", "Anko Camera Glasses"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Caviar",
+            namePatterns = listOf("Caviar Odyssey", "Caviar Ray-Ban"),
             allowCompanyIdOnly = false
         )
     )
