@@ -11,30 +11,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class AppE2ETest {
-    private val hiltRule = HiltAndroidRule(this)
     private val composeRule = createAndroidComposeRule<MainActivity>()
     private val permissionRule = GrantPermissionRule.grant(*requiredPermissions())
 
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hiltRule)
-        .around(permissionRule)
-        .around(composeRule)
-
-    @Before
-    fun setUp() {
-        hiltRule.inject()
-    }
+    val rules: RuleChain = RuleChain.outerRule(permissionRule).around(composeRule)
 
     @Test
     fun onboardingThenMainHistorySettingsAboutAndPrivacy() {
