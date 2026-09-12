@@ -14,7 +14,18 @@ class ClassicDiscoveryPolicyTest {
     }
 
     @Test
-    fun `classic discovery waits so ble advertisements are not starved at start`() {
+    fun `classic discovery can start again after a hardware pause`() {
+        assertTrue(
+            ClassicDiscoveryPolicy.shouldStartClassicDiscovery(alreadyStartedThisSession = false)
+        )
+        assertFalse(
+            ClassicDiscoveryPolicy.shouldStartClassicDiscovery(alreadyStartedThisSession = true)
+        )
+        assertEquals(
+            Constants.CLASSIC_DISCOVERY_DELAY_MS,
+            ClassicDiscoveryPolicy.startDelayMs(immediate = false)
+        )
+    }
         assertEquals(15_000L, Constants.CLASSIC_DISCOVERY_DELAY_MS)
         assertEquals(
             Constants.CLASSIC_DISCOVERY_DELAY_MS,

@@ -512,8 +512,15 @@ class SmartGlassesDetector @Inject constructor(
             if (delayMs > 0L) {
                 delay(delayMs)
             }
-            if (userRequestedScanning.get() && bluetoothAdapter?.isEnabled == true) {
+            if (
+                userRequestedScanning.get() &&
+                bluetoothAdapter?.isEnabled == true &&
+                hasRequiredScanPermission() &&
+                isLocationServicesSatisfied()
+            ) {
                 startClassicDiscovery()
+            } else {
+                classicDiscoveryStarted.set(false)
             }
         }
     }
@@ -524,7 +531,7 @@ class SmartGlassesDetector @Inject constructor(
             classicDiscoveryStarted.set(false)
             return
         }
-        if (!hasRequiredScanPermission() || !adapter.isEnabled) {
+        if (!hasRequiredScanPermission() || !adapter.isEnabled || !isLocationServicesSatisfied()) {
             classicDiscoveryStarted.set(false)
             return
         }
@@ -739,6 +746,9 @@ class SmartGlassesDetector @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to stop BLE scan", e)
         }
+        classicDiscoveryJob?.cancel()
+        classicDiscoveryJob = null
+        classicDiscoveryStarted.set(false)
         stopClassicDiscovery()
     }
 
