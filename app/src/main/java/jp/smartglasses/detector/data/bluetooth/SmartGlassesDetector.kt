@@ -768,6 +768,9 @@ class SmartGlassesDetector @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to refresh BLE scan", e)
         }
+        if (BleScanCompatibilityPolicy.shouldRestoreMatchAllFilterOnRefresh(usingMatchAllFilter)) {
+            usingMatchAllFilter = true
+        }
         startLeAndClassicScanning()
     }
 

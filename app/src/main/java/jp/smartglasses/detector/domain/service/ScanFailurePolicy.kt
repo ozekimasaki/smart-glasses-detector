@@ -16,11 +16,16 @@ object ScanFailurePolicy {
     }
 
     fun isRecoverable(errorCode: Int): Boolean {
-        return errorCode == SCAN_FAILED_APPLICATION_REGISTRATION_FAILED ||
-            errorCode == SCAN_FAILED_INTERNAL_ERROR ||
-            errorCode == SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES ||
-            errorCode == SCAN_FAILED_SCANNING_TOO_FREQUENTLY ||
-            errorCode == SCAN_FAILED_FEATURE_UNSUPPORTED
+        if (shouldIgnore(errorCode) || isEnvironmentError(errorCode)) {
+            return false
+        }
+        return true
+    }
+
+    fun isEnvironmentError(errorCode: Int): Boolean {
+        return errorCode == SCAN_ENVIRONMENT_BLUETOOTH_DISABLED ||
+            errorCode == SCAN_ENVIRONMENT_LOCATION_DISABLED ||
+            errorCode == SCAN_ENVIRONMENT_PERMISSION_DENIED
     }
 
     fun shouldFallbackToLegacy(errorCode: Int): Boolean {
@@ -33,11 +38,7 @@ object ScanFailurePolicy {
     }
 
     fun shouldKeepScanning(errorCode: Int): Boolean {
-        if (
-            errorCode == SCAN_ENVIRONMENT_BLUETOOTH_DISABLED ||
-            errorCode == SCAN_ENVIRONMENT_LOCATION_DISABLED ||
-            errorCode == SCAN_ENVIRONMENT_PERMISSION_DENIED
-        ) {
+        if (isEnvironmentError(errorCode)) {
             return false
         }
         return shouldIgnore(errorCode) ||

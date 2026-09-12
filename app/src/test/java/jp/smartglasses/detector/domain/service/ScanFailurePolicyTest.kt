@@ -37,11 +37,16 @@ class ScanFailurePolicyTest {
     }
 
     @Test
-    fun `unknown scan errors do not keep the hardware scan running`() {
-        assertFalse(ScanFailurePolicy.shouldKeepScanning(0))
-        assertFalse(ScanFailurePolicy.shouldKeepScanning(99))
-        assertFalse(ScanFailurePolicy.isRecoverable(0))
+    fun `unknown scan errors are retried instead of stopping hardware scanning`() {
+        assertTrue(ScanFailurePolicy.shouldKeepScanning(0))
+        assertTrue(ScanFailurePolicy.shouldKeepScanning(99))
+        assertTrue(ScanFailurePolicy.isRecoverable(0))
+        assertTrue(ScanFailurePolicy.isRecoverable(99))
         assertFalse(ScanFailurePolicy.shouldFallbackToLegacy(99))
+        assertFalse(ScanFailurePolicy.isEnvironmentError(99))
+        assertFalse(
+            ScanFailurePolicy.shouldPauseScanning(99, bluetoothEnabled = true)
+        )
     }
 
     @Test
@@ -77,7 +82,7 @@ class ScanFailurePolicyTest {
                 bluetoothEnabled = false
             )
         )
-        assertTrue(ScanFailurePolicy.shouldPauseScanning(99, bluetoothEnabled = true))
+        assertFalse(ScanFailurePolicy.shouldPauseScanning(99, bluetoothEnabled = true))
         assertFalse(
             ScanFailurePolicy.shouldPauseScanning(
                 ScanFailurePolicy.SCAN_FAILED_FEATURE_UNSUPPORTED,

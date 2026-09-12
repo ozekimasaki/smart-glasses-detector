@@ -483,13 +483,34 @@ class ScanningForegroundService : Service() {
         healthCheckJob = scope.launch {
             while (true) {
                 delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
-                if (!bluetoothRepository.hasPermissions() ||
-                    !bluetoothRepository.isBluetoothEnabled() ||
-                    !bluetoothRepository.isLocationServicesEnabled()
+                val hasPermissions = bluetoothRepository.hasPermissions()
+                val bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
+                val locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+                if (
+                    ScanResumePolicy.shouldPauseForLostEnvironment(
+                        hasPermissions = hasPermissions,
+                        bluetoothEnabled = bluetoothEnabled,
+                        locationServicesEnabled = locationServicesEnabled
+                    )
                 ) {
                     Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
                     pauseScanningKeepingIntent()
                     return@launch
+                }
+                if (
+                    ScanResumePolicy.shouldRestartHardwareScan(
+                        hasPermissions = hasPermissions,
+                        bluetoothEnabled = bluetoothEnabled,
+                        locationServicesEnabled = locationServicesEnabled,
+                        hardwareScanning = bluetoothRepository.isScanning.first()
+                    )
+                ) {
+                    Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")
+                    try {
+                        bluetoothRepository.startScanning()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to restart Bluetooth scanning", e)
+                    }
                 }
             }
         }

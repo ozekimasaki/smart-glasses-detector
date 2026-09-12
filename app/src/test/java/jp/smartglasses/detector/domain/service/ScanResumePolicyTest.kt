@@ -227,4 +227,72 @@ class ScanResumePolicyTest {
             )
         )
     }
+
+    @Test
+    fun `pauses only when permission bluetooth or location are actually gone`() {
+        assertTrue(
+            ScanResumePolicy.shouldPauseForLostEnvironment(
+                hasPermissions = false,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldPauseForLostEnvironment(
+                hasPermissions = true,
+                bluetoothEnabled = false,
+                locationServicesEnabled = true
+            )
+        )
+        assertTrue(
+            ScanResumePolicy.shouldPauseForLostEnvironment(
+                hasPermissions = true,
+                bluetoothEnabled = true,
+                locationServicesEnabled = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldPauseForLostEnvironment(
+                hasPermissions = true,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true
+            )
+        )
+    }
+
+    @Test
+    fun `restarts hardware scan when the environment is healthy but hardware stopped`() {
+        assertTrue(
+            ScanResumePolicy.shouldRestartHardwareScan(
+                hasPermissions = true,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true,
+                hardwareScanning = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartHardwareScan(
+                hasPermissions = true,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true,
+                hardwareScanning = true
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartHardwareScan(
+                hasPermissions = false,
+                bluetoothEnabled = true,
+                locationServicesEnabled = true,
+                hardwareScanning = false
+            )
+        )
+        assertFalse(
+            ScanResumePolicy.shouldRestartHardwareScan(
+                hasPermissions = true,
+                bluetoothEnabled = false,
+                locationServicesEnabled = true,
+                hardwareScanning = false
+            )
+        )
+    }
 }

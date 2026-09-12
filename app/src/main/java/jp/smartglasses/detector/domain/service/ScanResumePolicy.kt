@@ -35,6 +35,26 @@ object ScanResumePolicy {
         return !hardwareScanning
     }
 
+    fun shouldPauseForLostEnvironment(
+        hasPermissions: Boolean,
+        bluetoothEnabled: Boolean,
+        locationServicesEnabled: Boolean
+    ): Boolean {
+        return !hasPermissions || !bluetoothEnabled || !locationServicesEnabled
+    }
+
+    fun shouldRestartHardwareScan(
+        hasPermissions: Boolean,
+        bluetoothEnabled: Boolean,
+        locationServicesEnabled: Boolean,
+        hardwareScanning: Boolean
+    ): Boolean {
+        return hasPermissions &&
+            bluetoothEnabled &&
+            locationServicesEnabled &&
+            !hardwareScanning
+    }
+
     fun shouldRestartAfterRecreation(
         persistedIntent: Boolean,
         backgroundEnabled: Boolean,
