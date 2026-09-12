@@ -7,6 +7,7 @@ object ClassicDiscoveryPolicy {
     const val ACTION_NAME_CHANGED = "android.bluetooth.device.action.NAME_CHANGED"
     const val ACTION_CLASS_CHANGED = "android.bluetooth.device.action.CLASS_CHANGED"
     const val ACTION_UUID = "android.bluetooth.device.action.UUID"
+    const val ACTION_ALIAS_CHANGED = "android.bluetooth.device.action.ALIAS_CHANGED"
 
     fun startDelayMs(immediate: Boolean): Long {
         return if (immediate) {
@@ -69,6 +70,7 @@ object ClassicDiscoveryPolicy {
             ACTION_FOUND -> true
             // Classic inquiry または BLE 広告で一度見た機器の遅延名前
             ACTION_NAME_CHANGED -> alreadySeenAddress
+            ACTION_ALIAS_CHANGED -> alreadySeenAddress
             ACTION_UUID -> alreadySeenAddress
             ACTION_CLASS_CHANGED ->
                 alreadySeenAddress || BluetoothDeviceClassPolicy.isGlassesDeviceClass(deviceClass)

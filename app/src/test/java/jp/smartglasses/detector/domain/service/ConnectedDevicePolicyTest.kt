@@ -151,6 +151,27 @@ class ConnectedDevicePolicyTest {
                 scanningRequested = true
             )
         )
+        assertTrue(
+            ConnectedDevicePolicy.shouldApplyAdapterConnected(
+                action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                adapterConnectionState = ConnectedDevicePolicy.STATE_CONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertFalse(
+            ConnectedDevicePolicy.shouldApplyAdapterConnected(
+                action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                adapterConnectionState = ConnectedDevicePolicy.STATE_DISCONNECTED,
+                scanningRequested = true
+            )
+        )
+        assertTrue(
+            ConnectedDevicePolicy.shouldClassifyConnectionEvent(
+                action = ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED,
+                scanningRequested = true,
+                adapterConnectionState = ConnectedDevicePolicy.STATE_CONNECTED
+            )
+        )
         assertFalse(
             ConnectedDevicePolicy.shouldApplyProfileConnected(
                 action = ConnectedDevicePolicy.ACTION_HEADSET_CONNECTION_STATE_CHANGED,
@@ -193,12 +214,17 @@ class ConnectedDevicePolicyTest {
                 ConnectedDevicePolicy.ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
                 ConnectedDevicePolicy.ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
-                ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED
+                ConnectedDevicePolicy.ACTION_CSIS_CONNECTION_STATE_CHANGED,
+                ConnectedDevicePolicy.ACTION_ADAPTER_CONNECTION_STATE_CHANGED
             ),
             ConnectedDevicePolicy.connectionBroadcastActions()
         )
         assertEquals(2, ConnectedDevicePolicy.STATE_CONNECTED)
         assertEquals("android.bluetooth.profile.extra.STATE", ConnectedDevicePolicy.EXTRA_STATE)
+        assertEquals(
+            "android.bluetooth.adapter.extra.CONNECTION_STATE",
+            ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE
+        )
         assertTrue(ConnectedDevicePolicy.shouldRefreshSdpUuids(0))
         assertFalse(ConnectedDevicePolicy.shouldRefreshSdpUuids(1))
     }

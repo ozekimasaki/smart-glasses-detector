@@ -33,7 +33,10 @@ object ConnectedDevicePolicy {
         "android.bluetooth.volume-control.profile.action.CONNECTION_STATE_CHANGED"
     const val ACTION_CSIS_CONNECTION_STATE_CHANGED =
         "android.bluetooth.action.CSIS_CONNECTION_STATE_CHANGED"
+    const val ACTION_ADAPTER_CONNECTION_STATE_CHANGED =
+        "android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED"
     const val EXTRA_STATE = "android.bluetooth.profile.extra.STATE"
+    const val EXTRA_ADAPTER_CONNECTION_STATE = "android.bluetooth.adapter.extra.CONNECTION_STATE"
 
     val PROFILE_CONNECTION_ACTIONS = setOf(
         ACTION_A2DP_CONNECTION_STATE_CHANGED,
@@ -52,7 +55,8 @@ object ConnectedDevicePolicy {
             ACTION_HID_HOST_CONNECTION_STATE_CHANGED,
             ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED,
             ACTION_VOLUME_CONTROL_CONNECTION_STATE_CHANGED,
-            ACTION_CSIS_CONNECTION_STATE_CHANGED
+            ACTION_CSIS_CONNECTION_STATE_CHANGED,
+            ACTION_ADAPTER_CONNECTION_STATE_CHANGED
         )
     }
 
@@ -98,13 +102,25 @@ object ConnectedDevicePolicy {
             connectionState == STATE_CONNECTED
     }
 
+    fun shouldApplyAdapterConnected(
+        action: String?,
+        adapterConnectionState: Int,
+        scanningRequested: Boolean
+    ): Boolean {
+        return scanningRequested &&
+            action == ACTION_ADAPTER_CONNECTION_STATE_CHANGED &&
+            adapterConnectionState == STATE_CONNECTED
+    }
+
     fun shouldClassifyConnectionEvent(
         action: String?,
         scanningRequested: Boolean,
-        connectionState: Int = STATE_DISCONNECTED
+        connectionState: Int = STATE_DISCONNECTED,
+        adapterConnectionState: Int = STATE_DISCONNECTED
     ): Boolean {
         return shouldApplyAclConnected(action, scanningRequested) ||
-            shouldApplyProfileConnected(action, connectionState, scanningRequested)
+            shouldApplyProfileConnected(action, connectionState, scanningRequested) ||
+            shouldApplyAdapterConnected(action, adapterConnectionState, scanningRequested)
     }
 
     fun shouldRefreshSdpUuids(cachedUuidCount: Int): Boolean {

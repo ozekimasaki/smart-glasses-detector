@@ -156,10 +156,15 @@ class SmartGlassesDetector @Inject constructor(
                 ConnectedDevicePolicy.EXTRA_STATE,
                 ConnectedDevicePolicy.STATE_DISCONNECTED
             )
+            val adapterConnectionState = intent.getIntExtra(
+                ConnectedDevicePolicy.EXTRA_ADAPTER_CONNECTION_STATE,
+                ConnectedDevicePolicy.STATE_DISCONNECTED
+            )
             val fromConnection = ConnectedDevicePolicy.shouldClassifyConnectionEvent(
                 action = action,
                 scanningRequested = scanningRequested,
-                connectionState = connectionState
+                connectionState = connectionState,
+                adapterConnectionState = adapterConnectionState
             )
             if (
                 (action == BluetoothDevice.ACTION_FOUND && scanningRequested) ||
@@ -678,6 +683,7 @@ class SmartGlassesDetector @Inject constructor(
             addAction(BluetoothDevice.ACTION_NAME_CHANGED)
             addAction(BluetoothDevice.ACTION_CLASS_CHANGED)
             addAction(BluetoothDevice.ACTION_UUID)
+            addAction(BluetoothDevice.ACTION_ALIAS_CHANGED)
             ConnectedDevicePolicy.connectionBroadcastActions().forEach { connectionAction ->
                 addAction(connectionAction)
             }
