@@ -42,6 +42,7 @@ import jp.smartglasses.detector.domain.service.BleScanFlushPolicy
 import jp.smartglasses.detector.domain.service.BleScanPendingIntentPolicy
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
+import jp.smartglasses.detector.domain.service.BluetoothDeviceClassPolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.ConnectedDevicePolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
@@ -177,6 +178,10 @@ class SmartGlassesDetector @Inject constructor(
                     action = action,
                     adapterConnectionState = adapterConnectionState,
                     scanningRequested = scanningRequested
+                ) ||
+                ClassicDiscoveryPolicy.shouldPollConnectedAfterDiscoveryFinished(
+                    action = action,
+                    scanningRequested = scanningRequested
                 )
             ) {
                 diagnosticPersistenceScope.launch {
@@ -207,16 +212,22 @@ class SmartGlassesDetector @Inject constructor(
                 adapterConnectionState = adapterConnectionState,
                 bondState = bondState
             )
-            val rememberInquiry = (action == BluetoothDevice.ACTION_FOUND && scanningRequested) ||
-                fromConnection
             val classify = fromConnection ||
                 ClassicDiscoveryPolicy.shouldApplyInquiryUpdate(
                     action = action,
                     scanningRequested = scanningRequested,
                     alreadySeenAddress = wasSeenInClassicInquiry(address),
-                    deviceClass = deviceClass
+                    deviceClass = deviceClass,
+                    extraRssi = extraRssi
                 )
-            if (rememberInquiry) {
+            if (
+                ClassicDiscoveryPolicy.shouldRememberInquiryAdvertiser(
+                    action = action,
+                    scanningRequested = scanningRequested,
+                    fromConnection = fromConnection,
+                    classify = classify
+                )
+            ) {
                 rememberSeenAdvertiser(
                     address = address,
                     rssi = extraRssi
@@ -226,7 +237,10 @@ class SmartGlassesDetector @Inject constructor(
                 return
             }
             scanCallbackHandler.post {
-                if (fromConnection) {
+                if (
+                    fromConnection ||
+                    BluetoothDeviceClassPolicy.isGlassesDeviceClass(deviceClass)
+                ) {
                     requestUuidRefreshIfNeeded(bluetoothDevice)
                 }
                 handleDetectionSignal(
@@ -806,11 +820,9 @@ class SmartGlassesDetector @Inject constructor(
         }
 
         val filter = IntentFilter().apply {
-            addAction(BluetoothDevice.ACTION_FOUND)
-            addAction(BluetoothDevice.ACTION_NAME_CHANGED)
-            addAction(BluetoothDevice.ACTION_CLASS_CHANGED)
-            addAction(BluetoothDevice.ACTION_UUID)
-            addAction(BluetoothDevice.ACTION_ALIAS_CHANGED)
+            ClassicDiscoveryPolicy.inquiryBroadcastActions().forEach { inquiryAction ->
+                addAction(inquiryAction)
+            }
             ConnectedDevicePolicy.connectionBroadcastActions().forEach { connectionAction ->
                 addAction(connectionAction)
             }
