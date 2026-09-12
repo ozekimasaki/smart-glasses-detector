@@ -24,6 +24,7 @@ class PlayReleaseConfigTest {
         assertTrue(manifest.contains("android:intentMatchingFlags=\"enforceIntentFilter\""))
         assertFalse(manifest.contains("LOCKED_BOOT_COMPLETED"))
         assertFalse(manifest.contains("REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"))
+        assertFalse(locate("AGENTS.md").readText().contains("LOCKED_BOOT_COMPLETED"))
 
         val privacy = locate("app/src/main/res/values/strings.xml").readText()
         assertTrue(

@@ -298,9 +298,11 @@ class SmartGlassesDetector @Inject constructor(
             return fromBytes
         }
 
-        return fromBytes.merge(
-            AdvertisementParser.parseAdvertisingDataMap(scanRecord.advertisingDataMap)
-        )
+        val snapshot = HashMap<Int, ByteArray>(scanRecord.advertisingDataMap.size)
+        for ((type, data) in scanRecord.advertisingDataMap) {
+            snapshot[type] = data.copyOf()
+        }
+        return fromBytes.merge(AdvertisementParser.parseAdvertisingDataMap(snapshot))
     }
 
     private fun extractCompanyIds(scanRecord: ScanRecord): Set<Int> {
@@ -323,7 +325,7 @@ class SmartGlassesDetector @Inject constructor(
         for (index in 0 until manufacturerSpecificData.size) {
             val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(
                 companyId = manufacturerSpecificData.keyAt(index),
-                payload = manufacturerSpecificData.valueAt(index) ?: byteArrayOf()
+                payload = (manufacturerSpecificData.valueAt(index) ?: byteArrayOf()).copyOf()
             )
             parts += encoded
             totalSize += encoded.size
@@ -706,12 +708,6 @@ class SmartGlassesDetector @Inject constructor(
             throw IllegalStateException("Bluetooth adapter is unavailable.")
         }
 
-        if (!hasRequiredScanPermission()) {
-            _isScanning.value = false
-            _hardwareScanRunning.value = false
-            throw SecurityException("Bluetooth scan permission is missing.")
-        }
-
         lastSensitivity = sensitivity
         val alreadyRequested = userRequestedScanning.getAndSet(true)
         if (ScanResumePolicy.shouldResetScanSession(alreadyRequested)) {
@@ -727,12 +723,6 @@ class SmartGlassesDetector @Inject constructor(
             diagnosticWriteGate.clear()
             _nearbyDevices.value = emptyList()
         }
-        _isScanning.value = HardwareScanStatePolicy.isActive(
-            userRequestedScanning = true,
-            bluetoothEnabled = bluetoothAdapter.isEnabled,
-            scanPermissionGranted = true,
-            locationServicesSatisfied = isLocationServicesSatisfied()
-        )
         ensureClassicDiscoveryReceiverRegistered()
         ensureBluetoothStateReceiverRegistered()
         ensureLocationModeReceiverRegistered()
@@ -740,8 +730,22 @@ class SmartGlassesDetector @Inject constructor(
         startScanWatchdog()
         startNearbyPrune()
 
-        if (!bluetoothAdapter.isEnabled || !isLocationServicesSatisfied()) {
-            _hardwareScanRunning.value = false
+        val permissionGranted = hasRequiredScanPermission()
+        val bluetoothEnabled = bluetoothAdapter.isEnabled
+        val locationServicesSatisfied = isLocationServicesSatisfied()
+        _isScanning.value = HardwareScanStatePolicy.isActive(
+            userRequestedScanning = true,
+            bluetoothEnabled = bluetoothEnabled,
+            scanPermissionGranted = permissionGranted,
+            locationServicesSatisfied = locationServicesSatisfied
+        )
+
+        if (!permissionGranted || !bluetoothEnabled || !locationServicesSatisfied) {
+            pauseHardwareScan(
+                bluetoothEnabled = bluetoothEnabled,
+                locationServicesSatisfied = locationServicesSatisfied,
+                scanPermissionGranted = permissionGranted
+            )
             return
         }
 
@@ -760,6 +764,13 @@ class SmartGlassesDetector @Inject constructor(
         retryJob = null
         refreshBleScan()
         refreshClassicDiscoveryIfNeeded()
+    }
+
+    fun pauseHardwareKeepingSession() {
+        if (!userRequestedScanning.get()) {
+            return
+        }
+        pauseHardwareScan()
     }
 
     fun updateSensitivity(sensitivity: ScanSensitivity) {

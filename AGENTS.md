@@ -117,7 +117,7 @@ Linux / macOS では `./gradlew`、Windows では `scripts\gradlew-safe.cmd`（[
 2. **フォアグラウンドサービス**: `ScanningForegroundService` は `foregroundServiceType="connectedDevice"` で宣言済み。Android 14 以降は `startForeground()` に `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` を渡す。
 3. **release の署名**: `app/build.gradle.kts` はルートの `keystore.properties` があれば release 署名を設定する。存在しない場合 release は未署名になる。`keystore.properties` と keystore は**コミットしない**（テンプレートは `keystore.properties.example`）。
 4. **リリースビルドの縮小**: release は `isMinifyEnabled = true` / `isShrinkResources = true`。ProGuard/R8 ルールは `app/proguard-rules.pro` を編集する。難読化で壊れやすいクラス（リフレクション利用箇所等）に注意する。
-5. **起動・Bluetooth 復帰**: `BootReceiver` が `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` / Bluetooth ON を受け、探索中かつバックグラウンド許可時にフォアグラウンドサービスを再開する。Android 8+ の暗黙ブロードキャスト制限対策として `SmartGlassesDetectorApp` でも Bluetooth 状態を動的登録する。
+5. **起動・Bluetooth 復帰**: `BootReceiver` が `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` / `USER_UNLOCKED` / Bluetooth ON を受け、探索中かつバックグラウンド許可時にフォアグラウンドサービスを再開する。Play の制約のため、ロック中の起動完了インテントは使わない。Android 8+ の暗黙ブロードキャスト制限対策として `SmartGlassesDetectorApp` でも Bluetooth 状態を動的登録する。探索中に権限や Bluetooth が落ちてもサービスは維持し、ハードウェア探索だけ止めて復帰を待つ。
 6. **診断ログ**: `data/export/DiagnosticLogExporter` が JSON でエクスポートし、`FileProvider`（`${applicationId}.fileprovider`）経由で共有する。
 7. **テスト用エミュレータ**: `tools/ble_smartglasses_emulator.py` で BLE 広告を模擬送信できる（`Constants.kt` のメーカー定義に対応）。
 

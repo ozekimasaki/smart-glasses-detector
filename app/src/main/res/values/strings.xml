@@ -6,6 +6,7 @@
     <string name="notification_scanning_title">スマートグラスを探しています</string>
     <string name="notification_scanning_text_background">タップしてアプリを開く</string>
     <string name="notification_scanning_text_foreground">アプリを開いている間だけ探索します</string>
+    <string name="notification_scanning_text_waiting">準備ができたら探索を続けます</string>
     <string name="notification_detection_title">スマートグラスを見つけました！</string>
 
     <string name="history_title">見つけた記録</string>

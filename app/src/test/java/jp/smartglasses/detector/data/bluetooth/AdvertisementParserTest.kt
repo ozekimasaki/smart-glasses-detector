@@ -106,6 +106,29 @@ class AdvertisementParserTest {
     }
 
     @Test
+    fun `manufacturer tlv encoding copies the payload bytes`() {
+        val payload = byteArrayOf(0x11, 0x22, 0x33)
+        val encoded = AdvertisementParser.encodeManufacturerSpecificTlvBytes(0x01AB, payload)
+        payload[0] = 0x00
+
+        assertEquals(0x11.toByte(), encoded[4])
+        assertEquals(0x22.toByte(), encoded[5])
+        assertEquals(0x33.toByte(), encoded[6])
+    }
+
+    @Test
+    fun `copied advertising map bytes survive later mutation`() {
+        val original = byteArrayOf(0xC0.toByte(), 0x01)
+        val snapshot = mapOf(AdvertisementParser.AD_TYPE_APPEARANCE to original.copyOf())
+        original[0] = 0x40
+
+        val parsed = AdvertisementParser.parseAdvertisingDataMap(snapshot)
+
+        assertEquals(0x01C0, parsed.appearance)
+        assertTrue(AdvertisementParser.isEyeglassesAppearance(parsed.appearance))
+    }
+
+    @Test
     fun `parses manufacturer company id from advertisement`() {
         val parsed = AdvertisementParser.parse(
             byteArrayOf(0x05, 0xFF.toByte(), 0xAB.toByte(), 0x01, 0x00, 0x00)

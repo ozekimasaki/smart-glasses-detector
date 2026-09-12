@@ -28,6 +28,7 @@ import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
 import jp.smartglasses.detector.domain.service.BackgroundScanRuntimePolicy
+import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
 import jp.smartglasses.detector.domain.service.ScanResumePolicy
 import jp.smartglasses.detector.util.BackgroundScanSupport
@@ -62,10 +63,14 @@ class ScanningForegroundService : Service() {
 
     @Inject
     lateinit var settingsRepository: SettingsRepository
+
+    @Inject
+    lateinit var scanEnvironmentSignals: ScanEnvironmentSignals
     
     private val binder = LocalBinder()
     private var scanJob: Job? = null
     private var healthCheckJob: Job? = null
+    private var environmentWatchJob: Job? = null
     private var backgroundSettingsJob: Job? = null
     private var scanningStateJob: Job? = null
     private var sensitivityJob: Job? = null
@@ -167,33 +172,16 @@ class ScanningForegroundService : Service() {
                             scanPermissionGranted = bluetoothRepository.hasPermissions()
                         )
                     ) {
-                        pauseScanningKeepingIntent()
+                        pauseHardwareKeepingSession()
                     }
                 }
             }
 
             try {
-                if (!bluetoothRepository.hasPermissions()) {
-                    Log.w(TAG, "Missing Bluetooth permission. Pause until permission returns.")
-                    pauseScanningKeepingIntent()
-                    return@launch
-                }
-
-                if (!bluetoothRepository.isBluetoothEnabled()) {
-                    Log.w(TAG, "Bluetooth is disabled. Pause until it is turned on.")
-                    pauseScanningKeepingIntent()
-                    return@launch
-                }
-
-                if (!bluetoothRepository.isLocationServicesEnabled()) {
-                    Log.w(TAG, "Location services are disabled. Pause until they are enabled.")
-                    pauseScanningKeepingIntent()
-                    return@launch
-                }
-
                 persistScanningState(true)
-                bluetoothRepository.startScanning()
+                startOrPauseHardwareForCurrentEnvironment()
                 startHealthCheck()
+                startEnvironmentWatch()
 
                 try {
                     awaitCancellation()
@@ -202,12 +190,14 @@ class ScanningForegroundService : Service() {
                     scanFailureCollectionJob.cancel()
                     healthCheckJob?.cancel()
                     healthCheckJob = null
+                    environmentWatchJob?.cancel()
+                    environmentWatchJob = null
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start Bluetooth scanning", e)
-                pauseScanningKeepingIntent()
+                pauseHardwareKeepingSession()
             } finally {
                 scanJob = null
                 stopBluetoothScanSafely()
@@ -220,6 +210,24 @@ class ScanningForegroundService : Service() {
                 }
             }
         }
+    }
+
+    private suspend fun startOrPauseHardwareForCurrentEnvironment() {
+        try {
+            bluetoothRepository.startScanning()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start Bluetooth scanning", e)
+            bluetoothRepository.pauseHardwareKeepingSession()
+        }
+        refreshScanningNotification()
+    }
+
+    private fun pauseHardwareKeepingSession() {
+        if (isStopping.get()) {
+            return
+        }
+        bluetoothRepository.pauseHardwareKeepingSession()
+        refreshScanningNotification()
     }
 
     private fun stopScanningAndStopSelf() {
@@ -306,17 +314,19 @@ class ScanningForegroundService : Service() {
     }
 
     private fun createScanningNotification(): Notification {
+        val waitingForEnvironment = ScanResumePolicy.shouldPauseForLostEnvironment(
+            hasPermissions = bluetoothRepository.hasPermissions(),
+            bluetoothEnabled = bluetoothRepository.isBluetoothEnabled(),
+            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+        )
+        val contentText = when {
+            waitingForEnvironment -> getString(R.string.notification_scanning_text_waiting)
+            shouldKeepScanningInBackground() -> getString(R.string.notification_scanning_text_background)
+            else -> getString(R.string.notification_scanning_text_foreground)
+        }
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_SCANNING)
             .setContentTitle(getString(R.string.notification_scanning_title))
-            .setContentText(
-                getString(
-                    if (shouldKeepScanningInBackground()) {
-                        R.string.notification_scanning_text_background
-                    } else {
-                        R.string.notification_scanning_text_foreground
-                    }
-                )
-            )
+            .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification_scan)
             .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
@@ -373,6 +383,7 @@ class ScanningForegroundService : Service() {
         sensitivityJob?.cancel()
         alertSettingsJob?.cancel()
         healthCheckJob?.cancel()
+        environmentWatchJob?.cancel()
 
         if (!isStopping.get()) {
             runBlocking {
@@ -500,36 +511,58 @@ class ScanningForegroundService : Service() {
         healthCheckJob = scope.launch {
             while (true) {
                 delay(Constants.SCAN_HEALTH_CHECK_INTERVAL_MS)
-                val hasPermissions = bluetoothRepository.hasPermissions()
-                val bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
-                val locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
-                if (
-                    ScanResumePolicy.shouldPauseForLostEnvironment(
-                        hasPermissions = hasPermissions,
-                        bluetoothEnabled = bluetoothEnabled,
-                        locationServicesEnabled = locationServicesEnabled
-                    )
-                ) {
-                    Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
-                    pauseScanningKeepingIntent()
-                    return@launch
-                }
-                if (
-                    ScanResumePolicy.shouldRestartHardwareScan(
-                        hasPermissions = hasPermissions,
-                        bluetoothEnabled = bluetoothEnabled,
-                        locationServicesEnabled = locationServicesEnabled,
-                        hardwareScanning = bluetoothRepository.isHardwareScanRunning.first()
-                    )
-                ) {
-                    Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")
-                    try {
-                        bluetoothRepository.ensureHardwareScanning()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to restart Bluetooth scanning", e)
-                    }
-                }
+                applyEnvironmentState()
             }
+        }
+    }
+
+    private fun startEnvironmentWatch() {
+        environmentWatchJob?.cancel()
+        environmentWatchJob = scope.launch {
+            scanEnvironmentSignals.revision.collect {
+                applyEnvironmentState()
+            }
+        }
+    }
+
+    private suspend fun applyEnvironmentState() {
+        if (isStopping.get() || scanJob?.isActive != true) {
+            return
+        }
+
+        val hasPermissions = bluetoothRepository.hasPermissions()
+        val bluetoothEnabled = bluetoothRepository.isBluetoothEnabled()
+        val locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+        if (
+            ScanResumePolicy.shouldPauseForLostEnvironment(
+                hasPermissions = hasPermissions,
+                bluetoothEnabled = bluetoothEnabled,
+                locationServicesEnabled = locationServicesEnabled
+            )
+        ) {
+            Log.w(TAG, "Required scan permission, Bluetooth, or location services are no longer available.")
+            if (bluetoothRepository.isHardwareScanRunning.first()) {
+                pauseHardwareKeepingSession()
+            } else {
+                refreshScanningNotification()
+            }
+            return
+        }
+        if (
+            ScanResumePolicy.shouldRestartHardwareScan(
+                hasPermissions = hasPermissions,
+                bluetoothEnabled = bluetoothEnabled,
+                locationServicesEnabled = locationServicesEnabled,
+                hardwareScanning = bluetoothRepository.isHardwareScanRunning.first()
+            )
+        ) {
+            Log.w(TAG, "Hardware scan stopped while the environment is healthy; restarting")
+            try {
+                bluetoothRepository.ensureHardwareScanning()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to restart Bluetooth scanning", e)
+            }
+            refreshScanningNotification()
         }
     }
 

@@ -71,6 +71,13 @@ object ScanResumePolicy {
         return persistedIntent && (backgroundEnabled || appInForeground)
     }
 
+    fun shouldKeepForegroundServiceDuringEnvironmentPause(
+        backgroundEnabled: Boolean,
+        appInForeground: Boolean
+    ): Boolean {
+        return backgroundEnabled || appInForeground
+    }
+
     const val ACTION_BLUETOOTH_STATE_CHANGED = "android.bluetooth.adapter.action.STATE_CHANGED"
     const val ACTION_LOCATION_MODE_CHANGED = "android.location.MODE_CHANGED"
     const val ACTION_USER_UNLOCKED = "android.intent.action.USER_UNLOCKED"

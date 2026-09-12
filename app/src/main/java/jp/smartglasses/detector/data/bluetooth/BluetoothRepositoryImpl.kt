@@ -54,6 +54,10 @@ class BluetoothRepositoryImpl @Inject constructor(
     override fun ensureHardwareScanning() {
         smartGlassesDetector.ensureHardwareScanning()
     }
+
+    override fun pauseHardwareKeepingSession() {
+        smartGlassesDetector.pauseHardwareKeepingSession()
+    }
     
     override suspend fun stopScanning() {
         smartGlassesDetector.stopScanning()
