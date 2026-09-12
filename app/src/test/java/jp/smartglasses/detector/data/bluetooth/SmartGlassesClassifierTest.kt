@@ -347,6 +347,52 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `unknown manufacturer glass payload is detected at catalog distance`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "LE-Device",
+                address = "AA:BB:CC:DD:EE:06P",
+                companyIds = emptySet(),
+                rssi = -90,
+                advertisementDataHex = asciiToHex("UNKNOWN_GLASS_01")
+            )
+        )
+
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `hourglass manufacturer payload is not treated as glasses`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Kitchen-Timer",
+                address = "AA:BB:CC:DD:EE:06Q",
+                companyIds = emptySet(),
+                rssi = -50,
+                advertisementDataHex = asciiToHex("HOURGLASS")
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
+    fun `quest names stay ignored even with glasses manufacturer payload`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Quest 3",
+                address = "AA:BB:CC:DD:EE:06R",
+                companyIds = emptySet(),
+                rssi = -50,
+                advertisementDataHex = asciiToHex("META_RB_GLASS")
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
     fun `low power sensitivity ignores distant catalog matches`() {
         val detected = classifier.classify(
             DetectionSignal(
@@ -1068,7 +1114,7 @@ class SmartGlassesClassifierTest {
             .map { rule -> rule.manufacturerName }
             .toSet()
 
-        assertTrue(manufacturerNames.size >= 45)
+        assertTrue(manufacturerNames.size >= 50)
         listOf(
             "Vuzix",
             "Even Realities",
@@ -1082,10 +1128,34 @@ class SmartGlassesClassifierTest {
             "Tooz",
             "Engo",
             "Mentra",
-            "Xingyi"
+            "Xingyi",
+            "Xiaodu",
+            "Monako",
+            "iFLYTEK",
+            "Quark",
+            "Doubao",
+            "Everysight",
+            "OpenGlass",
+            "XRAI"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
+
+        val iflytek = Constants.SMART_GLASSES_DETECTION_RULES.first { rule ->
+            rule.manufacturerName == "iFLYTEK"
+        }
+        assertTrue("iFLYTEK company id should be configured", 0x0DF1 in iflytek.companyIds)
+        assertTrue("iFLYTEK company id must not match unnamed recorders", !iflytek.allowCompanyIdOnly)
+
+        val openGlass = Constants.SMART_GLASSES_DETECTION_RULES.first { rule ->
+            rule.manufacturerName == "OpenGlass"
+        }
+        assertTrue(
+            "OpenGlass must not use the Friend/Omi pendant UUID",
+            openGlass.serviceUuids.none { uuid ->
+                uuid.equals("19B10000-E8F2-537E-4F6C-D104768A1214", ignoreCase = true)
+            }
+        )
 
         val rokid = Constants.SMART_GLASSES_DETECTION_RULES.first { rule ->
             rule.manufacturerName == "Rokid"
@@ -1356,11 +1426,98 @@ class SmartGlassesClassifierTest {
                 rssi = -90
             )
         )
+        val xiaodu = classifier.classify(
+            DetectionSignal(
+                deviceName = "小度AI眼镜",
+                address = "AA:BB:CC:DD:EE:39I",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val monako = classifier.classify(
+            DetectionSignal(
+                deviceName = "Monako Glass",
+                address = "AA:BB:CC:DD:EE:39J",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
 
         assertEquals("Dymesty", dymesty?.manufacturer?.name)
         assertEquals("Snapchat", snapSpecs?.manufacturer?.name)
         assertEquals("XREAL", rogR1?.manufacturer?.name)
         assertEquals("Xiaomi", xiaomiChinese?.manufacturer?.name)
+        assertEquals("Xiaodu", xiaodu?.manufacturer?.name)
+        assertEquals("Monako", monako?.manufacturer?.name)
+    }
+
+    @Test
+    fun `2026 ai glasses brand names are detected at catalog distance`() {
+        val iflytek = classifier.classify(
+            DetectionSignal(
+                deviceName = "讯飞AI眼镜",
+                address = "AA:BB:CC:DD:EE:39K",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val quark = classifier.classify(
+            DetectionSignal(
+                deviceName = "夸克AI眼镜",
+                address = "AA:BB:CC:DD:EE:39L",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val doubao = classifier.classify(
+            DetectionSignal(
+                deviceName = "豆包AI眼镜",
+                address = "AA:BB:CC:DD:EE:39M",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val everysight = classifier.classify(
+            DetectionSignal(
+                deviceName = "Everysight Maverick",
+                address = "AA:BB:CC:DD:EE:39N",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val openGlass = classifier.classify(
+            DetectionSignal(
+                deviceName = "OpenGlass",
+                address = "AA:BB:CC:DD:EE:39O",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val xrai = classifier.classify(
+            DetectionSignal(
+                deviceName = "XRAI Glass",
+                address = "AA:BB:CC:DD:EE:39P",
+                companyIds = emptySet(),
+                rssi = -90
+            )
+        )
+        val unnamedIflytekRecorder = classifier.classify(
+            DetectionSignal(
+                deviceName = null,
+                address = "AA:BB:CC:DD:EE:39Q",
+                companyIds = setOf(0x0DF1),
+                rssi = -50
+            )
+        )
+
+        assertEquals("iFLYTEK", iflytek?.manufacturer?.name)
+        assertEquals("Quark", quark?.manufacturer?.name)
+        assertEquals("Doubao", doubao?.manufacturer?.name)
+        assertEquals("Everysight", everysight?.manufacturer?.name)
+        assertEquals("OpenGlass", openGlass?.manufacturer?.name)
+        assertEquals("XRAI", xrai?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, iflytek?.manufacturer?.detectionMethod)
+        assertNull(unnamedIflytekRecorder)
     }
 
     @Test

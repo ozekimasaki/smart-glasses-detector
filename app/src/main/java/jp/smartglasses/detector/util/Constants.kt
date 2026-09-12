@@ -98,7 +98,17 @@ object Constants {
         Regex("""(?i)airtag"""),
         Regex("""(?i)smart[\s-]?tag"""),
         Regex("""(?i)smart[\s-]?band"""),
-        Regex("""(?i)smart[\s-]?ring""")
+        Regex("""(?i)smart[\s-]?ring"""),
+        Regex("""(?i)\bquest\b"""),
+        Regex("""(?i)oculus""")
+    )
+
+    // メーカーデータの ASCII に GLASS / EYEWEAR が載っている無名広告（未知メーカー）
+    // HOURGLASS / SUNGLASS は単語境界や区切りが無いので当てない
+    internal val GENERIC_STRONG_PAYLOAD_REGEXES = listOf(
+        Regex("""(?i)(?:^|[\s_\-./])glass(?:es)?(?:$|[\s_\-./0-9])"""),
+        Regex("""(?i)(?:^|[\s_\-./])eyewear(?:$|[\s_\-./0-9])"""),
+        Regex("""(?i)smart[\s-_]?glass""")
     )
 
     internal val SMART_GLASSES_DETECTION_RULES = listOf(
@@ -199,6 +209,7 @@ object Constants {
                 "OWNDAYS",
                 "华为眼镜",
                 "华为智能眼镜",
+                "华为AI眼镜",
                 "HW1001",
                 "HW1002",
                 "HWF2003N",
@@ -685,7 +696,8 @@ object Constants {
                 "Honor Glass",
                 "Honor Glasses",
                 "荣耀眼镜",
-                "荣耀智能眼镜"
+                "荣耀智能眼镜",
+                "荣耀AI眼镜"
             ),
             allowCompanyIdOnly = false
         ),
@@ -780,6 +792,96 @@ object Constants {
         DetectionRule(
             manufacturerName = "Zungle",
             namePatterns = listOf("Zungle"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Xiaodu",
+            namePatterns = listOf(
+                "Xiaodu Glass",
+                "Xiaodu Glasses",
+                "Xiaodu AI Glass",
+                "小度眼镜",
+                "小度AI眼镜",
+                "小度智能眼镜",
+                "XD-SSL0101"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Monako",
+            namePatterns = listOf(
+                "Monako Glass",
+                "Monako Glasses",
+                "Monako"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "iFLYTEK",
+            // 録音ペンや翻訳機も同じ CID を使うため CID-only にはしない
+            companyIds = setOf(0x0DF1),
+            namePatterns = listOf(
+                "iFLYTEK Glass",
+                "iFLYTEK Glasses",
+                "iFLYTEK AI Glass",
+                "iFlytek Glass",
+                "讯飞眼镜",
+                "讯飞AI眼镜",
+                "讯飞智能眼镜",
+                "科大讯飞眼镜"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Quark",
+            namePatterns = listOf(
+                "Quark Glass",
+                "Quark Glasses",
+                "Quark AI Glass",
+                "夸克眼镜",
+                "夸克AI眼镜",
+                "夸克智能眼镜"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Doubao",
+            namePatterns = listOf(
+                "Doubao Glass",
+                "Doubao Glasses",
+                "Doubao AI Glass",
+                "豆包眼镜",
+                "豆包AI眼镜",
+                "豆包智能眼镜"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Everysight",
+            namePatterns = listOf(
+                "Everysight",
+                "Everysight Raptor",
+                "Everysight Maverick",
+                "Maverick AI Pro"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "OpenGlass",
+            // Friend/Omi ペンダントと同じ 19B10000 UUID は載せず、広告名だけ使う
+            namePatterns = listOf(
+                "OpenGlass",
+                "Open Glass"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "XRAI",
+            namePatterns = listOf(
+                "XRAI Glass",
+                "XRAI Glasses",
+                "XRAI"
+            ),
             allowCompanyIdOnly = false
         )
     )

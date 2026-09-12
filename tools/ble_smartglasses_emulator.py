@@ -95,6 +95,14 @@ NAME_PATTERN_DEVICES = {
     87: "スマートグラス",
     89: "MemoMind One",
     90: "Dymesty Cook Edge",
+    103: "小度AI眼镜",
+    104: "Monako Glass",
+    105: "讯飞AI眼镜",
+    106: "夸克AI眼镜",
+    107: "豆包AI眼镜",
+    108: "Everysight Maverick",
+    109: "OpenGlass",
+    110: "XRAI Glass",
 }
 
 UUID_DEVICES = {

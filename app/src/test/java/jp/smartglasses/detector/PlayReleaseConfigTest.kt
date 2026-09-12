@@ -33,6 +33,36 @@ class PlayReleaseConfigTest {
         )
     }
 
+    @Test
+    fun `gradle dependencies stay on the latest stable releases`() {
+        val catalog = locate("gradle/libs.versions.toml").readText()
+        val wrapper = locate("gradle/wrapper/gradle-wrapper.properties").readText()
+
+        mapOf(
+            "agp" to "9.4.0",
+            "kotlin" to "2.4.20",
+            "ksp" to "2.3.12",
+            "composeBom" to "2026.09.00",
+            "hilt" to "2.60.1",
+            "room" to "2.8.5",
+            "navigationCompose" to "2.10.1",
+            "datastore" to "1.2.1",
+            "lifecycleRuntimeKtx" to "2.11.0",
+            "activityCompose" to "1.13.0",
+            "coreKtx" to "1.19.0"
+        ).forEach { (key, version) ->
+            assertTrue(
+                "$key should be pinned to stable $version",
+                catalog.contains("""$key = "$version"""")
+            )
+        }
+
+        assertTrue(wrapper.contains("gradle-9.7.1-bin.zip"))
+        assertFalse(catalog.contains("9.5.0-alpha"))
+        assertFalse(catalog.contains("compose-bom-alpha"))
+        assertFalse(catalog.contains("1.3.0-alpha"))
+    }
+
     private fun locate(relativePath: String): File {
         val userDir = System.getProperty("user.dir")
             ?: error("user.dir is missing")

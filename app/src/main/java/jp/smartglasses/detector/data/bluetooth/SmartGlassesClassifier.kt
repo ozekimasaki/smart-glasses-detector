@@ -26,7 +26,8 @@ internal class SmartGlassesClassifier(
     private val detectionRules: List<DetectionRule> = Constants.SMART_GLASSES_DETECTION_RULES,
     private val genericStrongNameRegexes: List<Regex> = Constants.GENERIC_STRONG_GLASSES_NAME_REGEXES,
     private val genericWeakNameRegexes: List<Regex> = Constants.GENERIC_WEAK_GLASSES_NAME_REGEXES,
-    private val genericNonGlassesNameRegexes: List<Regex> = Constants.GENERIC_NON_GLASSES_NAME_REGEXES
+    private val genericNonGlassesNameRegexes: List<Regex> = Constants.GENERIC_NON_GLASSES_NAME_REGEXES,
+    private val genericStrongPayloadRegexes: List<Regex> = Constants.GENERIC_STRONG_PAYLOAD_REGEXES
 ) {
     fun classify(
         signal: DetectionSignal,
@@ -72,6 +73,11 @@ internal class SmartGlassesClassifier(
         ) ?: withEligibleRssi(
             signal = resolved,
             device = detectByAppearance(resolved),
+            matchClass = DetectionMatchClass.CATALOG,
+            sensitivity = sensitivity
+        ) ?: withEligibleRssi(
+            signal = resolved,
+            device = detectByHeuristicPayload(resolved),
             matchClass = DetectionMatchClass.CATALOG,
             sensitivity = sensitivity
         ) ?: withEligibleRssi(
@@ -282,12 +288,38 @@ internal class SmartGlassesClassifier(
         )
     }
 
+    private fun detectByHeuristicPayload(signal: DetectionSignal): SmartGlassesDevice? {
+        val payloadHex = signal.payloadHex()
+        if (payloadHex.isBlank()) {
+            return null
+        }
+        if (isExcludedHeuristic(signal)) {
+            return null
+        }
+
+        val asciiPayload = AdvertisementParser.asciiFromHex(payloadHex)
+        if (genericStrongPayloadRegexes.none { regex -> regex.containsMatchIn(asciiPayload) }) {
+            return null
+        }
+
+        return SmartGlassesDevice(
+            name = signal.deviceName ?: Constants.GENERIC_SMART_GLASSES_NAME,
+            address = signal.address,
+            manufacturer = Manufacturer(
+                id = signal.companyIds.firstOrNull(),
+                name = Constants.GENERIC_SMART_GLASSES_NAME,
+                detectionMethod = DetectionMethod.HEURISTIC
+            ),
+            rssi = signal.rssi
+        )
+    }
+
     private fun detectByHeuristicName(
         signal: DetectionSignal,
         nameRegexes: List<Regex>
     ): SmartGlassesDevice? {
         val deviceName = signal.deviceName ?: return null
-        if (genericNonGlassesNameRegexes.any { regex -> regex.containsMatchIn(deviceName) }) {
+        if (isExcludedHeuristic(signal)) {
             return null
         }
         if (nameRegexes.none { regex -> regex.containsMatchIn(deviceName) }) {
@@ -304,6 +336,22 @@ internal class SmartGlassesClassifier(
             ),
             rssi = signal.rssi
         )
+    }
+
+    private fun isExcludedHeuristic(signal: DetectionSignal): Boolean {
+        val deviceName = signal.deviceName
+        if (!deviceName.isNullOrBlank() &&
+            genericNonGlassesNameRegexes.any { regex -> regex.containsMatchIn(deviceName) }
+        ) {
+            return true
+        }
+
+        val matchingRules = detectionRules.filter { rule ->
+            signal.companyIds.any { companyId -> companyId in rule.companyIds }
+        }
+        return matchingRules.isNotEmpty() && matchingRules.all { rule ->
+            rule.excludesName(signal.deviceName)
+        }
     }
 
     private fun DetectionRule.matchesDeviceName(deviceName: String): Boolean {

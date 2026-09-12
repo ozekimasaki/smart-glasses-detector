@@ -144,7 +144,15 @@ class EmulatedAdvertisementCoverageTest {
             catalog.nameDevices.any { device -> device.name == "Smart Glasses" } &&
                 catalog.nameDevices.any { device -> device.name == "スマートグラス" } &&
                 catalog.nameDevices.any { device -> device.name == "MemoMind One" } &&
-                catalog.nameDevices.any { device -> device.name == "Dymesty Cook Edge" }
+                catalog.nameDevices.any { device -> device.name == "Dymesty Cook Edge" } &&
+                catalog.nameDevices.any { device -> device.name == "小度AI眼镜" } &&
+                catalog.nameDevices.any { device -> device.name == "Monako Glass" } &&
+                catalog.nameDevices.any { device -> device.name == "讯飞AI眼镜" } &&
+                catalog.nameDevices.any { device -> device.name == "夸克AI眼镜" } &&
+                catalog.nameDevices.any { device -> device.name == "豆包AI眼镜" } &&
+                catalog.nameDevices.any { device -> device.name == "Everysight Maverick" } &&
+                catalog.nameDevices.any { device -> device.name == "OpenGlass" } &&
+                catalog.nameDevices.any { device -> device.name == "XRAI Glass" }
         )
 
         catalog.nameDevices.forEach { device ->
