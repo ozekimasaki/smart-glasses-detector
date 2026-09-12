@@ -53,6 +53,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -74,6 +75,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.model.DetectionLog
 import jp.smartglasses.detector.domain.model.SmartGlassesDevice
+import jp.smartglasses.detector.domain.service.ScanRestorePrompt
 import jp.smartglasses.detector.presentation.components.BottomNavigationBar
 import jp.smartglasses.detector.presentation.history.components.LogItem
 import jp.smartglasses.detector.presentation.navigation.Screen
@@ -89,6 +91,7 @@ fun MainScreen(
     val recentDetections by viewModel.recentDetections.collectAsStateWithLifecycle()
     val nearbyDevices by viewModel.nearbyDevices.collectAsStateWithLifecycle()
     val backgroundScanningEnabled by viewModel.backgroundScanningEnabled.collectAsStateWithLifecycle()
+    val restorePrompt by viewModel.restorePrompt.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -108,6 +111,11 @@ fun MainScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         viewModel.onScanPermissionsResolved(permissions.values.all { granted -> granted })
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshScanBlockers()
+        onPauseOrDispose { }
     }
 
     LaunchedEffect(Unit) {
@@ -201,6 +209,14 @@ fun MainScreen(
             }
 
             if (isScanning) Spacer(modifier = Modifier.height(20.dp))
+
+            if (restorePrompt != ScanRestorePrompt.None) {
+                ScanRestoreBanner(
+                    prompt = restorePrompt,
+                    onClick = { viewModel.restoreScanningEnvironment() }
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
             // ─── アクションボタン ───
             ScanActionButton(
@@ -505,6 +521,46 @@ private fun ScanActionButton(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ScanRestoreBanner(
+    prompt: ScanRestorePrompt,
+    onClick: () -> Unit
+) {
+    val messageRes = when (prompt) {
+        ScanRestorePrompt.ScanPermission -> R.string.main_permission_restore_message
+        ScanRestorePrompt.Location -> R.string.main_location_restore_message
+        ScanRestorePrompt.None -> return
+    }
+    val actionRes = when (prompt) {
+        ScanRestorePrompt.ScanPermission -> R.string.main_restore_action
+        ScanRestorePrompt.Location -> R.string.main_location_restore_action
+        ScanRestorePrompt.None -> return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = stringResource(messageRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            lineHeight = 22.sp
+        )
+        Text(
+            text = stringResource(actionRes),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = BrandOrange
+        )
     }
 }
 

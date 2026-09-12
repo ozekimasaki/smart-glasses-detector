@@ -42,6 +42,30 @@ object ScanUiStatePolicy {
     fun isScanning(persistedIntent: Boolean, hardwareScanning: Boolean): Boolean {
         return persistedIntent || hardwareScanning
     }
+
+    fun restorePrompt(
+        persistedIntent: Boolean,
+        hasScanPermissions: Boolean,
+        requiresLocationServices: Boolean,
+        locationServicesEnabled: Boolean
+    ): ScanRestorePrompt {
+        if (!persistedIntent) {
+            return ScanRestorePrompt.None
+        }
+        if (!hasScanPermissions) {
+            return ScanRestorePrompt.ScanPermission
+        }
+        if (requiresLocationServices && !locationServicesEnabled) {
+            return ScanRestorePrompt.Location
+        }
+        return ScanRestorePrompt.None
+    }
+}
+
+enum class ScanRestorePrompt {
+    None,
+    ScanPermission,
+    Location
 }
 
 object BackgroundScanRuntimePolicy {

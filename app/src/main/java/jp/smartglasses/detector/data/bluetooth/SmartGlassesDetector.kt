@@ -28,6 +28,8 @@ import jp.smartglasses.detector.domain.model.SmartGlassesDevice
 import jp.smartglasses.detector.domain.model.deduplicationKey
 import jp.smartglasses.detector.domain.model.hasPayload
 import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
+import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
+import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.ScanFailurePolicy
@@ -76,6 +78,7 @@ class SmartGlassesDetector @Inject constructor(
     private val userRequestedScanning = AtomicBoolean(false)
     private var lastSensitivity: ScanSensitivity = ScanSensitivity.BALANCED
     private var usingExtendedAdvertising = true
+    private var usingMatchAllFilter = true
     private var retryAttempt = 0
     private var scanWatchdogJob: Job? = null
     private var nearbyPruneJob: Job? = null
@@ -142,13 +145,28 @@ class SmartGlassesDetector @Inject constructor(
 
             if (
                 ScanFailurePolicy.shouldFallbackToLegacy(errorCode) &&
-                usingExtendedAdvertising &&
                 userRequestedScanning.get()
             ) {
-                Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
-                usingExtendedAdvertising = false
-                startLeAndClassicScanning()
-                return
+                when (
+                    BleScanCompatibilityPolicy.nextStep(
+                        usingMatchAllFilter = usingMatchAllFilter,
+                        usingExtendedAdvertising = usingExtendedAdvertising
+                    )
+                ) {
+                    BleScanCompatibilityStep.DROP_MATCH_ALL_FILTER -> {
+                        Log.w(TAG, "Match-all BLE scan filter is unsupported, falling back to an unfiltered scan")
+                        usingMatchAllFilter = false
+                        startLeAndClassicScanning()
+                        return
+                    }
+                    BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
+                        Log.w(TAG, "Extended BLE scan is unsupported, falling back to legacy advertisements")
+                        usingExtendedAdvertising = false
+                        startLeAndClassicScanning()
+                        return
+                    }
+                    BleScanCompatibilityStep.NONE -> Unit
+                }
             }
 
             if (ScanFailurePolicy.isRecoverable(errorCode) && userRequestedScanning.get()) {
@@ -428,6 +446,7 @@ class SmartGlassesDetector @Inject constructor(
         lastSensitivity = sensitivity
         userRequestedScanning.set(true)
         usingExtendedAdvertising = true
+        usingMatchAllFilter = true
         classicDiscoveryStarted.set(false)
         _isScanning.value = true
         retryAttempt = 0
@@ -526,12 +545,16 @@ class SmartGlassesDetector @Inject constructor(
         extendedAdvertising: Boolean
     ) {
         val settings = buildScanSettings(lastSensitivity, extendedAdvertising)
-        try {
-            scanner.startScan(matchAllScanFilters(), settings, scanCallback)
-        } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
-            scanner.startScan(null, settings, scanCallback)
+        if (usingMatchAllFilter) {
+            try {
+                scanner.startScan(matchAllScanFilters(), settings, scanCallback)
+                return
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Match-all BLE scan filter was rejected, falling back to an unfiltered scan", e)
+                usingMatchAllFilter = false
+            }
         }
+        scanner.startScan(null, settings, scanCallback)
     }
 
     @SuppressLint("MissingPermission")

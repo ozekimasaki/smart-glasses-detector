@@ -174,6 +174,20 @@ class SmartGlassesClassifierTest {
     }
 
     @Test
+    fun `huawei earbuds are not treated as glasses from company id`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "HUAWEI FreeBuds Pro",
+                address = "AA:BB:CC:DD:EE:08B",
+                companyIds = setOf(0x027D),
+                rssi = -50
+            )
+        )
+
+        assertNull(detected)
+    }
+
+    @Test
     fun `distant catalog matches remain detectable at balanced sensitivity`() {
         val detected = classifier.classify(
             DetectionSignal(

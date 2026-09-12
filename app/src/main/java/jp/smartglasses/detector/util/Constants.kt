@@ -167,6 +167,14 @@ object Constants {
                 "HWF2004N",
                 "HWF2005N",
                 "HWF2006N"
+            ),
+            excludedNamePatterns = listOf(
+                "FreeBuds",
+                "FreeLace",
+                "Watch GT",
+                "Watch FIT",
+                "Watch Fit",
+                "Band"
             )
         ),
         DetectionRule(

@@ -106,6 +106,46 @@ class ScanStartPolicyTest {
     }
 
     @Test
+    fun `asks to restore scan permission while the user still wants to scan`() {
+        assertEquals(
+            ScanRestorePrompt.ScanPermission,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = true,
+                hasScanPermissions = false,
+                requiresLocationServices = false,
+                locationServicesEnabled = true
+            )
+        )
+        assertEquals(
+            ScanRestorePrompt.Location,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = true,
+                hasScanPermissions = true,
+                requiresLocationServices = true,
+                locationServicesEnabled = false
+            )
+        )
+        assertEquals(
+            ScanRestorePrompt.None,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = false,
+                hasScanPermissions = false,
+                requiresLocationServices = true,
+                locationServicesEnabled = false
+            )
+        )
+        assertEquals(
+            ScanRestorePrompt.None,
+            ScanUiStatePolicy.restorePrompt(
+                persistedIntent = true,
+                hasScanPermissions = true,
+                requiresLocationServices = false,
+                locationServicesEnabled = false
+            )
+        )
+    }
+
+    @Test
     fun `background disable stops the service only after leaving the app`() {
         assertFalse(
             BackgroundScanRuntimePolicy.shouldStopService(

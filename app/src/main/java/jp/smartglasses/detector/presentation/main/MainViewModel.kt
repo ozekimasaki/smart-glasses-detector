@@ -8,6 +8,7 @@ import jp.smartglasses.detector.R
 import jp.smartglasses.detector.domain.repository.BluetoothRepository
 import jp.smartglasses.detector.domain.repository.DetectionLogRepository
 import jp.smartglasses.detector.domain.repository.SettingsRepository
+import jp.smartglasses.detector.domain.service.ScanRestorePrompt
 import jp.smartglasses.detector.domain.service.ScanStartPolicy
 import jp.smartglasses.detector.domain.service.ScanStartRequirement
 import jp.smartglasses.detector.domain.service.ScanUiStatePolicy
@@ -15,6 +16,7 @@ import jp.smartglasses.detector.domain.usecase.StartScanningUseCase
 import jp.smartglasses.detector.domain.usecase.StopScanningUseCase
 import jp.smartglasses.detector.util.BackgroundScanSupport
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -82,7 +84,37 @@ class MainViewModel @Inject constructor(
         .map { BackgroundScanSupport.isEnabled(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
+    private val scanBlockerRefresh = MutableStateFlow(0)
+    val restorePrompt = combine(
+        settingsRepository.isScanning,
+        scanBlockerRefresh
+    ) { persistedIntent, _ ->
+        ScanUiStatePolicy.restorePrompt(
+            persistedIntent = persistedIntent,
+            hasScanPermissions = bluetoothRepository.hasPermissions(),
+            requiresLocationServices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+            locationServicesEnabled = bluetoothRepository.isLocationServicesEnabled()
+        )
+    }.stateIn(viewModelScope, SharingStarted.Lazily, ScanRestorePrompt.None)
+
     private var notificationPrompted = false
+
+    fun refreshScanBlockers() {
+        scanBlockerRefresh.value += 1
+    }
+
+    fun restoreScanningEnvironment() {
+        when (restorePrompt.value) {
+            ScanRestorePrompt.ScanPermission -> viewModelScope.launch {
+                _event.send(MainEvent.RequestScanPermissions)
+            }
+            ScanRestorePrompt.Location -> viewModelScope.launch {
+                _event.send(MainEvent.ShowMessage(R.string.error_location_pre_s))
+                _event.send(MainEvent.OpenLocationSettings)
+            }
+            ScanRestorePrompt.None -> refreshScanBlockers()
+        }
+    }
 
     fun toggleScanning() {
         if (isScanning.value) {
@@ -144,6 +176,7 @@ class MainViewModel @Inject constructor(
 
     fun onScanPermissionsResolved(granted: Boolean) {
         if (granted) {
+            refreshScanBlockers()
             startScanning()
             return
         }
