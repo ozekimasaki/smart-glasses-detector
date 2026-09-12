@@ -63,6 +63,20 @@ class PlayReleaseConfigTest {
         assertFalse(catalog.contains("1.3.0-alpha"))
     }
 
+    @Test
+    fun `github release workflow publishes signed apk on version tags`() {
+        val workflow = locate(".github/workflows/release.yml").readText()
+        assertTrue(workflow.contains("tags:"))
+        assertTrue(workflow.contains("\"v*\""))
+        assertTrue(workflow.contains("assembleRelease"))
+        assertTrue(workflow.contains("bundleRelease"))
+        assertTrue(workflow.contains("softprops/action-gh-release@v3"))
+        assertTrue(workflow.contains("app-release.apk"))
+        assertTrue(workflow.contains("contents: write"))
+        assertTrue(workflow.contains("apksigner"))
+        assertFalse(workflow.contains("LOCKED_BOOT_COMPLETED"))
+    }
+
     private fun locate(relativePath: String): File {
         val userDir = System.getProperty("user.dir")
             ?: error("user.dir is missing")

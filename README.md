@@ -148,7 +148,7 @@ Kotlin コンパイル（型チェックを兼ねる）は `assembleDebug` な�
 
 ## GitHub Release について
 
-このリポジトリの Release は公開配布にも使えますが、署名鍵は GitHub や repo に保存しません。署名済み APK / AAB を公開する場合は、ローカルの `keystore.properties` と keystore を使って生成してから Release に添付します。
+`versionName` と同じ tag（例: `v1.1.18`）を push すると、GitHub Actions が署名済み `app-release.apk` を [Releases](https://github.com/ozekimasaki/smart-glasses-detector/releases) に添付します。
 
 - 署名手順: [`docs/github-release-signing.md`](docs/github-release-signing.md)
 - Play 公開チェック: [`docs/play-release-checklist.md`](docs/play-release-checklist.md)
