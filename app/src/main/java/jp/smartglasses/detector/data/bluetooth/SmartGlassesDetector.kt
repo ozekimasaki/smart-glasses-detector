@@ -1114,9 +1114,16 @@ class SmartGlassesDetector @Inject constructor(
                 when (
                     BleScanCompatibilityPolicy.nextStep(
                         usingMatchAllFilter = usingMatchAllFilter,
-                        usingExtendedAdvertising = usingExtendedAdvertising
+                        usingExtendedAdvertising = usingExtendedAdvertising,
+                        usingPendingIntentScan = usingPendingIntentScan
                     )
                 ) {
+                    BleScanCompatibilityStep.DROP_PENDING_INTENT_SCAN -> {
+                        Log.w(TAG, "Dual BLE scan was rejected, falling back to callback-only scanning", e)
+                        rejectPendingIntentScan()
+                        startLeScan(scanner, extendedAdvertising)
+                        return
+                    }
                     BleScanCompatibilityStep.DISABLE_EXTENDED_ADVERTISING -> {
                         Log.w(TAG, "Match-all BLE scan with extended advertising was rejected, retrying legacy advertisements", e)
                         usingExtendedAdvertising = false
