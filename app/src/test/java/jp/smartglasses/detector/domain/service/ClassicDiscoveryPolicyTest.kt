@@ -26,6 +26,9 @@ class ClassicDiscoveryPolicyTest {
             ClassicDiscoveryPolicy.startDelayMs(immediate = false)
         )
     }
+
+    @Test
+    fun `classic discovery waits so ble advertisements are not starved at start`() {
         assertEquals(15_000L, Constants.CLASSIC_DISCOVERY_DELAY_MS)
         assertEquals(
             Constants.CLASSIC_DISCOVERY_DELAY_MS,
