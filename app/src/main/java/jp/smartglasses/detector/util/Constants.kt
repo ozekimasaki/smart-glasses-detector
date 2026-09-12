@@ -109,6 +109,17 @@ object Constants {
         Regex("""ロービジョングラス"""),
         Regex("""HUDグラス"""),
         Regex("""hudグラス"""),
+        Regex("""(?i)smart[\s-]?goggle"""),
+        Regex("""(?i)\b(?:ai|ar|xr|mr)[\s-]?goggle"""),
+        Regex("""(?i)hud[\s-]?goggle"""),
+        Regex("""スマートゴーグル"""),
+        Regex("""ARゴーグル"""),
+        Regex("""XRゴーグル"""),
+        Regex("""HUDゴーグル"""),
+        Regex("""智能护目镜"""),
+        Regex("""智能護目鏡"""),
+        Regex("""智能雪镜"""),
+        Regex("""智能雪鏡"""),
         Regex("""スマートアイウェア"""),
         Regex("""スマートサングラス"""),
         Regex("""スマートめがね"""),
@@ -934,7 +945,12 @@ object Constants {
                 "OhO Brave",
                 "OhO Globe",
                 "GlobeEar",
-                "Globe Ear"
+                "Globe Ear",
+                "OhO Skyshot",
+                "OHO Skyshot",
+                "Skyshot",
+                "OhO Goggle",
+                "OhO Goggles"
             ),
             allowCompanyIdOnly = false
         ),
@@ -1442,6 +1458,31 @@ object Constants {
         DetectionRule(
             manufacturerName = "Intel",
             namePatterns = listOf("Intel Vaunt", "Vaunt"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "REKKIE",
+            namePatterns = listOf("REKKIE", "Rekkie"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "RideOn",
+            namePatterns = listOf(
+                "RideOn AR",
+                "RideOn Goggle",
+                "RideOn Goggles",
+                "RideOn Glass"
+            ),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "RealMax",
+            namePatterns = listOf("RealMax", "Realmax Qian", "RealMax Qian"),
+            allowCompanyIdOnly = false
+        ),
+        DetectionRule(
+            manufacturerName = "Toshiba",
+            namePatterns = listOf("dynaEdge", "DynaEdge XR1", "dynaEdge XR"),
             allowCompanyIdOnly = false
         )
     )

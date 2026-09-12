@@ -189,6 +189,12 @@ NAME_PATTERN_DEVICES = {
     198: "INAIR 2 Pro",
     199: "Varia Vision",
     200: "Intel Vaunt",
+    207: "REKKIE",
+    208: "RideOn AR",
+    209: "RealMax Qian",
+    210: "dynaEdge XR1",
+    211: "OhO Skyshot",
+    212: "Smart Goggles",
 }
 
 UUID_DEVICES = {
@@ -236,6 +242,7 @@ NON_GLASSES_NAME_DEVICES = {
     204: "JBL Tune 510BT",
     205: "INAIR Pod",
     206: "Garmin Fenix 8",
+    213: "Ski Goggles",
 }
 
 

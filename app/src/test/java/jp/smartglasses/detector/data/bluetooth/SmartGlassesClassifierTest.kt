@@ -1186,7 +1186,11 @@ class SmartGlassesClassifierTest {
             "Epiphany",
             "INAIR",
             "Garmin",
-            "Intel"
+            "Intel",
+            "REKKIE",
+            "RideOn",
+            "RealMax",
+            "Toshiba"
         ).forEach { name ->
             assertTrue("$name should be in the catalog", name in manufacturerNames)
         }
@@ -2892,6 +2896,75 @@ class SmartGlassesClassifierTest {
         assertEquals("Garmin", varia?.manufacturer?.name)
         assertNull(fenix)
         assertEquals("Luxottica", radarPace?.manufacturer?.name)
+    }
+
+    @Test
+    fun `smart goggles are detected while fashion ski goggles are ignored`() {
+        val smartGoggles = classifier.classify(
+            DetectionSignal(
+                deviceName = "Smart Goggles-01",
+                address = "AA:BB:CC:DD:EE:H1",
+                companyIds = emptySet(),
+                rssi = -80
+            )
+        )
+        val rekkie = classifier.classify(
+            DetectionSignal(
+                deviceName = "REKKIE",
+                address = "AA:BB:CC:DD:EE:H2",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val rideOn = classifier.classify(
+            DetectionSignal(
+                deviceName = "RideOn AR",
+                address = "AA:BB:CC:DD:EE:H3",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val realMax = classifier.classify(
+            DetectionSignal(
+                deviceName = "RealMax Qian",
+                address = "AA:BB:CC:DD:EE:H4",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val dynaEdge = classifier.classify(
+            DetectionSignal(
+                deviceName = "dynaEdge XR1",
+                address = "AA:BB:CC:DD:EE:H5",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val skyshot = classifier.classify(
+            DetectionSignal(
+                deviceName = "OhO Skyshot",
+                address = "AA:BB:CC:DD:EE:H6",
+                companyIds = emptySet(),
+                rssi = -60
+            )
+        )
+        val fashionGoggles = classifier.classify(
+            DetectionSignal(
+                deviceName = "Ski Goggles",
+                address = "AA:BB:CC:DD:EE:H7",
+                companyIds = emptySet(),
+                rssi = -50
+            )
+        )
+
+        assertEquals(Constants.GENERIC_SMART_GLASSES_NAME, smartGoggles?.manufacturer?.name)
+        assertEquals(DetectionMethod.HEURISTIC, smartGoggles?.manufacturer?.detectionMethod)
+        assertEquals("REKKIE", rekkie?.manufacturer?.name)
+        assertEquals("RideOn", rideOn?.manufacturer?.name)
+        assertEquals("RealMax", realMax?.manufacturer?.name)
+        assertEquals("Toshiba", dynaEdge?.manufacturer?.name)
+        assertEquals("OhO Sunshine", skyshot?.manufacturer?.name)
+        assertNull(fashionGoggles)
     }
 
     private fun asciiToHex(value: String): String {
