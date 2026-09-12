@@ -72,6 +72,8 @@ NAME_PATTERN_DEVICES = {
     58: "LCD008-10",
     59: "Halliday G2",
     60: "Glasses_A1B2",
+    62: "Solos AirGo3 1234",
+    63: "Solos AirGo 3 1234",
 }
 
 UUID_DEVICES = {

@@ -270,7 +270,9 @@ object Constants {
                 "Solos AirGo",
                 "AirGo Vision",
                 "AirGo 3",
-                "AirGo3"
+                "AirGo3",
+                "AirGo A5",
+                "AirGo V2"
             )
         ),
         DetectionRule(

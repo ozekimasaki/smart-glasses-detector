@@ -1277,6 +1277,36 @@ class SmartGlassesClassifierTest {
         assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
     }
 
+    @Test
+    fun `solos official airgo3 pairing name is detected as kopin`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Solos AirGo3 1234",
+                address = "AA:BB:CC:DD:EE:48",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("Kopin", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
+    @Test
+    fun `solos official airgo 3 spaced pairing name is detected as kopin`() {
+        val detected = classifier.classify(
+            DetectionSignal(
+                deviceName = "Solos AirGo 3 1234",
+                address = "AA:BB:CC:DD:EE:49",
+                companyIds = emptySet(),
+                rssi = -58
+            )
+        )
+
+        assertEquals("Kopin", detected?.manufacturer?.name)
+        assertEquals(DetectionMethod.DEVICE_NAME, detected?.manufacturer?.detectionMethod)
+    }
+
     private fun asciiToHex(value: String): String {
         return value.encodeToByteArray().joinToString("") { byte ->
             (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')

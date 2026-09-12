@@ -125,6 +125,18 @@ class DiagnosticSignalSupportTest {
     }
 
     @Test
+    fun `classic advertised name wins over a stale cached name`() {
+        val signal = ClassicDiscoverySignal(
+            deviceName = "Unknown",
+            extraName = "Solos AirGo3 1234",
+            address = "11:22:33:44:55:78",
+            rssi = -50
+        ).toDetectionSignal()
+
+        assertEquals("Solos AirGo3 1234", signal.deviceName)
+    }
+
+    @Test
     fun `classified smart glasses still produce a diagnostic log`() {
         val processed = ScanSignalProcessor().process(
             DetectionSignal(

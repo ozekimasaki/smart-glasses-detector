@@ -80,6 +80,14 @@ class EmulatedAdvertisementCoverageTest {
             "Rokid Glasses coded name should be in the emulator",
             catalog.nameDevices.any { device -> device.name == "Glasses_A1B2" }
         )
+        assertTrue(
+            "Solos AirGo3 pairing name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Solos AirGo3 1234" }
+        )
+        assertTrue(
+            "Solos AirGo 3 spaced pairing name should be in the emulator",
+            catalog.nameDevices.any { device -> device.name == "Solos AirGo 3 1234" }
+        )
 
         catalog.nameDevices.forEach { device ->
             val detected = classifier.classify(

@@ -34,6 +34,7 @@ import jp.smartglasses.detector.domain.repository.DiagnosticLogRepository
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityPolicy
 import jp.smartglasses.detector.domain.service.BleScanCompatibilityStep
 import jp.smartglasses.detector.domain.service.BleScanRefreshPolicy
+import jp.smartglasses.detector.domain.service.BluetoothAdvertisedNamePolicy
 import jp.smartglasses.detector.domain.service.ClassicDiscoveryPolicy
 import jp.smartglasses.detector.domain.service.HardwareScanStatePolicy
 import jp.smartglasses.detector.domain.service.ScanEnvironmentSignals
@@ -223,9 +224,13 @@ class SmartGlassesDetector @Inject constructor(
         val scanRecord = result.scanRecord
         val parsedAdvertisement = parseAdvertisement(scanRecord)
         return DetectionSignal(
-            deviceName = resolveDeviceName(result, scanRecord)
-                ?: parsedAdvertisement.completeName
-                ?: parsedAdvertisement.shortName,
+            deviceName = BluetoothAdvertisedNamePolicy.resolve(
+                parsedAdvertisement.completeName,
+                scanRecord?.deviceName,
+                parsedAdvertisement.shortName,
+                resolveCachedDeviceName(result.device),
+                resolveDeviceAlias(result.device)
+            ),
             address = resolveDeviceAddress(result),
             companyIds = (scanRecord?.let(::extractCompanyIds).orEmpty()) + parsedAdvertisement.companyIds,
             rssi = result.rssi,
@@ -305,8 +310,9 @@ class SmartGlassesDetector @Inject constructor(
     private fun handleClassicDiscoveryResult(intent: Intent) {
         val bluetoothDevice = intent.extractBluetoothDevice() ?: return
         val signal = ClassicDiscoverySignal(
-            deviceName = resolveDeviceName(bluetoothDevice),
+            deviceName = resolveCachedDeviceName(bluetoothDevice),
             extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME),
+            alias = resolveDeviceAlias(bluetoothDevice),
             address = resolveDeviceAddress(bluetoothDevice),
             rssi = intent.getShortExtra(
                 BluetoothDevice.EXTRA_RSSI,
@@ -325,25 +331,27 @@ class SmartGlassesDetector @Inject constructor(
         }
     }
 
-    private fun resolveDeviceName(result: ScanResult, scanRecord: ScanRecord?): String? {
-        if (!hasBluetoothConnectPermission()) {
-            return scanRecord?.deviceName
-        }
-
-        return try {
-            result.device.name ?: scanRecord?.deviceName
-        } catch (_: SecurityException) {
-            scanRecord?.deviceName
-        }
-    }
-
-    private fun resolveDeviceName(device: BluetoothDevice): String? {
+    @SuppressLint("MissingPermission")
+    private fun resolveCachedDeviceName(device: BluetoothDevice): String? {
         if (!hasBluetoothConnectPermission()) {
             return null
         }
 
         return try {
             device.name
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun resolveDeviceAlias(device: BluetoothDevice): String? {
+        if (!hasBluetoothConnectPermission()) {
+            return null
+        }
+
+        return try {
+            device.alias
         } catch (_: SecurityException) {
             null
         }
@@ -961,12 +969,16 @@ internal data class ClassicDiscoverySignal(
     val address: String,
     val rssi: Int,
     val extraName: String? = null,
+    val alias: String? = null,
     val deviceClass: Int? = null
 ) {
     fun toDetectionSignal(): DetectionSignal {
         return DetectionSignal(
-            deviceName = deviceName?.takeIf { it.isNotBlank() }
-                ?: extraName?.takeIf { it.isNotBlank() },
+            deviceName = BluetoothAdvertisedNamePolicy.resolve(
+                extraName,
+                deviceName,
+                alias
+            ),
             address = address,
             companyIds = emptySet(),
             rssi = rssi,
